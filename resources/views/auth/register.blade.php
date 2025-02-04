@@ -1,7 +1,7 @@
 <x-guest-layout>
     <div class="login-wrapper">
         <div class="login-box">
-            <h1 class="logo">Your Logo</h1>
+            <h1 class="logo">FarmSmart</h1>
             <h2>Register</h2>
             <form method="POST" action="{{ route('register') }}">
                 @csrf
