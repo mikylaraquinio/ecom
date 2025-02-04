@@ -10,15 +10,16 @@
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
         <!-- Styles / Scripts -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
         <link rel="stylesheet" href="{{ asset('css/style.css') }}">
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+        
 
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -29,8 +30,8 @@
                 {{ $slot }}
             </main>
 
-            <footer class="footer text-center text-white mt-5 p-3 bg-dark">
-                <p>&copy; 2025 All Rights Reserved - <a href="#" class="text-white" target="_blank">BUSINFO</a></p>
+            <footer class="footer text-center text-white mt-5 p-3">
+                <p>&copy; 2025 All Rights Reserved - <a href="#" class="text-white" target="_blank">BUSINFO-T3</a></p>
             </footer>
         </div>
     </body>

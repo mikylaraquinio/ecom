@@ -5,25 +5,86 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <div class="content-wrapper">
-                        <section>
-                            <div class="content">
-                                <div class="section-container-items">
-                                    <div class="container text-center">
-                                        <h1>FarmSmart</h1>
-                                        <h3>Livestock, Rice, Agriculture, Service</h3>
-                                        <a href="#" class="btn btn-success"><i class="bi bi-cart"></i> Buy Now for a Fair Price</a>
-                                    </div>
-                                </div>
-                            </div>  
-                        </section>
+    <section id="banner">
+        <div class="banner">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3 class="l-title">Harvest awaits at the Cooperative</h3>
+                        <p>Discover an extensive collection of agricultural products, from bestsellers to unique finds, curated to enhance your farming experience and inspire growth.</p>
+                    </div>
+                    <div class="col-md-6 d-flex justify-content-center">
+                        <img src="{{ asset('assets/farmer1.jpg') }}" class="img-fluid small-img" >
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
+
+    <section id="products">
+        <div class="container text-center">
+            <h1 class="p-title">TOP PRODUCTS</h1>
+            <div class="row">
+                <div class="col-lg-3 text-center">
+                    <div class="card border-0 bg-light mb-2 p-3">
+                        <div class="card-body">
+                            <img src="{{ asset('assets/farmer.jpg') }}" class="img-fluid">
+                            <h5 class="mt-3">Rice</h5>
+                            <p class="text-muted">5 Kilos</p>
+                            <h6>$34.5</h6>
+                            <button class="btn1 mt-2 w-100">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 text-center">
+                    <div class="card border-0 bg-light mb-2 p-3">
+                        <div class="card-body">
+                            <img src="{{ asset('assets/farmer.jpg') }}" class="img-fluid">
+                            <h5 class="mt-3">Corn</h5>
+                            <p class="text-muted">3 Kilos</p>
+                            <h6>$20.0</h6>
+                            <button class="btn1 mt-2 w-100">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 text-center">
+                    <div class="card border-0 bg-light mb-2 p-3">
+                        <div class="card-body">
+                            <img src="{{ asset('assets/farmer.jpg') }}" class="img-fluid">
+                            <h5 class="mt-3">Wheat</h5>
+                            <p class="text-muted">2 Kilos</p>
+                            <h6>$15.0</h6>
+                            <button class="btn1 mt-2 w-100">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 text-center">
+                    <div class="card border-0 bg-light mb-2 p-3">
+                        <div class="card-body">
+                            <img src="{{ asset('assets/tre.jpg') }}" class="img-fluid">
+                            <h5 class="mt-3">Barley</h5>
+                            <p class="text-muted">4 Kilos</p>
+                            <h6>$25.5</h6>
+                            <button class="btn1 mt-2 w-100">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <section id="start_now py-5" style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url(/assets/products.jpg) no-repeat right center;">
+        <div class="container text-white py-5">
+            <div class="row py-5">
+                <div class="col-lg-6">
+                    <h1 class="font-weight-bold py-3">Discover new products, shop our bestsellers today!</h1>
+                    <button class="btn1 mt-3">Start Now</button>
+                </div>
+            </div>
+        </div>
+    </section>
 </x-app-layout>

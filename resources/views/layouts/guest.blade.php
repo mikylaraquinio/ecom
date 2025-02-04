@@ -57,6 +57,10 @@
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100 dark:bg-gray-900">
             {{ $slot }}
         </div>
+
+        <footer class="footer text-center text-white mt-5 p-3">
+            <p>&copy; 2025 All Rights Reserved - <a href="#" class="text-white" target="_blank">BUSINFO-T3</a></p>
+        </footer>
     </body>
 
 
