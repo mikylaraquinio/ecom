@@ -22,7 +22,7 @@
                                         <i class="fa-solid fa-user"></i> {{ Auth::user()->name }}
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                        <li><a class="dropdown-item" href="{{ route('profile.edit') }}">Profile</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('user_profile') }}">Profile</a></li>
                                         <li>
                                             <form method="POST" action="{{ route('logout') }}">
                                                 @csrf

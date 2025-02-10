@@ -2,11 +2,14 @@ html, body {
     height: 100%;
     margin: 0;
     font-family: 'Poppins', sans-serif;
+    display: flex;
+    flex-direction: column;
 }
 
 .min-h-screen {
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
 }
 
 main {
@@ -267,4 +270,87 @@ main {
 
 .auth-footer {
     margin-top: 10px;
+}
+
+/* User Account - Responsive and Unified Styling */
+
+.ui-w-80 {
+    width: 80px !important;
+    height: auto;
+    max-width: 100%;
+}
+
+.btn {
+    cursor: pointer;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.btn-default {
+    border: 1px solid rgba(24, 28, 33, 0.1);
+    background: transparent;
+    color: #4E5155;
+}
+
+.btn-outline-primary {
+    border: 2px solid #26B4FF;
+    background: transparent;
+    color: #26B4FF;
+}
+
+.text-light {
+    color: #babbbc !important;
+}
+
+.btn-facebook {
+    background: #3B5998;
+    color: #fff;
+}
+
+.btn-instagram {
+    background: #000;
+    color: #fff;
+}
+
+.card {
+    background-clip: padding-box;
+    box-shadow: 0 1px 4px rgba(24, 28, 33, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.row-bordered {
+    overflow: hidden;
+}
+
+.account-settings-fileinput {
+    position: absolute;
+    visibility: hidden;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.account-settings-links .list-group-item {
+    padding: 12px 18px;
+    border: 1px solid rgba(24, 28, 33, 0.1);
+}
+
+.account-settings-links .list-group-item.active {
+    font-weight: bold !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    .card {
+        padding: 10px;
+    }
+    .account-settings-links .list-group-item {
+        padding: 10px 15px;
+    }
 }

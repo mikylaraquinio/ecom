@@ -22,8 +22,13 @@ Route::get('/welcome', function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+Route::get('/user_profile', function () {
+    return view('user_profile');
+})->middleware(['auth', 'verified'])->name('user_profile');
 
 require __DIR__.'/auth.php';
