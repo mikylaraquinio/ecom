@@ -11,7 +11,7 @@
                         @auth
                             <ul class="navbar-nav ms-auto">
                                 <li class="nav-item"><a class="nav-link active" href="{{ url('/welcome') }}">Home</a></li>
-                                <li class="nav-item"><a class="nav-link" href="#">Shop</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{{ route('shop') }}">Shop</a></li>
                                 <li class="nav-item"><a class="nav-link" href="#">Cart</a></li>
                                 <li class="nav-item"><a class="nav-link" href="#">About Us</a></li>
                                 <li class="nav-item"><a class="nav-link" href="#">Contact us</a></li>

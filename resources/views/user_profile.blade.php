@@ -23,7 +23,7 @@
 
         <!-- Button (Push to Right) -->
         <div>
-            <a href="#" class="btn btn-success d-flex align-items-center">
+            <a href="{{ route('farmers.sell') }}" class="btn btn-success d-flex align-items-center" data-toggle="modal" data-target="#ModalCreate">
                 <i class="fas fa-store mr-2"></i> Start Selling
             </a>
         </div>
@@ -37,9 +37,19 @@
             <div class="col-md-3">
                 <div class="card p-2">
                     <div class="list-group">
+                        <!-- Always visible (for both buyers & sellers) -->
                         <a class="list-group-item list-group-item-action active" data-toggle="pill" href="#user-dashboard">Dashboard</a>
                         <a class="list-group-item list-group-item-action" data-toggle="pill" href="#account-general">General Settings</a>
                         <a class="list-group-item list-group-item-action" data-toggle="pill" href="#account-change-password">Change Password</a>
+
+                        <!-- Only for sellers -->
+                        @if(auth()->user()->role === 'seller')
+                            <a class="list-group-item list-group-item-action" data-toggle="pill" href="#order-status">Order Status</a>
+                            <a class="list-group-item list-group-item-action" data-toggle="pill" href="#my-products">My Products</a>
+                            <a class="list-group-item list-group-item-action text-success" data-toggle="modal" data-target="#ModalCreate">
+                                <i class="fas fa-plus-circle"></i> Add Product
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -156,4 +166,7 @@
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+
+    @include('farmers.modal.sell')
 </x-app-layout>
