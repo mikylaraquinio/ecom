@@ -23,9 +23,9 @@
 
         <!-- Button (Push to Right) -->
         <div>
-            <a href="{{ route('farmers.sell') }}" class="btn btn-success d-flex align-items-center" data-toggle="modal" data-target="#ModalCreate">
-                <i class="fas fa-store mr-2"></i> Start Selling
-            </a>
+        <a href="{{ route('farmers.sell') }}" class="btn btn-success" data-toggle="modal" data-target="#ModalCreate">
+            <i class="fas fa-store mr-2"></i> Start Selling
+        </a>
         </div>
 
     </div>

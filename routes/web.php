@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\SellerController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -23,14 +24,6 @@ Route::get('/shop', function () {
 Route::get('/farmers/sell', [ProfileController::class, 'sell'])->name('farmers.sell');
 Route::post('/profile/sell', [ProfileController::class, 'storeSeller'])->name('profile.sell');
 
-
-
-/*Product*/
-Route::get('/', [ProductController::class, 'index'])->name('home');
-Route::resource('categories', CategoryController::class);
-Route::resource('products', ProductController::class);
-Route::get('/shop', [ProductController::class, 'index'])->name('shop');
-
 /*user*/
 
 Route::middleware(['auth'])->group(function () {
@@ -44,5 +37,27 @@ Route::get('/user_profile', function () {
     return view('user_profile');
 })->middleware(['auth', 'verified'])->name('user_profile');
 Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update')->middleware('auth');
+
+require __DIR__.'/auth.php';
+
+
+
+/* Farmers (Seller Registration) */
+Route::middleware(['auth'])->group(function () {
+    Route::get('/farmers/sell', [SellerController::class, 'sell'])->name('farmers.sell');
+    Route::post('/farmers/sell/store', [SellerController::class, 'storeSeller'])->name('farmers.storeSeller');
+
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+
+    Route::middleware(['role:seller'])->group(function () {
+        Route::get('/seller/dashboard', [SellerController::class, 'dashboard'])->name('seller.dashboard');
+    });
+});
+
+/* Products and Categories */
+Route::resource('categories', CategoryController::class);
+Route::resource('products', ProductController::class);
+Route::get('/shop', [ProductController::class, 'index'])->name('shop');
 
 require __DIR__.'/auth.php';
