@@ -7,52 +7,102 @@
             <div class="row justify-content-center">
                 <form method="GET" action="{{ route('shop') }}" class="col-md-6">
                     <div class="input-group">
-                        <select name="category" class="form-select" aria-label="Product Category">
+                        <select name="category" class="form-select" id="categorySelect">
                             <option value="">Select a Category</option>
-                            <option value="Fresh Produce" {{ request('category') == 'Fresh Produce' ? 'selected' : '' }}>Fresh Produce</option>
-                            <option value="Dairy Products" {{ request('category') == 'Dairy Products' ? 'selected' : '' }}>Dairy Products</option>
-                            <option value="Grains and Pulses" {{ request('category') == 'Grains and Pulses' ? 'selected' : '' }}>Grains and Pulses</option>
-                            <!-- Add other categories here -->
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
+                                    {{ $category->name }}
+                                </option>
+                            @endforeach
                         </select>
-                        <button type="submit" class="btn btn-primary">Search</button>
                     </div>
                 </form>
             </div>
         </div>
     </section>
 
+    <script>
+        document.getElementById('categorySelect').addEventListener('change', function () {
+            this.form.submit(); // Auto-submit form when category is selected
+        });
+    </script>
+
     <!-- Products Display -->
     <section class="py-5">
         <div class="container px-4 px-lg-5 mt-5">
             <div class="row gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
-                @if($products->isEmpty())
-                    <div class="col-12 text-center">
-                        <h4>No products available</h4>
-                    </div>
-                @else
-                    @foreach($products as $product)
-                        <div class="col mb-5">
-                            <div class="card h-100">
-                                <!-- Product image-->
-                                <img class="card-img-top" src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" />
-                                <!-- Product details-->
-                                <div class="card-body p-4">
-                                    <div class="text-center">
-                                        <!-- Product name-->
-                                        <h5 class="fw-bolder">{{ $product->name }}</h5>
-                                        <!-- Product price-->
-                                        ${{ number_format($product->price, 2) }}
+                <!-- Dynamic Products (Fetched from Database) -->
+                @foreach($products as $product)
+                                <div class="col mb-5">
+                                    <div class="product-box border p-3 shadow-sm rounded bg-white">
+                                        <div class="card h-100">
+                                            <!-- Fix: Displaying Image or Local Fallback Image -->
+                                            @php
+                                                $imageUrl = $product->image
+                                                    ? asset($product->image)
+                                                    : asset('assets/products.jpg');
+                                            @endphp
+                                            <img class="card-img-top" src="{{ $imageUrl }}" alt="{{ $product->name }}">
+                                            <div class="card-body p-4">
+                                                <div class="text-center">
+                                                    <h5 class="fw-bolder">{{ $product->name }}</h5>
+                                                    ${{ number_format($product->price, 2) }}
+                                                    <p>Category: {{ $product->category->name }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                                                <div class="text-center">
+                                                    <!-- Trigger Modal Button -->
+                                                    <button type="button" class="btn btn-outline-dark mt-auto" data-bs-toggle="modal"
+                                                        data-bs-target="#productModal{{ $product->id }}">
+                                                        View Details
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <!-- Product actions-->
-                                <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                    <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="#">View Details</a></div>
+
+                                <!-- Product Modal -->
+                                <div class="modal fade" id="productModal{{ $product->id }}" tabindex="-1"
+                                    aria-labelledby="productModalLabel{{ $product->id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="productModalLabel{{ $product->id }}">Product Details -
+                                                    {{ $product->name }}
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <!-- Image on Left -->
+                                                    <div class="col-md-4">
+                                                        <img class="img-fluid rounded" src="{{ $imageUrl }}" alt="{{ $product->name }}">
+                                                    </div>
+                                                    <!-- Texts on Right -->
+                                                    <div class="col-md-8">
+                                                        <h6>Product Name: {{ $product->name }}</h6>
+                                                        <p>Description: {{ $product->description }}</p>
+                                                        <p>Price: ${{ number_format($product->price, 2) }}</p>
+                                                        <p>Category: {{ $product->category->name }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer d-flex justify-content-end gap-2">
+                                                <button type="button" class="btn1 btn btn-secondary"
+                                                    data-bs-dismiss="modal">Close</button>
+                                                <button type="button" class="btn1 btn btn-primary">Add to Cart</button>
+                                            </div>
+
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    @endforeach
-                @endif
+
+                @endforeach
             </div>
         </div>
     </section>
+
 </x-app-layout>
