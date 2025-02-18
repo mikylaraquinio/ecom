@@ -81,41 +81,60 @@
 
                         <!-- General Settings -->
                         <div class="tab-pane fade" id="account-general">
-                            <form method="POST" action="{{ route('profile.update') }}">
-                                @csrf
-                                @method('PUT')
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Username</label>
-                                            <input type="text" class="form-control" name="username" value="{{ auth()->user()->username }}" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Phone</label>
-                                            <input type="text" class="form-control" name="phone" value="{{ auth()->user()->phone }}" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Birthdate</label>
-                                            <input type="date" class="form-control" name="birthdate" value="{{ auth()->user()->birthdate }}" required>
-                                        </div>
+                        <form method="POST" action="{{ route('profile.update') }}">
+                            @csrf
+                            @method('PUT')
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Username</label>
+                                        <input type="text" class="form-control" name="username" value="{{ old('username', auth()->user()->username) }}" required>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Name</label>
-                                            <input type="text" class="form-control" name="name" value="{{ auth()->user()->name }}" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Gender</label>
-                                            <input type="text" class="form-control" name="gender" value="{{ auth()->user()->gender }}" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Email</label>
-                                            <input type="email" class="form-control" name="email" value="{{ auth()->user()->email }}" required>
-                                        </div>
+                                    <div class="form-group">
+                                        <label>Phone</label>
+                                        <input type="text" class="form-control" name="phone" value="{{ old('phone', auth()->user()->phone) }}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Birthdate</label>
+                                        <input type="date" class="form-control" name="birthdate" value="{{ old('birthdate', auth()->user()->birthdate) }}" required>
                                     </div>
                                 </div>
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
-                            </form>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Name</label>
+                                        <input type="text" class="form-control" name="name" value="{{ old('name', auth()->user()->name) }}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Gender</label>
+                                        <select class="form-control" name="gender" required>
+                                            <option value="male" {{ auth()->user()->gender === 'male' ? 'selected' : '' }}>Male</option>
+                                            <option value="female" {{ auth()->user()->gender === 'female' ? 'selected' : '' }}>Female</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Email</label>
+                                        <input type="email" class="form-control" name="email" value="{{ old('email', auth()->user()->email) }}" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </form>
+
+                        @if(session('status'))
+                            <div class="alert alert-success">{{ session('status') }}</div>
+                        @endif
+
+                        @if($errors->any())
+                            <div class="alert alert-danger">
+                                <ul>
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                         </div>
 
                         <!-- Change Password Section -->

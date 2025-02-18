@@ -28,8 +28,14 @@ Route::post('/profile/sell', [ProfileController::class, 'storeSeller'])->name('p
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/sell', [ProfileController::class, 'sell'])->name('profile.sell');
+
+
+    Route::get('/user-profile', function () {
+        return view('user_profile');
+    })->name('user.profile');
 });
 
 
