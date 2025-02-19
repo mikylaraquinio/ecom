@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Category;  // Ensure the Category model is imported
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -58,4 +59,3 @@ class ProductController extends Controller
 }
 
 }
-
