@@ -3,59 +3,55 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use App\Models\Category;  // Ensure the Category model is imported
+use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $query = Product::query();
-
-        // Apply category filter if selected
-        if ($request->has('category') && $request->category != '') {
-            $query->where('category_id', $request->category); // Use category_id instead of category
-        }
-
-        // Fetch the products based on the filter
-        $products = $query->get();
-
-        // Fetch all categories
-        $categories = Category::all();  // Fetch categories
-
-        // Pass both products and categories to the view
+        $products = Product::all();
+        $categories = Category::all(); // ✅ Fetch categories
         return view('shop', compact('products', 'categories'));
     }
 
-    public function store(Request $request)
-{
-    // Validate incoming data
-    $validated = $request->validate([
-        'name' => 'required|string|max:255',
-        'description' => 'required|string',
-        'price' => 'required|numeric',
-        'category_id' => 'required|exists:categories,id',
-        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // image validation
-    ]);
-
-    // Handle image upload (if present)
-    $imagePath = null;
-    if ($request->hasFile('image')) {
-        $imagePath = $request->file('image')->store('product_images', 'public');
+    public function create()
+    {
+        $categories = Category::all();
+        return view('your-view-name', compact('categories'));
     }
 
-    // Create product
-    $product = Product::create([
-        'name' => $validated['name'],
-        'description' => $validated['description'],
-        'price' => $validated['price'],
-        'category_id' => $validated['category_id'],
-        'image' => $imagePath, // Store image path
-        'user_id' => auth()->id(), // Assuming the user is authenticated
-    ]);
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'category_id' => 'required|exists:categories,id',
+            'image' => 'nullable|image|max:2048',
+        ]);
 
-    // Redirect or return a response
-    return redirect()->route('products.index')->with('success', 'Product created successfully!');
+        $product = new Product();
+        $product->name = $request->name;
+        $product->description = $request->description;
+        $product->price = $request->price;
+        $product->category_id = $request->category_id;
+        $product->user_id = auth()->id(); // ✅ Assign the logged-in user's ID
+
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('products', 'public');
+            $product->image = $imagePath;
+        }
+
+        $product->save();
+
+        return redirect()->back()->with('success', 'Product added successfully!');
+    }
+
 }
 
-}
+
