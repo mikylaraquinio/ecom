@@ -88,8 +88,13 @@
                                     </div>
                                 </div>
                                 <div class="modal-footer d-flex justify-content-end gap-2">
+<<<<<<< Updated upstream
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                     <button type="button" class="btn btn-primary">Add to Cart</button>
+=======
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-success">Add Product</button>
+>>>>>>> Stashed changes
                                 </div>
                             </div>
                         </div>
