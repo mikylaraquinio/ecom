@@ -7,10 +7,23 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::all(); 
-        return view('shop', compact('products'));
+        $query = Product::query();
+
+        // Apply category filter if selected
+        if ($request->has('category') && $request->category != '') {
+            $query->where('category_id', $request->category); // Use category_id instead of category
+        }
+
+        // Fetch the products based on the filter
+        $products = $query->get();
+
+        // Fetch all categories
+        $categories = Category::all();  // Fetch categories
+
+        // Pass both products and categories to the view
+        return view('shop', compact('products', 'categories'));
     }
 
     public function store(Request $request)
