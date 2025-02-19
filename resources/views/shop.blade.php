@@ -62,43 +62,43 @@
                         </div>
                     </div>
 
-                    <!-- Product Modal -->
-                    <div class="modal fade" id="productModal{{ $product->id }}" tabindex="-1"
-                        aria-labelledby="productModalLabel{{ $product->id }}" aria-hidden="true">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Product Details - {{ $product->name }}</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                        aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="row">
-                                        <!-- Image on Left -->
-                                        <div class="col-md-4">
-                                            <img class="img-fluid rounded" src="{{ $imageUrl }}" alt="{{ $product->name }}">
-                                        </div>
-                                        <!-- Details on Right -->
-                                        <div class="col-md-8">
-                                            <h6>Product Name: {{ $product->name }}</h6>
-                                            <p>Description: {{ $product->description }}</p>
-                                            <p>Price: ${{ number_format($product->price, 2) }}</p>
-                                            <p>Category: {{ $product->category->name }}</p>
+                                <!-- Product Modal -->
+                                <div class="modal fade" id="productModal{{ $product->id }}" tabindex="-1"
+                                    aria-labelledby="productModalLabel{{ $product->id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="productModalLabel{{ $product->id }}">Product Details -
+                                                    {{ $product->name }}
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <!-- Image on Left -->
+                                                    <div class="col-md-4">
+                                                        <img class="img-fluid rounded" src="{{ $imageUrl }}" alt="{{ $product->name }}">
+                                                    </div>
+                                                    <!-- Texts on Right -->
+                                                    <div class="col-md-8">
+                                                        <h6>Product Name: {{ $product->name }}</h6>
+                                                        <p>Description: {{ $product->description }}</p>
+                                                        <p>Price: ${{ number_format($product->price, 2) }}</p>
+                                                        <p>Category: {{ $product->category->name }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer d-flex justify-content-end gap-2">
+                                                <button type="button" class="btn1 btn btn-secondary"
+                                                    data-bs-dismiss="modal">Close</button>
+                                                <button type="button" class="btn1 btn btn-primary">Add to Cart</button>
+                                            </div>
+
                                         </div>
                                     </div>
                                 </div>
-                                <div class="modal-footer d-flex justify-content-end gap-2">
-<<<<<<< Updated upstream
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="button" class="btn btn-primary">Add to Cart</button>
-=======
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" class="btn btn-success">Add Product</button>
->>>>>>> Stashed changes
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
                 @endforeach
             </div>
         </div>
