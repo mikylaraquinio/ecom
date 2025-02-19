@@ -31,8 +31,20 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'email' => [
+        'required',
+        'email',
+        'max:255',
+        function ($attribute, $value, $fail) {
+            $allowedDomains = ['gmail.com', 'yahoo.com', 'icloud.com']; 
+            $domain = substr(strrchr($value, "@"), 1); 
+
+            if (!in_array($domain, $allowedDomains)) {
+                $fail("Only Gmail, Yahoo, and iCloud emails are allowed.");
+            }
+        },
+    ],
+    'password' => 'required|min:8',
         ]);
 
         $user = User::create([

@@ -22,9 +22,33 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
-        $request->authenticate();
+        // Define allowed email domains
+        $allowedDomains = ['gmail.com', 'yahoo.com', 'icloud.com'];
+        
+        // Extract domain from email
+        $email = $request->input('email');
+        $domain = substr(strrchr($email, "@"), 1);
+
+        // Validate email and password
+        $request->validate([
+            'email' => [
+                'required',
+                'email',
+                function ($attribute, $value, $fail) use ($allowedDomains, $domain) {
+                    if (!in_array($domain, $allowedDomains)) {
+                        $fail("Only Gmail, Yahoo, and iCloud emails are allowed.");
+                    }
+                },
+            ],
+            'password' => 'required',
+        ]);
+
+        // Attempt authentication
+        if (!Auth::attempt($request->only('email', 'password'), $request->filled('remember'))) {
+            return back()->withErrors(['email' => 'Invalid login credentials.']);
+        }
 
         $request->session()->regenerate();
 
