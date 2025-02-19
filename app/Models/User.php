@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
 
 class User extends Authenticatable
 {
@@ -20,10 +20,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'username', // Add this if it's a fillable column
-        'phone', // Add this if it's a fillable column
-        'birthdate', // Add this if it's a fillable column
-        'gender', // Add this if it's a fillable column
+        'username',
+        'phone',
+        'birthdate',
+        'gender',
     ];
 
     /**
@@ -39,15 +39,17 @@ class User extends Authenticatable
     /**
      * The attributes that should be cast to native types.
      *
-     * @var array<int, string>
+     * @var array<string, string>
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
 
+    /**
+     * A user can have many products.
+     */
     public function products()
     {
         return $this->hasMany(Product::class);
     }
-
 }

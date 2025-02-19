@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use App\Models\User;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -24,35 +27,25 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        // Define allowed email domains
-        $allowedDomains = ['gmail.com', 'yahoo.com', 'icloud.com'];
-        
-        // Extract domain from email
-        $email = $request->input('email');
-        $domain = substr(strrchr($email, "@"), 1);
-
-        // Validate email and password
         $request->validate([
-            'email' => [
-                'required',
-                'email',
-                function ($attribute, $value, $fail) use ($allowedDomains, $domain) {
-                    if (!in_array($domain, $allowedDomains)) {
-                        $fail("Only Gmail, Yahoo, and iCloud emails are allowed.");
-                    }
-                },
-            ],
+            'email' => 'required|email',
             'password' => 'required',
         ]);
 
-        // Attempt authentication
-        if (!Auth::attempt($request->only('email', 'password'), $request->filled('remember'))) {
-            return back()->withErrors(['email' => 'Invalid login credentials.']);
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return back()->withErrors(['email' => 'No account found with this email.']);
         }
 
+        if (!Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Incorrect password.']);
+        }
+
+        Auth::login($user, $request->filled('remember'));
         $request->session()->regenerate();
 
-        return redirect()->intended(route('welcome', absolute: false));
+        return redirect()->intended(route('welcome'));
     }
 
     /**
@@ -60,11 +53,16 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        Log::info("User Logging Out", ['user_id' => Auth::id()]);
+
+        // Logout user
         Auth::guard('web')->logout();
 
+        // Invalidate session properly
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
+
+        Log::info("User Logged Out Successfully");
 
         return redirect('/');
     }

@@ -30,33 +30,33 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => 'required|string|max:255',
             'email' => [
-        'required',
-        'email',
-        'max:255',
-        function ($attribute, $value, $fail) {
-            $allowedDomains = ['gmail.com', 'yahoo.com', 'icloud.com']; 
-            $domain = substr(strrchr($value, "@"), 1); 
-
-            if (!in_array($domain, $allowedDomains)) {
-                $fail("Only Gmail, Yahoo, and iCloud emails are allowed.");
-            }
-        },
-    ],
-    'password' => 'required|min:8',
+                'required',
+                'email',
+                'max:255',
+                'unique:users,email', // Ensure email is unique
+                function ($attribute, $value, $fail) {
+                    $allowedDomains = ['gmail.com', 'yahoo.com', 'icloud.com'];
+                    $domain = substr(strrchr($value, "@"), 1);
+                    if (!in_array($domain, $allowedDomains)) {
+                        $fail("Only Gmail, Yahoo, and iCloud emails are allowed.");
+                    }
+                },
+            ],
+            'password' => 'required|string|min:8|confirmed', // ✅ Requires confirmation
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => Hash::make($request->password), // Make sure password is hashed
         ]);
+        
 
-        event(new Registered($user));
+        Auth::login($user); // ✅ Automatically logs in user
 
-        Auth::login($user);
-
-        return redirect(route('welcome', absolute: false));
+        return redirect()->route('welcome'); // ✅ Redirect after registration
     }
+
 }

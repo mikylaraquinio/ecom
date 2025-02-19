@@ -32,6 +32,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/sell', [ProfileController::class, 'sell'])->name('profile.sell');
 
+    Route::post('/profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.updatePassword');
+
 
     Route::get('/user-profile', function () {
         return view('user_profile');
