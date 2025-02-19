@@ -157,6 +157,83 @@
                                 <button type="submit" class="btn btn-primary">Update Password</button>
                             </form>
                         </div>
+
+                        <!-- Seller's Product Management -->
+                        @if(auth()->user()->role === 'seller')
+                            <!-- Order Status Section -->
+                            <div class="tab-pane fade" id="order-status">
+                                <h5>Order Status</h5>
+                                <p>View and manage the status of your orders here.</p>
+                            </div>
+
+                            <!-- My Products Section -->
+                            <div class="tab-pane fade" id="my-products">
+                                <h5>My Products</h5>
+                                <p>Manage and edit your existing products.</p>
+                                <div class="row">
+                                    @foreach(auth()->user()->products as $product) <!-- Loop through the seller's products -->
+                                        <div class="col-md-4">
+                                            <div class="card">
+                                                <!-- Display Product Image -->
+                                                <img src="{{ Storage::url($product->image_path) }}" class="card-img-top" alt="{{ $product->name }}">
+                                                <div class="card-body">
+                                                    <h5 class="card-title">{{ $product->name }}</h5>
+                                                    <p class="card-text">{{ $product->description }}</p>
+                                                    <p class="card-text"><strong>${{ $product->price }}</strong></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <!-- Add New Product Section -->
+                            <div class="tab-pane fade" id="add-product">
+                                <h5>Add New Product</h5>
+                                <form method="POST" action="{{ route('products.store') }}" enctype="multipart/form-data">
+                                    @csrf
+
+                                    <!-- Product Image -->
+                                    <div class="form-group">
+                                        <label>Product Image</label>
+                                        <input type="file" class="form-control" name="image" accept="image/*" required>
+                                    </div>
+
+                                    <!-- Product Name -->
+                                    <div class="form-group">
+                                        <label>Product Name</label>
+                                        <input type="text" class="form-control" name="name" required>
+                                    </div>
+
+                                    <!-- Product Description -->
+                                    <div class="form-group">
+                                        <label>Description</label>
+                                        <textarea class="form-control" name="description" rows="4" required></textarea>
+                                    </div>
+
+                                    <!-- Product Price -->
+                                    <div class="form-group">
+                                        <label>Price</label>
+                                        <input type="number" class="form-control" name="price" step="0.01" required>
+                                    </div>
+
+                                    <!-- Category Selection -->
+                                    <div class="form-group">
+                                        <label>Category</label>
+                                        <select class="form-control" name="category_id" required>
+                                            <option value="1">Fresh Produce</option>
+                                            <option value="2">Dairy Products</option>
+                                            <option value="3">Grains and Pulses</option>
+                                            <option value="4">Meat and Poultry</option>
+                                            <option value="5">Livestock</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Submit Button -->
+                                    <button type="submit" class="btn btn-success">Add Product</button>
+                                </form>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
