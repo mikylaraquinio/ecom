@@ -2,34 +2,37 @@
     <div class="container light-style flex-grow-1 container-p-y">
         <!-- Profile Section -->
         <div class="card p-3 d-flex align-items-center bg-light rounded">
-            <div class="d-flex align-items-center w-100 position-relative">
-                <!-- Profile Picture -->
-                <div class="position-relative">
-                    <img src="{{ asset(auth()->user()->profile_picture ?? 'images/default-profile.jpg') }}" 
-                         alt="Profile Picture" class="rounded-circle" width="100" height="100">
-                    <label for="profile-pic-upload" class="position-absolute" 
-                           style="bottom: 0; right: 0; background: rgba(0,0,0,0.5); border-radius: 50%; padding: 5px; cursor: pointer;">
-                        <i class="fas fa-camera text-white"></i>
-                    </label>
-                    <input type="file" id="profile-pic-upload" class="d-none" onchange="uploadProfilePicture(event)">
-                </div>
-
-                <!-- User Info (Take Remaining Space) -->
-                <div class="ml-3 flex-grow-1">
-                    <h4 class="font-weight-bold mb-1">{{ auth()->user()->name }}</h4>
-                    <p class="text-muted mb-0"><strong>Email:</strong> {{ auth()->user()->email }}</p>
-                </div>
-
-                <!-- Button (Push to Right) -->
-                @if(auth()->user()->role !== 'seller')
-                    <div>
-                        <a href="{{ route('farmers.sell') }}" class="btn btn-success">
-                            <i class="fas fa-store mr-2"></i> Start Selling
-                        </a>
-                    </div>
-                @endif
-            </div>
+    <div class="d-flex align-items-center w-100 position-relative">
+        
+        <!-- Profile Picture -->
+        <div class="position-relative">
+            <img src="{{ asset(auth()->user()->profile_picture ?? 'images/default-profile.jpg') }}" 
+                 alt="Profile Picture" class="rounded-circle" width="100" height="100">
+            <label for="profile-pic-upload" class="position-absolute" 
+                   style="bottom: 0; right: 0; background: rgba(0,0,0,0.5); border-radius: 50%; padding: 5px; cursor: pointer;">
+                <i class="fas fa-camera text-white"></i>
+            </label>
+            <input type="file" id="profile-pic-upload" class="d-none" onchange="uploadProfilePicture(event)">
         </div>
+        
+        <!-- User Info (Take Remaining Space) -->
+        <div class="ml-3 flex-grow-1">
+            <h4 class="font-weight-bold mb-1">{{ auth()->user()->name }}</h4>
+            <p class="text-muted mb-0"><strong>Email:</strong> {{ auth()->user()->email }}</p>
+        </div>
+
+        <!-- Button (Push to Right) -->
+        @if(auth()->user()->role !== 'seller')
+            <div>
+                <a href="{{ route('farmers.sell') }}" class="btn btn-success" data-toggle="modal" data-target="#ModalCreate">
+                    <i class="fas fa-store mr-2"></i> Start Selling
+                </a>
+            </div>
+        @endif
+
+    </div>
+</div>
+
 
         <div class="row mt-4">
             <!-- Sidebar Navigation -->
@@ -80,60 +83,60 @@
 
                         <!-- General Settings -->
                         <div class="tab-pane fade" id="account-general">
-                            <form method="POST" action="{{ route('profile.update') }}">
-                                @csrf
-                                @method('PUT')
+                        <form method="POST" action="{{ route('profile.update') }}">
+                            @csrf
+                            @method('PUT')
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Username</label>
-                                            <input type="text" class="form-control" name="username" value="{{ old('username', auth()->user()->username) }}" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Phone</label>
-                                            <input type="text" class="form-control" name="phone" value="{{ old('phone', auth()->user()->phone) }}" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Birthdate</label>
-                                            <input type="date" class="form-control" name="birthdate" value="{{ old('birthdate', auth()->user()->birthdate) }}" required>
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Username</label>
+                                        <input type="text" class="form-control" name="username" value="{{ old('username', auth()->user()->username) }}" required>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Name</label>
-                                            <input type="text" class="form-control" name="name" value="{{ old('name', auth()->user()->name) }}" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Gender</label>
-                                            <select class="form-control" name="gender" required>
-                                                <option value="male" {{ auth()->user()->gender === 'male' ? 'selected' : '' }}>Male</option>
-                                                <option value="female" {{ auth()->user()->gender === 'female' ? 'selected' : '' }}>Female</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Email</label>
-                                            <input type="email" class="form-control" name="email" value="{{ old('email', auth()->user()->email) }}" required>
-                                        </div>
+                                    <div class="form-group">
+                                        <label>Phone</label>
+                                        <input type="text" class="form-control" name="phone" value="{{ old('phone', auth()->user()->phone) }}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Birthdate</label>
+                                        <input type="date" class="form-control" name="birthdate" value="{{ old('birthdate', auth()->user()->birthdate) }}" required>
                                     </div>
                                 </div>
-
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
-                            </form>
-
-                            @if(session('status'))
-                                <div class="alert alert-success">{{ session('status') }}</div>
-                            @endif
-
-                            @if($errors->any())
-                                <div class="alert alert-danger">
-                                    <ul>
-                                        @foreach($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Name</label>
+                                        <input type="text" class="form-control" name="name" value="{{ old('name', auth()->user()->name) }}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Gender</label>
+                                        <select class="form-control" name="gender" required>
+                                            <option value="male" {{ auth()->user()->gender === 'male' ? 'selected' : '' }}>Male</option>
+                                            <option value="female" {{ auth()->user()->gender === 'female' ? 'selected' : '' }}>Female</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Email</label>
+                                        <input type="email" class="form-control" name="email" value="{{ old('email', auth()->user()->email) }}" required>
+                                    </div>
                                 </div>
-                            @endif
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </form>
+
+                        @if(session('status'))
+                            <div class="alert alert-success">{{ session('status') }}</div>
+                        @endif
+
+                        @if($errors->any())
+                            <div class="alert alert-danger">
+                                <ul>
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                         </div>
 
                         <!-- Change Password Section -->
@@ -174,7 +177,7 @@
                                         <div class="col-md-4">
                                             <div class="card">
                                                 <!-- Display Product Image -->
-                                                <img src="{{ Storage::url($product->image_path) }}" class="card-img-top" alt="{{ $product->name }}">
+                                                <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top" alt="{{ $product->name }}">
                                                 <div class="card-body">
                                                     <h5 class="card-title">{{ $product->name }}</h5>
                                                     <p class="card-text">{{ $product->description }}</p>
@@ -237,7 +240,7 @@
                 </div>
             </div>
         </div>
-    </div>  
+    </div>
 
     <script>
         function uploadProfilePicture(event) {
@@ -245,8 +248,8 @@
             if (file) {
                 let formData = new FormData();
                 formData.append('profile_picture', file);
-
-                fetch({
+                
+                fetch( {
                     method: 'POST',
                     body: formData,
                     headers: {
@@ -262,4 +265,6 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
+
+    @include('farmers.modal.sell')
 </x-app-layout>
