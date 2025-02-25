@@ -68,4 +68,9 @@ Route::resource('categories', CategoryController::class);
 Route::resource('products', ProductController::class);
 Route::get('/shop', [ProductController::class, 'index'])->name('shop');
 
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+});
+
 require __DIR__.'/auth.php';
