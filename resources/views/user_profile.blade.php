@@ -141,7 +141,7 @@
 
                                 <button type="submit" class="btn btn-primary">Save Changes</button>
                             </form>
-                        </div>    
+                        </div>
 
 
                         <!-- Change Password Section -->
@@ -237,17 +237,13 @@
                                         <input type="number" class="form-control" name="price" step="0.01" required>
                                     </div>
 
-                                    <!-- Category Selection -->
-                                    <div class="form-group">
-                                        <label>Category</label>
-                                        <select class="form-control" name="category_id" required>
-                                            <option value="1">Fresh Produce</option>
-                                            <option value="2">Dairy Products</option>
-                                            <option value="3">Grains and Pulses</option>
-                                            <option value="4">Meat and Poultry</option>
-                                            <option value="5">Livestock</option>
-                                        </select>
-                                    </div>
+                                    <select class="form-control" name="category_id" required>
+                                        <option value="">Select a Category</option>
+                                        @foreach($categories as $category)
+                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                        @endforeach
+                                    </select>
+
 
                                     <!-- Submit Button -->
                                     <button type="submit" class="btn btn-success">Add Product</button>

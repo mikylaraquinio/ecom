@@ -5,58 +5,47 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SellerController;
+use App\Models\Category;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Ensure that "home.blade.php" is correctly referenced
 Route::get('/welcome', function () {
-    return view('pages.home');
-})->middleware(['auth']);
-Route::get('/welcome', function () {
-    return view('welcome');
+    return view('welcome'); // ✅ Correct
 })->middleware(['auth', 'verified'])->name('welcome');
-Route::get('/shop', function () {
-    return view('shop');
-})->middleware(['auth', 'verified'])->name('shop');
 
+// Shop Page
+Route::get('/shop', [ProductController::class, 'index'])->middleware(['auth', 'verified'])->name('shop');
 
-/*farmers*/
-Route::get('/farmers/sell', [ProfileController::class, 'sell'])->name('farmers.sell');
-Route::post('/profile/sell', [ProfileController::class, 'storeSeller'])->name('profile.sell');
+/* Farmers */
+Route::middleware(['auth'])->group(function () {
+    Route::get('/farmers/sell', [ProfileController::class, 'sell'])->name('farmers.sell');
+    Route::post('/profile/sell', [ProfileController::class, 'storeSeller'])->name('profile.sell');
+});
 
-/*user*/
-
+/* User Routes */
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/sell', [ProfileController::class, 'sell'])->name('profile.sell');
-
+    
     Route::post('/profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.updatePassword');
 
+    Route::get('/user_profile', function () {
+        $categories = Category::all(); // Fetch all categories
+        return view('user_profile', compact('categories'));
+    })->middleware(['auth', 'verified'])->name('user_profile');
 
-    Route::get('/user-profile', function () {
-        return view('user_profile');
-    })->name('user.profile');
+    Route::post('/products/store', [ProductController::class, 'store'])->name('products.store');
 });
-
-
-Route::get('/user_profile', function () {
-    return view('user_profile');
-})->middleware(['auth', 'verified'])->name('user_profile');
-Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update')->middleware('auth');
-
-require __DIR__.'/auth.php';
-
-
 
 /* Farmers (Seller Registration) */
 Route::middleware(['auth'])->group(function () {
     Route::get('/farmers/sell', [SellerController::class, 'sell'])->name('farmers.sell');
     Route::post('/farmers/sell/store', [SellerController::class, 'storeSeller'])->name('farmers.storeSeller');
-
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::middleware(['role:seller'])->group(function () {
         Route::get('/seller/dashboard', [SellerController::class, 'dashboard'])->name('seller.dashboard');
@@ -66,11 +55,6 @@ Route::middleware(['auth'])->group(function () {
 /* Products and Categories */
 Route::resource('categories', CategoryController::class);
 Route::resource('products', ProductController::class);
-Route::get('/shop', [ProductController::class, 'index'])->name('shop');
 
-
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
-});
-
-require __DIR__.'/auth.php';
+/* Authentication Routes */
+require __DIR__ . '/auth.php';
