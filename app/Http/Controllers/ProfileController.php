@@ -6,6 +6,7 @@ use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 use App\Models\User;
@@ -58,7 +59,7 @@ class ProfileController extends Controller
             'email' => $request->email,
         ]);
 
-        return Redirect::route('user.profile')->with('status', 'Profile updated successfully!');
+        return Redirect::route('user_profile')->with('status', 'Profile updated successfully!');
     }
 
 
@@ -88,4 +89,28 @@ class ProfileController extends Controller
         {
             return view('farmers.sell'); 
         }
+
+        public function updatePassword(Request $request)
+        {
+            $request->validate([
+                'current_password' => ['required'],
+                'new_password' => ['required', 'min:8', 'confirmed'],
+            ]);
+
+            $user = Auth::user(); // Ensure this returns an Eloquent model instance
+
+            if (!$user || !($user instanceof User)) {
+                return back()->withErrors(['error' => 'User not found.']);
+            }
+
+            if (!Hash::check($request->current_password, $user->password)) {
+                return back()->withErrors(['current_password' => 'The current password is incorrect.']);
+            }
+
+            $user->password = Hash::make($request->new_password);
+            $user->save(); // Ensure save() is being called on a valid Eloquent model
+
+            return back()->with('success', 'Password updated successfully!');
+        }
+        
     }

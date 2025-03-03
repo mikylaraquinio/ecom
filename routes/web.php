@@ -54,7 +54,7 @@ Route::middleware(['auth'])->group(function () {
 
 /* Products and Categories */
 Route::resource('categories', CategoryController::class);
-Route::resource('products', ProductController::class);
+Route::resource('products', ProductController::class)->middleware('auth');
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
