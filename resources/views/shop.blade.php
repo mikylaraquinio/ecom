@@ -90,9 +90,10 @@
                                                 </div>
                                             </div>
                                             <div class="modal-footer d-flex justify-content-end gap-2">
-                                                <button type="button" class="btn1 btn btn-secondary"
-                                                    data-bs-dismiss="modal">Close</button>
-                                                <button type="button" class="btn1 btn btn-primary">Add to Cart</button>
+                                            <form action="{{ route('cart.add', $product->id) }}" method="POST">
+                                                @csrf
+                                                <button type="submit" class="btn1 btn btn-primary">Add to Cart</button>
+                                            </form>
                                             </div>
 
                                         </div>

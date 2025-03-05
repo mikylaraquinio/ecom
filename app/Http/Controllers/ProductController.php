@@ -19,6 +19,28 @@ class ProductController extends Controller
         return view('shop', compact('products', 'categories'));
     }
 
+    public function myProducts()
+    {
+        $user = Auth::user(); // Get the authenticated user
+    
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'You must be logged in.');
+        }
+    
+        $products = $user->products
+        ->withCount([
+            'orderItems as total_sold' => function ($query) {
+                $query->join('orders', 'order_items.order_id', '=', 'orders.id')
+                    ->where('orders.status', 'completed')
+                    ->selectRaw('COALESCE(SUM(order_items.quantity), 0)');
+            }
+        ])
+        ->get();
+
+    return view('seller.my-products', compact('products'));
+    }
+
+
     public function create()
     {
         $categories = Category::all();
@@ -31,14 +53,17 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'image' => 'nullable|image|max:2048',
+            
         ]);
 
         $product = new Product();
         $product->name = $request->name;
         $product->description = $request->description;
         $product->price = $request->price;
+        $product->stock = $request->stock;
         $product->category_id = $request->category_id;
         $product->user_id = Auth::check() ? Auth::id() : null;
 
@@ -65,6 +90,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric',
+            'stock' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'image' => 'nullable|image|max:2048',
         ]);

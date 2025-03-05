@@ -12,7 +12,7 @@
                                 alt="Profile Picture" class="rounded-circle" width="100" height="100">
                         </div>
                         <div class="ms-3 flex-grow-1">
-                            <h4 class="font-weight-bold mb-1">{{ auth()->user()->name }}</h4>
+                            <h4 class="font-weight-bold mb-1">{{ auth()->user()->username }}</h4>
                             <p class="text-muted mb-0"><strong>Email:</strong> {{ auth()->user()->email }}</p>
                         </div>
                     </div>
@@ -186,160 +186,177 @@
 
 
                         <!-- Seller's Product Management --> 
-@if(auth()->user()->role === 'seller')
-    <!-- Order Status Section -->
-    <div class="tab-pane fade" id="order-status">
-        <h5>Order Status</h5>
-        <p>View and manage the status of your orders here.</p>
-    </div>
-
-    <!-- My Products Section -->
-    <div class="tab-pane fade" id="my-products">
-        <h5>My Products</h5>
-        <p>Manage and edit your existing products.</p>
-        <div class="row">
-            @foreach(auth()->user()->products as $product) <!-- Loop through the seller's products -->
-                <div class="col-md-4">
-                    <div class="card">
-                        <!-- Display Product Image -->
-                        <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top"
-                            alt="{{ $product->name }}">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ $product->name }}</h5>
-                            <p class="card-text">{{ $product->description }}</p>
-                            <p class="card-text"><strong>${{ $product->price }}</strong></p>
-
-                            <!-- Edit Button (Triggers Modal) -->
-                            <button class="btn btn-primary btn-sm" data-toggle="modal"
-                                data-target="#editProductModal{{ $product->id }}">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-
-                            <!-- Delete Form -->
-                            <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Are you sure you want to delete this product?')">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Edit Product Modal -->
-                <div class="modal fade" id="editProductModal{{ $product->id }}" tabindex="-1" role="dialog"
-                    aria-labelledby="editProductModalLabel" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Edit Product</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
+                        @if(auth()->user()->role === 'seller')
+                            <!-- Order Status Section -->
+                            <div class="tab-pane fade" id="order-status">
+                                <h5>Order Status</h5>
+                                <p>View and manage the status of your orders here.</p>
                             </div>
-                            <div class="modal-body">
-                                <form method="POST" action="{{ route('products.update', $product->id) }}" enctype="multipart/form-data">
+
+                            <!-- My Products Section -->
+                            <div class="tab-pane fade" id="my-products">
+                                <h5>My Products</h5>
+                                <p>Manage and edit your existing products.</p>
+                                <div class="row">
+                                    @foreach(auth()->user()->products as $product) <!-- Loop through the seller's products -->
+                                        <div class="col-md-4">
+                                            <div class="card">
+                                                <!-- Display Product Image -->
+                                                <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top"
+                                                    alt="{{ $product->name }}">
+                                                <div class="card-body">
+                                                    <h5 class="card-title">{{ $product->name }}</h5>
+                                                    <p class="card-text">{{ $product->description }}</p>
+                                                    <p class="card-text"><strong>${{ $product->price }}</strong></p>
+
+                                                    <!-- Display Stock Quantity -->
+                                                    <p class="card-text">
+                                                        <strong>Stock:</strong> {{ $product->stock }} 
+                                                    </p>
+
+                                                    <!-- Edit Button (Triggers Modal) -->
+                                                    <button class="btn btn-primary btn-sm" data-toggle="modal"
+                                                        data-target="#editProductModal{{ $product->id }}">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </button>
+
+                                                    <!-- Delete Form -->
+                                                    <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-danger btn-sm"
+                                                            onclick="return confirm('Are you sure you want to delete this product?')">
+                                                            <i class="fas fa-trash"></i> Delete
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Edit Product Modal -->
+                                        <div class="modal fade" id="editProductModal{{ $product->id }}" tabindex="-1" role="dialog"
+                                            aria-labelledby="editProductModalLabel" aria-hidden="true">
+                                            <div class="modal-dialog" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Edit Product</h5>
+                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <form method="POST" action="{{ route('products.update', $product->id) }}" enctype="multipart/form-data">
+                                                            @csrf
+                                                            @method('PUT')
+
+                                                            <!-- Product Image -->
+                                                            <div class="form-group">
+                                                                <label>Product Image</label>
+                                                                <input type="file" class="form-control" name="image" accept="image/*">
+                                                                <small>Leave empty to keep existing image</small>
+                                                            </div>
+
+                                                            <!-- Product Name -->
+                                                            <div class="form-group">
+                                                                <label>Product Name</label>
+                                                                <input type="text" class="form-control" name="name" value="{{ $product->name }}" required>
+                                                            </div>
+
+                                                            <!-- Product Description -->
+                                                            <div class="form-group">
+                                                                <label>Description</label>
+                                                                <textarea class="form-control" name="description" rows="4" required>{{ $product->description }}</textarea>
+                                                            </div>
+
+                                                            <!-- Product Price -->
+                                                            <div class="form-group">
+                                                                <label>Price</label>
+                                                                <input type="number" class="form-control" name="price" step="0.01"
+                                                                    value="{{ $product->price }}" required>
+                                                            </div>
+
+                                                            <!-- Product Stock -->
+                                                            <div class="form-group">
+                                                                <label>Stock Quantity</label>
+                                                                <input type="number" class="form-control" name="stock" value="{{ $product->stock }}" required min="0">
+                                                            </div>
+
+                                                            <!-- Category -->
+                                                            <div class="form-group">
+                                                                <label>Category</label>
+                                                                <select class="form-control" name="category_id" required>
+                                                                    @foreach($categories as $category)
+                                                                        <option value="{{ $category->id }}" 
+                                                                            {{ $product->category_id == $category->id ? 'selected' : '' }}>
+                                                                            {{ $category->name }}
+                                                                        </option>
+                                                                    @endforeach
+                                                                </select>
+                                                            </div>
+
+                                                            <!-- Submit Button -->
+                                                            <button type="submit" class="btn btn-success">Update Product</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <!-- Add New Product Section -->
+                            <div class="tab-pane fade" id="add-product">
+                                <h5>Add New Product</h5>
+                                <form method="POST" action="{{ route('products.store') }}" enctype="multipart/form-data">
                                     @csrf
-                                    @method('PUT')
 
                                     <!-- Product Image -->
                                     <div class="form-group">
                                         <label>Product Image</label>
-                                        <input type="file" class="form-control" name="image" accept="image/*">
-                                        <small>Leave empty to keep existing image</small>
+                                        <input type="file" class="form-control" name="image" accept="image/*" required>
                                     </div>
 
                                     <!-- Product Name -->
                                     <div class="form-group">
                                         <label>Product Name</label>
-                                        <input type="text" class="form-control" name="name" value="{{ $product->name }}" required>
+                                        <input type="text" class="form-control" name="name" required>
                                     </div>
 
                                     <!-- Product Description -->
                                     <div class="form-group">
                                         <label>Description</label>
-                                        <textarea class="form-control" name="description" rows="4" required>{{ $product->description }}</textarea>
+                                        <textarea class="form-control" name="description" rows="4" required></textarea>
                                     </div>
 
                                     <!-- Product Price -->
                                     <div class="form-group">
                                         <label>Price</label>
-                                        <input type="number" class="form-control" name="price" step="0.01"
-                                            value="{{ $product->price }}" required>
+                                        <input type="number" class="form-control" name="price" step="0.01" required>
+                                    </div>
+
+                                    <!-- Product Stock -->
+                                    <div class="form-group">
+                                        <label>Stock Quantity</label>
+                                        <input type="number" class="form-control" name="stock" required min="0">
                                     </div>
 
                                     <!-- Category -->
                                     <div class="form-group">
                                         <label>Category</label>
                                         <select class="form-control" name="category_id" required>
+                                            <option value="">Select a Category</option>
                                             @foreach($categories as $category)
-                                                <option value="{{ $category->id }}" 
-                                                    {{ $product->category_id == $category->id ? 'selected' : '' }}>
-                                                    {{ $category->name }}
-                                                </option>
+                                                <option value="{{ $category->id }}">{{ $category->name }}</option>
                                             @endforeach
                                         </select>
                                     </div>
 
                                     <!-- Submit Button -->
-                                    <button type="submit" class="btn btn-success">Update Product</button>
+                                    <button type="submit" class="btn btn-success">Add Product</button>
                                 </form>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-
-    <!-- Add New Product Section -->
-    <div class="tab-pane fade" id="add-product">
-        <h5>Add New Product</h5>
-        <form method="POST" action="{{ route('products.store') }}" enctype="multipart/form-data">
-            @csrf
-
-            <!-- Product Image -->
-            <div class="form-group">
-                <label>Product Image</label>
-                <input type="file" class="form-control" name="image" accept="image/*" required>
-            </div>
-
-            <!-- Product Name -->
-            <div class="form-group">
-                <label>Product Name</label>
-                <input type="text" class="form-control" name="name" required>
-            </div>
-
-            <!-- Product Description -->
-            <div class="form-group">
-                <label>Description</label>
-                <textarea class="form-control" name="description" rows="4" required></textarea>
-            </div>
-
-            <!-- Product Price -->
-            <div class="form-group">
-                <label>Price</label>
-                <input type="number" class="form-control" name="price" step="0.01" required>
-            </div>
-
-            <!-- Category -->
-            <div class="form-group">
-                <label>Category</label>
-                <select class="form-control" name="category_id" required>
-                    <option value="">Select a Category</option>
-                    @foreach($categories as $category)
-                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <!-- Submit Button -->
-            <button type="submit" class="btn btn-success">Add Product</button>
-        </form>
-    </div>
-@endif
+                        @endif
                     </div>
                 </div>
             </div>
