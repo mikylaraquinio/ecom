@@ -19,6 +19,16 @@ Route::get('/welcome', function () {
 
 // Shop Page
 Route::get('/shop', [ProductController::class, 'index'])->middleware(['auth', 'verified'])->name('shop');
+Route::get('/myshop', [SellerController::class, 'index'])->name('myshop');
+Route::put('/shop/{shop}', [SellerController::class, 'update'])->name('shop.update');
+// Show the create shop form
+Route::get('/shop/create', [SellerController::class, 'create'])->name('shop.create');
+
+// Store the shop data after form submission
+Route::post('/shop', [SellerController::class, 'store'])->name('shop.store');
+
+
+
 
 /* Farmers */
 Route::middleware(['auth'])->group(function () {
@@ -51,6 +61,8 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:seller'])->group(function () {
         Route::get('/seller/dashboard', [SellerController::class, 'dashboard'])->name('seller.dashboard');
     });
+    Route::post('/update-seller', [SellerController::class, 'storeSeller'])->name('farmers.storeSeller');
+
 });
 
 /* Products and Categories */
@@ -64,6 +76,17 @@ Route::get('/cart', [CartController::class, 'index'])->name('cart');
 Route::post('/cart/add/{id}', [CartController::class, 'add'])->name('cart.add');
 Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
 Route::delete('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
+Route::post('/checkout', [CartController::class, 'process'])->name('checkout.process');
+
+/*Orders*/
+Route::get('/seller/orders', [SellerController::class, 'incomingOrders'])->name('seller.orders');
+Route::patch('/seller/orders/update/{id}', [SellerController::class, 'updateOrderStatus'])->name('seller.orders.update');
+Route::get('/user-profile', [CartController::class, 'showUserProfile'])->name('user.profile');
+Route::middleware('auth')->group(function () {
+    Route::delete('/order/{order}/cancel', [CartController::class, 'cancel'])->name('order.cancel');
+    Route::get('/order/{order}/edit', [CartController::class, 'edit'])->name('order.edit');
+});
+
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
