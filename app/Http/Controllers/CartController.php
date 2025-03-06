@@ -6,42 +6,45 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 
 class CartController extends Controller
 {
     public function index()
     {
-        return view('cart'); // Ensure 'cart.blade.php' exists in the 'resources/views/' folder
+        return view('cart'); // Ensure 'cart.blade.php' exists in 'resources/views/' folder
     }
 
     public function add(Request $request, $id)
     {
-        $product = \App\Models\Product::find($id);
-        if (!$product) {
-            return redirect()->route('shop')->with('error', 'Product not found.');
-        }
+        $request->validate([
+            'quantity' => 'required|integer|min:1'
+        ]);
 
+        $product = Product::findOrFail($id);
         $cart = session()->get('cart', []);
+
         if (isset($cart[$id])) {
-            $cart[$id]['quantity'] += 1;
+            $cart[$id]['quantity'] += $request->quantity;
         } else {
             $cart[$id] = [
-                "name" => $product->name,
-                "quantity" => 1,
-                "price" => $product->price,
-                "image" => $product->image
+                'name' => $product->name,
+                'price' => $product->price,
+                'quantity' => $request->quantity,
+                'image' => $product->image
             ];
         }
 
         session()->put('cart', $cart);
-        return redirect()->route('cart')->with('success', 'Product added to cart.');
+
+        return response()->json(['success' => true, 'message' => 'Product added to cart!']);
     }
 
     public function update(Request $request, $id)
     {
-        if ($request->quantity < 1) {
-            return redirect()->route('cart')->with('error', 'Quantity must be at least 1.');
-        }
+        $request->validate([
+            'quantity' => 'required|integer|min:1'
+        ]);
 
         $cart = session()->get('cart', []);
         if (isset($cart[$id])) {
@@ -62,8 +65,6 @@ class CartController extends Controller
 
         return redirect()->route('cart')->with('success', 'Item removed from cart.');
     }
-
-
     /*Checkout*/
     public function process(Request $request)
     {
@@ -136,8 +137,5 @@ class CartController extends Controller
 
         return view('order.edit', compact('order'));
     }
-    
-
-
 }
 

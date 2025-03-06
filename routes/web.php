@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
 use App\Models\Category;
 
 Route::get('/', function () {
@@ -69,6 +70,7 @@ Route::middleware(['auth'])->group(function () {
 Route::resource('categories', CategoryController::class);
 Route::resource('products', ProductController::class)->middleware('auth');
 Route::get('/my-products', [ProductController::class, 'myProducts'])->name('products.myProducts')->middleware('auth');
+Route::get('/autocomplete', [ProductController::class, 'autocomplete']);
 
 
 /*Cart*/
@@ -87,6 +89,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/order/{order}/edit', [CartController::class, 'edit'])->name('order.edit');
 });
 
+
+Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
+Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
