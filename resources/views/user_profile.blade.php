@@ -17,8 +17,7 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Navigation Links -->
+                
                 <!-- Navigation Links -->
                 <div class="card p-2 d-flex flex-column" style="min-height: 500px;">
                     <div class="list-group">

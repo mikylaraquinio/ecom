@@ -81,6 +81,12 @@
                     </form>
                 </div>
 
+                <div id="loading-screen" class="loading-overlay d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+
                 <!-- Products Display (Right Side) -->
                 <div class="col-md-9">
                     <div id="product-list">
@@ -92,204 +98,206 @@
     </section>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            function applyFilters() {
-                let form = document.getElementById('filterForm');
-                let formData = new FormData(form);
-                let queryString = new URLSearchParams(formData).toString();
-                let shopRoute = "{{ route('shop') }}";
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchForm = document.getElementById("search-form");
+        const filterForm = document.getElementById("filterForm");
+        const searchBox = document.getElementById("searchBox");
+        const loadingScreen = document.getElementById("loading-screen");
+        const shopRoute = "{{ route('shop') }}";
+        const sortByDropdown = document.querySelector("select[name='sort_by']");
+        const stockDropdown = document.querySelector("select[name='stock']");
 
-                // ✅ Allow search to work even when other filters are empty
-                let searchQuery = document.getElementById("searchBox").value.trim();
-                if (searchQuery) {
-                    queryString += `&search=${encodeURIComponent(searchQuery)}`;
-                }
+        let suggestionBox = document.createElement("div");
+        let selectedIndex = -1;
+        let suggestions = [];
 
-                // 🛑 Prevent sending a request only if NO filters & NO search input
-                if (!queryString.replace(/=&/g, '&').replace(/=$/, '')) {
-                    console.log("No filters or search query applied, skipping fetch.");
-                    return;
-                }
+        function showLoading() {
+            if (loadingScreen) loadingScreen.classList.remove("d-none");
+        }
 
-                fetch(shopRoute + "?" + queryString, {
-                    method: "GET",
-                    headers: { "X-Requested-With": "XMLHttpRequest" }
+        function hideLoading() {
+            if (loadingScreen) loadingScreen.classList.add("d-none");
+        }
+
+        function applyFilters() {
+            let formData = new FormData(filterForm);
+            let queryString = new URLSearchParams(formData).toString();
+            let searchQuery = searchBox.value.trim();
+
+            if (searchQuery) queryString += `&search=${encodeURIComponent(searchQuery)}`;
+
+            showLoading();
+            fetch(shopRoute + "?" + queryString, {
+                method: "GET",
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            })
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById("product-list").innerHTML = data.trim() === ""
+                        ? "<p>No products found.</p>"
+                        : data;
+                    window.history.pushState({}, '', shopRoute + "?" + queryString);
+                    
+                    attachAddToCartListeners(); // ✅ Reattach event listeners after filtering
                 })
-                    .then(response => response.text())
-                    .then(data => {
-                        document.getElementById('product-list').innerHTML = data.trim() === "" ? "<p>No products found.</p>" : data;
-                        window.history.pushState({}, '', shopRoute + "?" + queryString);
-                    })
-                    .catch(error => console.error("Error fetching filtered products:", error));
+                .catch(error => console.error("Error fetching filtered products:", error))
+                .finally(() => hideLoading());
+        }
+
+        // ✅ Trigger search on Enter key
+        searchBox.addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                applyFilters();
+            }
+        });
+
+        // ✅ Trigger search when any filter is changed
+        filterForm.addEventListener("change", applyFilters);
+
+        // ✅ Sorting functionality
+        if (sortByDropdown) sortByDropdown.addEventListener("change", applyFilters);
+
+        // ✅ Stock Availability Filtering
+        if (stockDropdown) stockDropdown.addEventListener("change", applyFilters);
+
+        // ✅ AUTOCOMPLETE SEARCH FUNCTIONALITY  
+        suggestionBox.setAttribute("id", "searchSuggestions");
+        Object.assign(suggestionBox.style, {
+            position: "absolute",
+            left: "0",
+            background: "#fff",
+            border: "1px solid #ddd",
+            maxHeight: "200px",
+            overflowY: "auto",
+            display: "none",
+            zIndex: "1000",
+            width: searchBox.offsetWidth + "px"
+        });
+        searchBox.parentNode.style.position = "relative";
+        searchBox.parentNode.appendChild(suggestionBox);
+
+        searchBox.addEventListener("input", function () {
+            let query = this.value.trim().toLowerCase();
+            if (query.length < 2) {
+                suggestionBox.style.display = "none";
+                return;
             }
 
-            // 🔄 Trigger applyFilters when search is used
-            document.getElementById("searchBox").addEventListener("keypress", function (event) {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    applyFilters();
-                }
-            });
+            fetch(`/autocomplete?search=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    suggestions = extractMatchingWords(data, query);
+                    selectedIndex = -1;
+                    suggestionBox.innerHTML = suggestions.length > 0
+                        ? suggestions.map((word, index) =>
+                            `<div class="suggestion-item" data-word="${word}" data-index="${index}" 
+                style="padding: 5px; cursor: pointer;">${word}</div>`).join("")
+                        : "";
+                    suggestionBox.style.display = suggestions.length > 0 ? "block" : "none";
+                })
+                .catch(error => console.error("Error fetching autocomplete suggestions:", error));
+        });
 
-            // ✅ AUTOCOMPLETE SEARCH FUNCTIONALITY  
-            let searchBox = document.getElementById("searchBox");
-            let suggestionBox = document.createElement("div");
-            let selectedIndex = -1;
-            let suggestions = [];
+        suggestionBox.addEventListener("click", function (event) {
+            if (event.target.classList.contains("suggestion-item")) {
+                searchBox.value = event.target.getAttribute("data-word");
+                suggestionBox.style.display = "none";
+                searchBox.focus();
+                applyFilters();
+            }
+        });
 
-            suggestionBox.setAttribute("id", "searchSuggestions");
-            Object.assign(suggestionBox.style, {
-                position: "absolute",
-                left: "0",
-                background: "#fff",
-                border: "1px solid #ddd",
-                maxHeight: "200px",
-                overflowY: "auto",
-                display: "none",
-                zIndex: "1000",
-                width: searchBox.offsetWidth + "px"
-            });
-            searchBox.parentNode.style.position = "relative";
-            searchBox.parentNode.appendChild(suggestionBox);
+        searchBox.addEventListener("keydown", function (event) {
+            let items = document.querySelectorAll(".suggestion-item");
+            if (suggestions.length === 0) return;
 
-            searchBox.addEventListener("input", function () {
-                let query = this.value.trim().toLowerCase();
-                if (query.length < 2) {
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                selectedIndex = (selectedIndex + 1) % suggestions.length;
+                updateHighlightedSuggestion();
+            } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                selectedIndex = selectedIndex === 0 ? -1 : (selectedIndex - 1 + suggestions.length) % suggestions.length;
+                updateHighlightedSuggestion();
+            } else if (event.key === "Enter") {
+                event.preventDefault();
+                if (selectedIndex !== -1) {
+                    searchBox.value = suggestions[selectedIndex];
                     suggestionBox.style.display = "none";
-                    return;
                 }
+                applyFilters();
+            } else if (event.key === "Escape") {
+                suggestionBox.style.display = "none";
+                searchBox.focus();
+            }
+        });
 
-                fetch(`/autocomplete?search=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        suggestions = extractMatchingWords(data, query);
-                        selectedIndex = -1;
-                        suggestionBox.innerHTML = suggestions.length > 0
-                            ? suggestions.map((word, index) =>
-                                `<div class="suggestion-item" data-word="${word}" data-index="${index}" 
-                        style="padding: 5px; cursor: pointer;">${word}</div>`
-                            ).join("")
-                            : "";
-                        suggestionBox.style.display = suggestions.length > 0 ? "block" : "none";
-                    })
-                    .catch(error => console.error("Error fetching autocomplete suggestions:", error));
+        function updateHighlightedSuggestion() {
+            let items = document.querySelectorAll(".suggestion-item");
+            items.forEach((item, index) => {
+                item.style.background = index === selectedIndex ? "#007bff" : "#fff";
+                item.style.color = index === selectedIndex ? "#fff" : "#000";
             });
+        }
 
-            suggestionBox.addEventListener("click", function (event) {
-                if (event.target.classList.contains("suggestion-item")) {
-                    searchBox.value = event.target.getAttribute("data-word");
-                    suggestionBox.style.display = "none";
-                    searchBox.focus();
-                    applyFilters(); // Apply filters when an autocomplete option is selected
-                }
-            });
+        document.addEventListener("click", function (event) {
+            if (!searchBox.contains(event.target) && !suggestionBox.contains(event.target)) {
+                suggestionBox.style.display = "none";
+            }
+        });
 
-            searchBox.addEventListener("keydown", function (event) {
-                let items = document.querySelectorAll(".suggestion-item");
-                if (suggestions.length === 0) return;
+        function extractMatchingWords(products, query) {
+            let words = new Set();
+            let lowerQuery = query.toLowerCase();
 
-                if (event.key === "ArrowDown") {
-                    event.preventDefault();
-                    selectedIndex = (selectedIndex + 1) % suggestions.length;
-                    updateHighlightedSuggestion();
-                } else if (event.key === "ArrowUp") {
-                    event.preventDefault();
-                    selectedIndex = selectedIndex === 0 ? -1 : (selectedIndex - 1 + suggestions.length) % suggestions.length;
-                    updateHighlightedSuggestion();
-                } else if (event.key === "Enter") {
-                    event.preventDefault();
-                    if (selectedIndex !== -1) {
-                        searchBox.value = suggestions[selectedIndex];
-                        suggestionBox.style.display = "none";
+            products.forEach(product => {
+                let productWords = product.name.toLowerCase().split(" ");
+                productWords.forEach(word => {
+                    if (word.startsWith(lowerQuery)) {
+                        words.add(word);
                     }
-                    applyFilters(); // Apply filters when pressing Enter
-                } else if (event.key === "Escape") {
-                    suggestionBox.style.display = "none";
-                    searchBox.focus();
-                }
-            });
-
-            function updateHighlightedSuggestion() {
-                let items = document.querySelectorAll(".suggestion-item");
-                items.forEach((item, index) => {
-                    item.style.background = index === selectedIndex ? "#007bff" : "#fff";
-                    item.style.color = index === selectedIndex ? "#fff" : "#000";
                 });
-            }
-
-            document.addEventListener("click", function (event) {
-                if (!searchBox.contains(event.target) && !suggestionBox.contains(event.target)) {
-                    suggestionBox.style.display = "none";
-                }
             });
 
-            function extractMatchingWords(products, query) {
-                let words = new Set();
-                let lowerQuery = query.toLowerCase();
+            return Array.from(words);
+        }
 
-                products.forEach(product => {
-                    let productWords = product.name.toLowerCase().split(" ");
-                    productWords.forEach(word => {
-                        if (word.startsWith(lowerQuery)) {
-                            words.add(word);
-                        }
-                    });
-                });
-
-                return Array.from(words);
-            }
-
-            searchBox.addEventListener("keypress", function (event) {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    if (selectedIndex !== -1 && suggestions[selectedIndex]) {
-                        searchBox.value = suggestions[selectedIndex];
-                        suggestionBox.style.display = "none";
-                    }
-                    let query = this.value.trim();
-                    if (query) {
-                        applyFilters();
-                    }
-                }
-            });
-
-            document.querySelectorAll('.filter-option').forEach(item => {
-                item.addEventListener('input', applyFilters);
-            });
-
-            // ✅ ADD TO CART FUNCTIONALITY
-            document.addEventListener("click", function (event) {
-                if (event.target.classList.contains("add-to-cart-modal")) {
-                    let productId = event.target.getAttribute("data-product-id");
-                    let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
-
-                    let button = event.target;
-                    button.disabled = true; // Disable button while processing
-                    button.innerText = "Adding...";
+        // ✅ ADD TO CART FUNCTIONALITY (Now works after filtering)
+        function attachAddToCartListeners() {
+            document.querySelectorAll(".add-to-cart-modal").forEach(button => {
+                button.addEventListener("click", function () {
+                    let productId = this.dataset.productId;
+                    let quantity = 1; // Default quantity to 1
 
                     fetch(`/cart/add/${productId}`, {
                         method: "POST",
                         headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN": csrfToken
+                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                            "Content-Type": "application/json"
                         },
-                        body: JSON.stringify({ quantity: 1 })
+                        body: JSON.stringify({ quantity: quantity })
                     })
                         .then(response => response.json())
                         .then(data => {
-                            alert(data.success ? "Product added to cart!" : "Failed to add product.");
                             if (data.success) {
-                                let modal = bootstrap.Modal.getInstance(document.getElementById(`productModal${productId}`));
-                                modal.hide();
+                                alert("Product added to cart!");
+
+                                // ✅ Close the modal
+                                let modal = document.getElementById(`productModal${productId}`);
+                                let modalInstance = bootstrap.Modal.getInstance(modal);
+                                if (modalInstance) modalInstance.hide();
+                            } else {
+                                alert(data.message);
                             }
                         })
-                        .catch(error => console.error("Error adding product to cart:", error))
-                        .finally(() => {
-                            button.disabled = false; // Re-enable button
-                            button.innerText = "Add to Cart";
-                        });
-                }
+                        .catch(error => console.error("Error:", error));
+                });
             });
-        });
-    </script>
+        }
+
+        attachAddToCartListeners(); // ✅ Attach event listeners on page load
+    });
+</script>
+
 </x-app-layout>

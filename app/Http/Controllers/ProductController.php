@@ -17,7 +17,7 @@ class ProductController extends Controller
         $query = Product::query();
 
         if ($request->filled('search')) {
-            $search = trim(strtolower($request->search)); // Convert to lowercase & remove spaces
+            $search = trim(strtolower($request->search));
             $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
         }
 
@@ -33,11 +33,23 @@ class ProductController extends Controller
             $query->where('price', '<=', $request->max_price);
         }
 
+        // ✅ FIX Stock Availability Filter
         if ($request->filled('stock')) {
             if ($request->stock === 'in_stock') {
-                $query->where('stock_quantity', '>', 0);
+                $query->where('stock', '>', 0);
             } elseif ($request->stock === 'out_of_stock') {
-                $query->where('stock_quantity', '=', 0);
+                $query->where('stock', 0);
+            }
+        }
+
+        // **Sorting Logic**
+        if ($request->filled('sort_by')) {
+            if ($request->sort_by === 'low_to_high') {
+                $query->orderBy('price', 'asc');
+            } elseif ($request->sort_by === 'high_to_low') {
+                $query->orderBy('price', 'desc');
+            } elseif ($request->sort_by === 'newest') {
+                $query->orderBy('created_at', 'desc');
             }
         }
 
@@ -53,6 +65,7 @@ class ProductController extends Controller
 
         return view('shop', compact('products', 'categories'));
     }
+
 
 
     public function autocomplete(Request $request)
