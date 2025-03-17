@@ -23,14 +23,13 @@
                         </div>
 
                         <!-- My Shop Section -->
-                        <!-- My Shop Section -->
-<div class="tab-pane fade" id="my-shop" role="tabpanel">
-    <h5>My Shop</h5>
+                        <div class="tab-pane fade" id="my-shop" role="tabpanel">
+                            <h5>My Shop</h5>
 
-    @if(auth()->check() && auth()->user()->role === 'seller')
-        @if(auth()->user()->shop)
-            <div class="shop-details">
-                <h5>{{ auth()->user()->shop->name }}</h5>
+                            @if(auth()->check() && auth()->user()->role === 'seller')
+                                @if(auth()->user()->shop)
+                                    <div class="shop-details">
+                                        <h5>{{ auth()->user()->shop->name }}</h5>
                                         <p><strong>Farm Name:</strong> {{ auth()->user()->storeseller->farm_name ?? 'N/A' }}</p>
                                         <p><strong>Location:</strong> {{ auth()->user()->storeseller->farm_address ?? 'N/A' }}</p>
                                         
@@ -47,14 +46,15 @@
                                         @endif
 
                                         <p><strong>Mobile Money:</strong> {{ auth()->user()->storeseller->mobile_money ?? 'Not provided' }}</p>
-            </div>
-        @else
-            <p>Your shop is not yet set up. Please complete your registration.</p>
-        @endif
-    @else
-        <p>You need to be a seller to view shop details.</p>
-    @endif
-</div>
+                                    </div>
+                                @else
+                                    <p>Your shop is not yet set up. Please complete your registration.</p>
+                                @endif
+                            @else
+                                <p>You need to be a seller to view shop details.</p>    
+                            @endif
+                        </div>
+
 
 
                         <!-- My Products Section -->
@@ -71,7 +71,7 @@
                                                 <div class="card-body">
                                                     <h5 class="card-title">{{ $product->name }}</h5>
                                                     <p class="card-text">{{ $product->description }}</p>
-                                                    <p class="card-text"><strong>${{ number_format($product->price, 2) }}</strong></p>
+                                                    <p class="card-text"><strong>{{ number_format($product->price, 2) }}</strong></p>
                                                     <p class="card-text"><strong>Stock:</strong> {{ $product->stock }}</p>
 
                                                     <!-- Edit Button -->
