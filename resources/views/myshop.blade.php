@@ -31,10 +31,22 @@
         @if(auth()->user()->shop)
             <div class="shop-details">
                 <h5>{{ auth()->user()->shop->name }}</h5>
-                <p><strong>Shop Description:</strong> {{ auth()->user()->shop->description }}</p>
-                <p><strong>Location:</strong> {{ auth()->user()->shop->location }}</p>
-                <p><strong>Contact Info:</strong> {{ auth()->user()->shop->contact_info }}</p>
-                <!-- Add more shop details here as needed -->
+                                        <p><strong>Farm Name:</strong> {{ auth()->user()->storeseller->farm_name ?? 'N/A' }}</p>
+                                        <p><strong>Location:</strong> {{ auth()->user()->storeseller->farm_address ?? 'N/A' }}</p>
+                                        
+                                        @if(auth()->user()->storeseller->gov_id)
+                                            <p><strong>Government ID:</strong> 
+                                                <a href="{{ asset('storage/' . auth()->user()->storeseller->gov_id) }}" target="_blank">View</a>
+                                            </p>
+                                        @endif
+
+                                        @if(auth()->user()->storeseller->farm_certificate)
+                                            <p><strong>Farm Certificate:</strong> 
+                                                <a href="{{ asset('storage/' . auth()->user()->storeseller->farm_certificate) }}" target="_blank">View</a>
+                                            </p>
+                                        @endif
+
+                                        <p><strong>Mobile Money:</strong> {{ auth()->user()->storeseller->mobile_money ?? 'Not provided' }}</p>
             </div>
         @else
             <p>Your shop is not yet set up. Please complete your registration.</p>
