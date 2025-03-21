@@ -95,6 +95,7 @@ Route::middleware('auth')->group(function () {
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
 Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
 Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
+Route::post('/checkout', [CheckoutController::class, 'process']);
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';

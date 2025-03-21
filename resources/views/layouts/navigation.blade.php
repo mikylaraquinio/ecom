@@ -1,4 +1,4 @@
-<header class="header">
+<header class="header fixed-top">
     <div class="header-inner">
         <div class="container">
             @if (Route::has('login')) 
