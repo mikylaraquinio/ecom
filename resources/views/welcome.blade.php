@@ -80,8 +80,7 @@
         <div class="container text-white py-5">
             <div class="row py-5">
                 <div class="col-lg-6">
-                    <h1 class="font-weight-bold py-3">Discover new products, shop our bestsellers today!</h1>
-                    <button class="btn1 mt-3">Start Now</button>
+                    <h1 class="font-weight-bold py-5">Discover new products, shop our bestsellers today!</h1>
                 </div>
             </div>
         </div>
