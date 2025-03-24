@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Product;
 
 class Category extends Model
 {
@@ -14,14 +13,30 @@ class Category extends Model
         'name',
         'description',
         'image',
+        'parent_id',
     ];
-    
 
-    public function index()
-{
-    $categories = Category::all(); 
-    $products = Product::all();    
+    // Parent Category Relationship (reverse of children)
+    public function parent()
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
 
-    return view('products.index', compact('categories', 'products'));
-}
+    // Children Categories Relationship
+    public function children()
+    {
+        return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    // Optionally, add a method to easily get subcategories
+    public function subcategories()
+    {
+        return $this->children();  // Alias for children() method
+    }
+
+    // Check if the category has subcategories
+    public function hasSubcategories()
+    {
+        return $this->children()->exists();
+    }
 }

@@ -19,12 +19,11 @@ class CartController extends Controller
             return redirect()->route('login')->with('error', 'Please log in to view your cart.');
         }
 
-        // Retrieve cart items from database
         $cartItems = Cart::where('user_id', $user->id)
-            ->with('product') // Load the product relationship
+            ->with('product')
             ->get();
 
-        return view('cart', compact('cartItems')); // Pass cart items to the view
+        return view('cart', compact('cartItems'));
     }
 
     public function add(Request $request, $id)
@@ -124,10 +123,11 @@ class CartController extends Controller
 
     public function checkoutSelected(Request $request)
     {
-        $selectedItems = json_decode($request->selected_items, true);
+        $selectedItems = $request->input('selected_items', []);
         $user = Auth::user();
+
         $checkoutItems = Cart::where('user_id', $user->id)
-            ->whereIn('product_id', $selectedItems)
+            ->whereIn('id', $selectedItems)
             ->with('product')
             ->get();
 
@@ -140,13 +140,46 @@ class CartController extends Controller
             'name' => 'required|string',
             'address' => 'required|string',
             'payment_method' => 'required|string',
+            'selected_items' => 'required|array',
         ]);
 
         $user = Auth::user();
-        $cartItems = Cart::where('user_id', $user->id)->with('product')->get();
+        $selectedItems = $request->input('selected_items', []);
+
+        if (empty($selectedItems)) {
+            return redirect()->route('cart.index')->with('error', 'No items selected for checkout.');
+        }
+
+        $cartItems = Cart::where('user_id', $user->id)
+            ->whereIn('id', $selectedItems)
+            ->with('product')
+            ->get();
 
         if ($cartItems->isEmpty()) {
-            return redirect()->route('shop')->with('error', 'Your cart is empty.');
+            return redirect()->route('shop')->with('error', 'No valid items found for checkout.');
+        }
+
+        $totalPrice = 0;
+        $orderItems = [];
+
+        foreach ($cartItems as $cartItem) {
+            $product = $cartItem->product;
+
+            if ($product->stock < $cartItem->quantity) {
+                return redirect()->route('cart.index')->with('error', "Not enough stock available for {$product->name}.");
+            }
+
+            $totalPrice += $product->price * $cartItem->quantity;
+
+            $orderItems[] = [
+                'product_id' => $product->id,
+                'quantity' => $cartItem->quantity,
+                'price' => $product->price,
+            ];
+
+            // Reduce stock quantity
+            $product->stock -= $cartItem->quantity;
+            $product->save();
         }
 
         $order = Order::create([
@@ -154,23 +187,24 @@ class CartController extends Controller
             'name' => $request->name,
             'address' => $request->address,
             'payment_method' => $request->payment_method,
-            'total_price' => $cartItems->sum(fn($item) => $item->product->price * $item->quantity),
+            'total_price' => $totalPrice,
             'status' => 'pending'
         ]);
 
-        foreach ($cartItems as $cartItem) {
+        foreach ($orderItems as $item) {
             OrderItem::create([
                 'order_id' => $order->id,
-                'product_id' => $cartItem->product_id,
-                'quantity' => $cartItem->quantity,
-                'price' => $cartItem->product->price
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+                'price' => $item['price']
             ]);
         }
 
-        Cart::where('user_id', $user->id)->delete();
+        Cart::whereIn('id', $selectedItems)->delete();
 
         return redirect()->route('shop')->with('success', 'Your order has been placed successfully!');
     }
+
 
     public function showUserProfile()
     {

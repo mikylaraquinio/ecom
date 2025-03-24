@@ -75,9 +75,16 @@ class SellerController extends Controller
 
     public function index()
     {
-        $categories = Category::all();
-            return view('myshop', compact('categories'));
+        $user = auth()->user();
+
+        // Fetch main categories (parent_id is NULL)
+        $mainCategories = Category::whereNull('parent_id')->get();
+
+        $products = $user->products;
+
+        return view('myshop', compact('user', 'products', 'mainCategories')); // Pass mainCategories here
     }
+
 
 
 }

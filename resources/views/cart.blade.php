@@ -36,7 +36,9 @@
                                         <tr id="cart-item-{{ $cartItem->id }}" data-id="{{ $cartItem->id }}">
                                             <td>
                                                 <input type="checkbox" name="selected_items[]" value="{{ $cartItem->id }}"
-                                                    class="product-checkbox" data-price="{{ $cartItem->product->price }}">
+                                                    class="product-checkbox" data-price="{{ $cartItem->product->price }}"
+                                                    data-product-id="{{ $cartItem->id }}"
+                                                    data-product-name="{{ $cartItem->product->name }}">
                                             </td>
                                             <td>
                                                 <img src="{{ asset('storage/' . $cartItem->product->image) }}" alt="{{ $cartItem->product->name }}" width="50">
@@ -62,55 +64,75 @@
                     </form>
                 </div>
 
+                <!-- Cart Sidebar -->
                 <div class="col-md-4">
                     <div class="card p-3 text-center position-sticky shadow" style="top: 20px; min-height: 300px;">
                         <h4>Total: ₱<span id="total-price">{{ number_format($total, 2) }}</span></h4>
 
                         <!-- 🟢 Selected product names will be shown here -->
-                        <div id="selected-products" class="mt-3 text-start">
-                            <!-- JS will dynamically insert product names -->
-                        </div>
+                        <div id="selected-products" class="mt-3 text-start"></div>
 
-                        <button class="btn btn-success btn-block mt-3" id="checkout-btn" data-bs-toggle="modal" data-bs-target="#checkoutModal" disabled>
+                        <!-- Proceed to Checkout Button (Single) -->
+                        <button 
+                            class="btn btn-success btn-block mt-3 proceed-to-checkout" 
+                            id="checkout-btn"
+                            disabled>
                             Proceed to Checkout
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Checkout Modal -->
-            <div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="checkoutModalLabel">Checkout</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form action="{{ route('checkout.process') }}" method="POST">
-                                @csrf
-                                <div class="mb-3">
-                                    <label for="name" class="form-label">Full Name</label>
-                                    <input type="text" class="form-control" id="name" name="name" required>
+            <!-- Checkout Modals for Each Product -->
+            @foreach($cartItems as $cartItem)
+                @if ($cartItem->product)
+                    <!-- Checkout Modal for Product -->
+                    <div class="modal fade" id="productModal{{ $cartItem->id }}" tabindex="-1" aria-labelledby="checkoutModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="checkoutModalLabel">Checkout - {{ $cartItem->product->name }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="address" class="form-label">Shipping Address</label>
-                                    <textarea class="form-control" id="address" name="address" required></textarea>
+                                <div class="modal-body">
+                                    {{-- Display Product Details --}}
+                                    <div class="text-center mb-3">
+                                        <img src="{{ asset('storage/' . $cartItem->product->image) }}" alt="{{ $cartItem->product->name }}"
+                                            class="img-fluid mb-3" style="max-height: 200px;">
+                                        <h5>{{ $cartItem->product->name }}</h5>
+                                        <p>Price: ₱{{ number_format($cartItem->product->price, 2) }}</p>
+                                        <p>{{ $cartItem->product->description }}</p>
+                                    </div>
+
+                                    {{-- Checkout Form --}}
+                                    <form action="{{ route('checkout.process') }}" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="product_id" value="{{ $cartItem->product->id }}">
+
+                                        <div class="mb-3">
+                                            <label for="name" class="form-label">Full Name</label>
+                                            <input type="text" class="form-control" id="name" name="name" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="payment" class="form-label">Payment Method</label>
+                                            <select class="form-select" id="payment" name="payment_method" required>
+                                                <option value="credit_card">Credit Card</option>
+                                                <option value="paypal">PayPal</option>
+                                                <option value="cod">Cash on Delivery</option>
+                                            </select>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary w-100">Confirm & Place Order</button>
+                                    </form>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="payment" class="form-label">Payment Method</label>
-                                    <select class="form-select" id="payment" name="payment_method" required>
-                                        <option value="credit_card">Credit Card</option>
-                                        <option value="paypal">PayPal</option>
-                                        <option value="cod">Cash on Delivery</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100">Confirm & Place Order</button>
-                            </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                @endif
+            @endforeach
+
 
             <div id="loading-screen" class="loading-overlay d-none">
                 <div class="spinner-border text-primary" role="status">
@@ -121,7 +143,7 @@
             <p class="text-muted">Your cart is empty. <a href="{{ route('shop') }}">Continue Shopping</a></p>
         @endif
     </div>
-<script>
+    <script>
     document.addEventListener("DOMContentLoaded", function () {
         const selectAllCheckbox = document.getElementById("select-all");
         const productCheckboxes = document.querySelectorAll(".product-checkbox");
@@ -129,7 +151,7 @@
         const totalPriceEl = document.getElementById("total-price");
         const checkoutBtn = document.getElementById("checkout-btn");
         const loadingScreen = document.getElementById("loading-screen");
-        const cartBody = document.querySelector("tbody"); // For checking if cart is empty
+        const cartBody = document.querySelector("tbody"); 
 
         // Show loading
         function showLoading() {
@@ -146,7 +168,7 @@
             let total = 0;
             let hasCheckedItems = false;
             const selectedProductsContainer = document.getElementById("selected-products");
-            selectedProductsContainer.innerHTML = ""; // Clear previous list
+            selectedProductsContainer.innerHTML = ""; 
 
             productCheckboxes.forEach(cb => {
                 if (cb.checked) {
@@ -156,10 +178,7 @@
                     total += price * quantity;
                     hasCheckedItems = true;
 
-                    // Get product name
                     const productName = row.querySelector("td:nth-child(2)").innerText.trim();
-
-                    // Append product name to container
                     const productItem = document.createElement("div");
                     productItem.textContent = `${productName} × ${quantity}`;
                     selectedProductsContainer.appendChild(productItem);
@@ -171,17 +190,17 @@
             checkoutBtn.disabled = !hasCheckedItems;
         }
 
-
         // Check if cart is empty and reload
         function checkIfCartIsEmpty() {
             if (cartBody.children.length === 0) {
-                window.location.reload(); // Reload cart page
+                window.location.reload(); 
             }
         }
 
         // Select all checkbox
         selectAllCheckbox?.addEventListener("change", function () {
-            productCheckboxes.forEach(cb => cb.checked = this.checked);
+            const isChecked = this.checked;
+            productCheckboxes.forEach(cb => cb.checked = isChecked);
             updateTotal();
         });
 
@@ -189,7 +208,6 @@
         productCheckboxes.forEach(cb => cb.addEventListener("change", function () {
             updateTotal();
 
-            // If all checkboxes are checked, check "Select All"
             const allChecked = [...productCheckboxes].every(cb => cb.checked);
             selectAllCheckbox.checked = allChecked;
         }));
@@ -204,12 +222,12 @@
             showLoading();
 
             fetch("{{ route('cart.bulkDelete') }}", {
-                method: "POST",
+                method: "DELETE",
                 headers: {
                     "X-CSRF-TOKEN": "{{ csrf_token() }}",
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ _method: "DELETE", selected_items: selectedIds })
+                body: JSON.stringify({ selected_items: selectedIds })
             })
             .then(res => res.json())
             .then(data => {
@@ -218,7 +236,7 @@
                         document.getElementById(`cart-item-${id}`)?.remove();
                     });
                     updateTotal();
-                    checkIfCartIsEmpty(); // Check after deletion
+                    checkIfCartIsEmpty();
                 } else {
                     alert("Error deleting items.");
                 }
@@ -243,17 +261,12 @@
                         'Accept': 'application/json'
                     }
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         document.getElementById(`cart-item-${itemId}`)?.remove();
                         updateTotal();
-                        checkIfCartIsEmpty(); // Check after single deletion
+                        checkIfCartIsEmpty();
                     } else {
                         alert(data.message || "Error removing item.");
                     }
@@ -295,38 +308,65 @@
                 headers: {
                     "X-CSRF-TOKEN": "{{ csrf_token() }}",
                     "Content-Type": "application/json",
-                    "Accept": "application/json" // 🔥 Important to match JSON response
+                    "Accept": "application/json"
                 },
                 body: JSON.stringify({ quantity: newQuantity })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    inputField.value = data.new_quantity; // Use backend-confirmed value
+                    inputField.value = data.new_quantity;
 
                     const price = parseFloat(document.querySelector(`.product-checkbox[value='${itemId}']`).dataset.price);
                     document.querySelector(`#cart-item-${itemId} .subtotal`).textContent = `₱${(price * data.new_quantity).toFixed(2)}`;
 
-                    // Update total price after quantity change
                     updateTotal();
                 } else {
                     alert(data.message || "Error updating quantity.");
                 }
             })
             .catch(err => {
-                console.error(err);
+                console.error("Error:", err);
                 alert("Something went wrong while updating quantity.");
             })
             .finally(() => hideLoading());
         }
 
-        // Initial call
         updateTotal();
+    });
+</script>
+
+<script>
+    document.getElementById('checkout-btn').addEventListener('click', function () {
+        const selectedItems = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(checkbox => checkbox.value);
+
+        if (selectedItems.length === 0) {
+            alert('Please select at least one product.');
+            return;
+        }
+
+        fetch('/checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                selected_items: selectedItems
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else {
+                alert('Something went wrong. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
     });
 </script>
 </x-app-layout>
