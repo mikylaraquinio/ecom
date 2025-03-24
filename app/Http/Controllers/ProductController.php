@@ -60,7 +60,7 @@ class ProductController extends Controller
         $categories = Category::all();
 
         if ($request->ajax()) {
-            return view('shop.partials.product_list', compact('products'))->render();
+            return view('partials.product-list', compact('products'))->render();
         }
 
         return view('shop', compact('products', 'categories'));
