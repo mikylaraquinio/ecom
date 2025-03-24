@@ -119,7 +119,7 @@
                 <!-- Ornamental & Medicinal Plants -->
                 <div class="col-md-4">
                     <div class="category-card">
-                        <img src="{{ asset('assets/farmer.jpg') }}" class="img-fluid category-img">
+                        <img src="{{ asset('assets/ornamental.jpg') }}" class="img-fluid category-img">
                         <div class="overlay">
                             <h5 class="category-title">Ornamental & Medicinal Plants</h5>
                             <p class="category-text">A variety of plants for decoration and healing.</p>
