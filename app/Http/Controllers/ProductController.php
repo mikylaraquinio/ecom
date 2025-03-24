@@ -108,8 +108,9 @@ class ProductController extends Controller
 
     public function create()
     {
-        $categories = Category::all();
-        return view('your-view-name', compact('categories'));
+        $mainCategories = Category::with('subcategories')->get();
+        return view('your-view-file', compact('mainCategories'));
+
     }
 
     public function store(Request $request)
@@ -118,7 +119,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
+            'stock' => 'required|integer|min:0|max:999',
             'category_id' => 'required|exists:categories,id',
             'image' => 'nullable|image|max:2048',
 

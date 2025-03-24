@@ -64,4 +64,8 @@ class User extends Authenticatable
         return $this->hasManyThrough(Order::class, Product::class, 'user_id', 'product_id');
     }
 
+    public function addresses()
+    {
+        return $this->hasMany(Address::class);
+    }
 }

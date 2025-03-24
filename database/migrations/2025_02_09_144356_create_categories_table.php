@@ -10,14 +10,17 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up()
-{
-    Schema::create('categories', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->timestamps();
-    });
-}
+    {
+        Schema::create('categories', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->unsignedBigInteger('parent_id')->nullable(); // <-- Add this line
+            $table->timestamps();
 
+            // Set foreign key constraint (optional but recommended)
+            $table->foreign('parent_id')->references('id')->on('categories')->onDelete('cascade');
+        });
+    }
 
     /**
      * Reverse the migrations.

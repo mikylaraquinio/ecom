@@ -90,7 +90,7 @@
                 <!-- Products Display (Right Side) -->
                 <div class="col-md-9">
                     <div id="product-list">
-                        @include('shop.partials.product_list') <!-- Products loaded via AJAX -->
+                        @include('partials.product-list') <!-- Products loaded via AJAX -->
                     </div>
                 </div>
             </div>
@@ -98,206 +98,206 @@
     </section>
 
     <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const searchForm = document.getElementById("search-form");
-        const filterForm = document.getElementById("filterForm");
-        const searchBox = document.getElementById("searchBox");
-        const loadingScreen = document.getElementById("loading-screen");
-        const shopRoute = "{{ route('shop') }}";
-        const sortByDropdown = document.querySelector("select[name='sort_by']");
-        const stockDropdown = document.querySelector("select[name='stock']");
+        document.addEventListener("DOMContentLoaded", function () {
+            const searchForm = document.getElementById("search-form");
+            const filterForm = document.getElementById("filterForm");
+            const searchBox = document.getElementById("searchBox");
+            const loadingScreen = document.getElementById("loading-screen");
+            const shopRoute = "{{ route('shop') }}";
+            const sortByDropdown = document.querySelector("select[name='sort_by']");
+            const stockDropdown = document.querySelector("select[name='stock']");
 
-        let suggestionBox = document.createElement("div");
-        let selectedIndex = -1;
-        let suggestions = [];
+            let suggestionBox = document.createElement("div");
+            let selectedIndex = -1;
+            let suggestions = [];
 
-        function showLoading() {
-            if (loadingScreen) loadingScreen.classList.remove("d-none");
-        }
+            function showLoading() {
+                if (loadingScreen) loadingScreen.classList.remove("d-none");
+            }
 
-        function hideLoading() {
-            if (loadingScreen) loadingScreen.classList.add("d-none");
-        }
+            function hideLoading() {
+                if (loadingScreen) loadingScreen.classList.add("d-none");
+            }
 
-        function applyFilters() {
-            let formData = new FormData(filterForm);
-            let queryString = new URLSearchParams(formData).toString();
-            let searchQuery = searchBox.value.trim();
+            function applyFilters() {
+                let formData = new FormData(filterForm);
+                let queryString = new URLSearchParams(formData).toString();
+                let searchQuery = searchBox.value.trim();
 
-            if (searchQuery) queryString += `&search=${encodeURIComponent(searchQuery)}`;
+                if (searchQuery) queryString += `&search=${encodeURIComponent(searchQuery)}`;
 
-            showLoading();
-            fetch(shopRoute + "?" + queryString, {
-                method: "GET",
-                headers: { "X-Requested-With": "XMLHttpRequest" }
-            })
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById("product-list").innerHTML = data.trim() === ""
-                        ? "<p>No products found.</p>"
-                        : data;
-                    window.history.pushState({}, '', shopRoute + "?" + queryString);
-                    
-                    attachAddToCartListeners(); // ✅ Reattach event listeners after filtering
+                showLoading();
+                fetch(shopRoute + "?" + queryString, {
+                    method: "GET",
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
                 })
-                .catch(error => console.error("Error fetching filtered products:", error))
-                .finally(() => hideLoading());
-        }
+                    .then(response => response.text())
+                    .then(data => {
+                        document.getElementById("product-list").innerHTML = data.trim() === ""
+                            ? "<p>No products found.</p>"
+                            : data;
+                        window.history.pushState({}, '', shopRoute + "?" + queryString);
 
-        // ✅ Trigger search on Enter key
-        searchBox.addEventListener("keypress", function (event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                applyFilters();
-            }
-        });
-
-        // ✅ Trigger search when any filter is changed
-        filterForm.addEventListener("change", applyFilters);
-
-        // ✅ Sorting functionality
-        if (sortByDropdown) sortByDropdown.addEventListener("change", applyFilters);
-
-        // ✅ Stock Availability Filtering
-        if (stockDropdown) stockDropdown.addEventListener("change", applyFilters);
-
-        // ✅ AUTOCOMPLETE SEARCH FUNCTIONALITY  
-        suggestionBox.setAttribute("id", "searchSuggestions");
-        Object.assign(suggestionBox.style, {
-            position: "absolute",
-            left: "0",
-            background: "#fff",
-            border: "1px solid #ddd",
-            maxHeight: "200px",
-            overflowY: "auto",
-            display: "none",
-            zIndex: "1000",
-            width: searchBox.offsetWidth + "px"
-        });
-        searchBox.parentNode.style.position = "relative";
-        searchBox.parentNode.appendChild(suggestionBox);
-
-        searchBox.addEventListener("input", function () {
-            let query = this.value.trim().toLowerCase();
-            if (query.length < 2) {
-                suggestionBox.style.display = "none";
-                return;
+                        attachAddToCartListeners(); // ✅ Reattach event listeners after filtering
+                    })
+                    .catch(error => console.error("Error fetching filtered products:", error))
+                    .finally(() => hideLoading());
             }
 
-            fetch(`/autocomplete?search=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    suggestions = extractMatchingWords(data, query);
-                    selectedIndex = -1;
-                    suggestionBox.innerHTML = suggestions.length > 0
-                        ? suggestions.map((word, index) =>
-                            `<div class="suggestion-item" data-word="${word}" data-index="${index}" 
+            // ✅ Trigger search on Enter key
+            searchBox.addEventListener("keypress", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    applyFilters();
+                }
+            });
+
+            // ✅ Trigger search when any filter is changed
+            filterForm.addEventListener("change", applyFilters);
+
+            // ✅ Sorting functionality
+            if (sortByDropdown) sortByDropdown.addEventListener("change", applyFilters);
+
+            // ✅ Stock Availability Filtering
+            if (stockDropdown) stockDropdown.addEventListener("change", applyFilters);
+
+            // ✅ AUTOCOMPLETE SEARCH FUNCTIONALITY  
+            suggestionBox.setAttribute("id", "searchSuggestions");
+            Object.assign(suggestionBox.style, {
+                position: "absolute",
+                left: "0",
+                background: "#fff",
+                border: "1px solid #ddd",
+                maxHeight: "200px",
+                overflowY: "auto",
+                display: "none",
+                zIndex: "1000",
+                width: searchBox.offsetWidth + "px"
+            });
+            searchBox.parentNode.style.position = "relative";
+            searchBox.parentNode.appendChild(suggestionBox);
+
+            searchBox.addEventListener("input", function () {
+                let query = this.value.trim().toLowerCase();
+                if (query.length < 2) {
+                    suggestionBox.style.display = "none";
+                    return;
+                }
+
+                fetch(`/autocomplete?search=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        suggestions = extractMatchingWords(data, query);
+                        selectedIndex = -1;
+                        suggestionBox.innerHTML = suggestions.length > 0
+                            ? suggestions.map((word, index) =>
+                                `<div class="suggestion-item" data-word="${word}" data-index="${index}" 
                 style="padding: 5px; cursor: pointer;">${word}</div>`).join("")
-                        : "";
-                    suggestionBox.style.display = suggestions.length > 0 ? "block" : "none";
-                })
-                .catch(error => console.error("Error fetching autocomplete suggestions:", error));
-        });
+                            : "";
+                        suggestionBox.style.display = suggestions.length > 0 ? "block" : "none";
+                    })
+                    .catch(error => console.error("Error fetching autocomplete suggestions:", error));
+            });
 
-        suggestionBox.addEventListener("click", function (event) {
-            if (event.target.classList.contains("suggestion-item")) {
-                searchBox.value = event.target.getAttribute("data-word");
-                suggestionBox.style.display = "none";
-                searchBox.focus();
-                applyFilters();
+            suggestionBox.addEventListener("click", function (event) {
+                if (event.target.classList.contains("suggestion-item")) {
+                    searchBox.value = event.target.getAttribute("data-word");
+                    suggestionBox.style.display = "none";
+                    searchBox.focus();
+                    applyFilters();
+                }
+            });
+
+            searchBox.addEventListener("keydown", function (event) {
+                let items = document.querySelectorAll(".suggestion-item");
+                if (suggestions.length === 0) return;
+
+                if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    selectedIndex = (selectedIndex + 1) % suggestions.length;
+                    updateHighlightedSuggestion();
+                } else if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    selectedIndex = selectedIndex === 0 ? -1 : (selectedIndex - 1 + suggestions.length) % suggestions.length;
+                    updateHighlightedSuggestion();
+                } else if (event.key === "Enter") {
+                    event.preventDefault();
+                    if (selectedIndex !== -1) {
+                        searchBox.value = suggestions[selectedIndex];
+                        suggestionBox.style.display = "none";
+                    }
+                    applyFilters();
+                } else if (event.key === "Escape") {
+                    suggestionBox.style.display = "none";
+                    searchBox.focus();
+                }
+            });
+
+            function updateHighlightedSuggestion() {
+                let items = document.querySelectorAll(".suggestion-item");
+                items.forEach((item, index) => {
+                    item.style.background = index === selectedIndex ? "#007bff" : "#fff";
+                    item.style.color = index === selectedIndex ? "#fff" : "#000";
+                });
             }
-        });
 
-        searchBox.addEventListener("keydown", function (event) {
-            let items = document.querySelectorAll(".suggestion-item");
-            if (suggestions.length === 0) return;
-
-            if (event.key === "ArrowDown") {
-                event.preventDefault();
-                selectedIndex = (selectedIndex + 1) % suggestions.length;
-                updateHighlightedSuggestion();
-            } else if (event.key === "ArrowUp") {
-                event.preventDefault();
-                selectedIndex = selectedIndex === 0 ? -1 : (selectedIndex - 1 + suggestions.length) % suggestions.length;
-                updateHighlightedSuggestion();
-            } else if (event.key === "Enter") {
-                event.preventDefault();
-                if (selectedIndex !== -1) {
-                    searchBox.value = suggestions[selectedIndex];
+            document.addEventListener("click", function (event) {
+                if (!searchBox.contains(event.target) && !suggestionBox.contains(event.target)) {
                     suggestionBox.style.display = "none";
                 }
-                applyFilters();
-            } else if (event.key === "Escape") {
-                suggestionBox.style.display = "none";
-                searchBox.focus();
-            }
-        });
-
-        function updateHighlightedSuggestion() {
-            let items = document.querySelectorAll(".suggestion-item");
-            items.forEach((item, index) => {
-                item.style.background = index === selectedIndex ? "#007bff" : "#fff";
-                item.style.color = index === selectedIndex ? "#fff" : "#000";
             });
-        }
 
-        document.addEventListener("click", function (event) {
-            if (!searchBox.contains(event.target) && !suggestionBox.contains(event.target)) {
-                suggestionBox.style.display = "none";
-            }
-        });
+            function extractMatchingWords(products, query) {
+                let words = new Set();
+                let lowerQuery = query.toLowerCase();
 
-        function extractMatchingWords(products, query) {
-            let words = new Set();
-            let lowerQuery = query.toLowerCase();
-
-            products.forEach(product => {
-                let productWords = product.name.toLowerCase().split(" ");
-                productWords.forEach(word => {
-                    if (word.startsWith(lowerQuery)) {
-                        words.add(word);
-                    }
+                products.forEach(product => {
+                    let productWords = product.name.toLowerCase().split(" ");
+                    productWords.forEach(word => {
+                        if (word.startsWith(lowerQuery)) {
+                            words.add(word);
+                        }
+                    });
                 });
-            });
 
-            return Array.from(words);
-        }
+                return Array.from(words);
+            }
 
-        // ✅ ADD TO CART FUNCTIONALITY (Now works after filtering)
-        function attachAddToCartListeners() {
-            document.querySelectorAll(".add-to-cart-modal").forEach(button => {
-                button.addEventListener("click", function () {
-                    let productId = this.dataset.productId;
-                    let quantity = 1; // Default quantity to 1
+            // ✅ ADD TO CART FUNCTIONALITY (Now works after filtering)
+            function attachAddToCartListeners() {
+                document.querySelectorAll(".add-to-cart-modal").forEach(button => {
+                    button.addEventListener("click", function () {
+                        let productId = this.dataset.productId;
+                        let quantity = 1; // Default quantity to 1
 
-                    fetch(`/cart/add/${productId}`, {
-                        method: "POST",
-                        headers: {
-                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ quantity: quantity })
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                alert("Product added to cart!");
-
-                                // ✅ Close the modal
-                                let modal = document.getElementById(`productModal${productId}`);
-                                let modalInstance = bootstrap.Modal.getInstance(modal);
-                                if (modalInstance) modalInstance.hide();
-                            } else {
-                                alert(data.message);
-                            }
+                        fetch(`/cart/add/${productId}`, {
+                            method: "POST",
+                            headers: {
+                                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ quantity: quantity })
                         })
-                        .catch(error => console.error("Error:", error));
-                });
-            });
-        }
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert("Product added to cart!");
 
-        attachAddToCartListeners(); // ✅ Attach event listeners on page load
-    });
-</script>
+                                    // ✅ Close the modal
+                                    let modal = document.getElementById(`productModal${productId}`);
+                                    let modalInstance = bootstrap.Modal.getInstance(modal);
+                                    if (modalInstance) modalInstance.hide();
+                                } else {
+                                    alert(data.message);
+                                }
+                            })
+                            .catch(error => console.error("Error:", error));
+                    });
+                });
+            }
+
+            attachAddToCartListeners(); // ✅ Attach event listeners on page load
+        });
+    </script>
 
 </x-app-layout>
