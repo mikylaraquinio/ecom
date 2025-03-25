@@ -6,6 +6,7 @@ use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
@@ -112,5 +113,43 @@ class ProfileController extends Controller
 
             return back()->with('success', 'Password updated successfully!');
         }
-        
+
+        public function updateProfilePicture(Request $request) 
+        {
+            $request->validate([
+                'profile_picture' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            ]);
+
+            // Retrieve user properly
+            $user = Auth::user();
+            
+            if (!$user) {
+                return back()->withErrors(['error' => 'User not authenticated.']);
+            }
+
+            // Debugging: Ensure $user is an instance of User
+            if (!$user instanceof User) {
+                return back()->withErrors(['error' => 'User model not found.']);
+            }
+
+            if ($request->hasFile('profile_picture')) {
+                // Delete old profile picture if not the default
+                if ($user->profile_picture && $user->profile_picture !== 'assets/default.png') {
+                    Storage::disk('public')->delete($user->profile_picture);
+                }
+
+                // Store the new image
+                $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+                $user->profile_picture = $path;
+                
+                // Debugging: Confirm before saving
+                if (method_exists($user, 'save')) {
+                    $user->save();
+                } else {
+                    return back()->withErrors(['error' => 'Save method does not exist on User model.']);
+                }
+            }
+
+            return back()->with('success', 'Profile picture updated successfully.');
+        }
     }

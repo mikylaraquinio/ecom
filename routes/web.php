@@ -50,6 +50,11 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/products/store', [ProductController::class, 'store'])->name('products.store');
 });
+Route::middleware(['auth'])->group(function () {
+    Route::post('/profile/update-picture', [ProfileController::class, 'updateProfilePicture'])->name('profile.updatePicture');
+});
+
+
 
 /* Farmers (Seller Registration) */
 Route::middleware(['auth'])->group(function () {

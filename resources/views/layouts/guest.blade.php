@@ -21,7 +21,7 @@
     <body class="font-sans text-gray-900 antialiased">
     <div class="content-wrapper">
         <!-- Header & Navbar -->
-        <header class="header">
+        <header class="header fixed-top">
             <div class="header-inner">
                 <div class="container">
                     @if (Route::has('login')) 
