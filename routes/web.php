@@ -76,6 +76,7 @@ Route::get('/subcategories/{id}/products', [ProductController::class, 'getProduc
 Route::middleware(['auth'])->group(function () {
     Route::resource('products', ProductController::class);
     Route::get('/my-products', [ProductController::class, 'myProducts'])->name('products.myProducts');
+    Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
 });
 
 Route::get('/autocomplete', [ProductController::class, 'autocomplete']);

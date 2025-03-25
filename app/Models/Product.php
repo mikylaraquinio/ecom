@@ -9,7 +9,9 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'user_id', 'description', 'price', 'image', 'category_id', 'stock'];
+    protected $fillable = ['name', 'description', 'price', 'stock', 'image', 'image_path', 'category_id', 'user_id'];
+
+
     protected $primaryKey = 'id'; // Optional, only if you have a custom primary key
 
     public function orderItems()
@@ -29,7 +31,7 @@ class Product extends Model
     {
         return $this->belongsTo(Category::class);
     }
-    
+
     public function user()
     {
         return $this->belongsTo(User::class);

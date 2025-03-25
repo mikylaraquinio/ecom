@@ -1,7 +1,7 @@
 <?php
 
 if (!function_exists('getCategoryIcon')) {
-    function getCategoryIcon($categoryName, $parentCategoryName = null, $grandparentCategoryName = null)
+    function getCategoryIcon($categoryName, $parentCategoryName = null)
     {
         $icons = [
             'Grains & Cereals' => '🌾',
@@ -12,19 +12,14 @@ if (!function_exists('getCategoryIcon')) {
             'Poultry' => '🐔'
         ];
 
-        // 1️⃣ Check if the category has its own icon
+        // 1️⃣ If the category has its own icon, return it
         if (isset($icons[$categoryName])) {
             return $icons[$categoryName];
         }
 
-        // 2️⃣ If not, inherit from its direct parent
+        // 2️⃣ If it's a subcategory, inherit from the parent category
         if ($parentCategoryName && isset($icons[$parentCategoryName])) {
             return $icons[$parentCategoryName];
-        }
-
-        // 3️⃣ If still no icon, inherit from grandparent (main category)
-        if ($grandparentCategoryName && isset($icons[$grandparentCategoryName])) {
-            return $icons[$grandparentCategoryName];
         }
 
         return '🌱'; // Default icon for unknown categories

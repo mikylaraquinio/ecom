@@ -27,10 +27,17 @@
                             <label for="categorySelect" class="form-label">Category</label>
                             <select name="category" class="form-select filter-option" id="categorySelect">
                                 <option value="">All Categories</option>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
-                                        {{ $category->name }}
-                                    </option>
+                                @foreach($categories as $mainCategory)
+                                    <optgroup label="{{ $mainCategory->name }}">
+                                        <option value="{{ $mainCategory->id }}" {{ request('category') == $mainCategory->id ? 'selected' : '' }}>
+                                            {{ $mainCategory->name }} (All)
+                                        </option>
+                                        @foreach($mainCategory->subcategories as $subCategory)
+                                            <option value="{{ $subCategory->id }}" {{ request('category') == $subCategory->id ? 'selected' : '' }}>
+                                                &nbsp;&nbsp; - {{ $subCategory->name }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
                                 @endforeach
                             </select>
                         </div>
@@ -160,6 +167,11 @@
 
             // ✅ Stock Availability Filtering
             if (stockDropdown) stockDropdown.addEventListener("change", applyFilters);
+
+            // Clear filters on reload
+            if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
 
             // ✅ AUTOCOMPLETE SEARCH FUNCTIONALITY  
             suggestionBox.setAttribute("id", "searchSuggestions");
