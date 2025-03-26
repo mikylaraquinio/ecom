@@ -11,7 +11,10 @@ class CategorySeeder extends Seeder
         DB::transaction(function () {
             // === Main Categories ===
             $categories = [
-                'Grains & Cereals' => ['Cereal Grains', 'Pseudocereal Grains'],
+                'Grains & Cereals' => [
+                    'Cereal Grains', 
+                    'Pseudocereal Grains'
+                ],
                 'Vegetables' => [
                     'Brassicas (Cabbage Family)',
                     'Fruiting Vegetables',

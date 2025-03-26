@@ -5,12 +5,15 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    public function up(): void
+    public function up()
     {
         Schema::create('orders', function (Blueprint $table) {
-            $table->id(); // This is equivalent to BIGINT UNSIGNED AUTO_INCREMENT
-            $table->unsignedBigInteger('user_id'); // Assuming orders belong to a user
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('address_id')->constrained('addresses')->onDelete('cascade');
+            $table->string('payment_method');
+            $table->decimal('total_amount', 10, 2);
+            $table->string('status')->default('pending');
             $table->timestamps();
         });
     }
