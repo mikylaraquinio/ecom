@@ -3,163 +3,372 @@
         <h2 class="mb-4">Checkout</h2>
 
         @if($cartItems->count() > 0)
-            <div class="mb-4">
-                <div class="d-flex justify-content-between align-items-start">
+            <form action="{{ route('checkout.process') }}" method="POST">
+                @csrf
 
-                    <!-- Left Side (Shipping Address + Cart Items) -->
-                    <div class="w-70">
-                        <!-- Shipping Address -->
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5>Shipping Address</h5>
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-start">
+
+                        <!-- Left Side (Shipping Address + Cart Items) -->
+                        <div class="w-70">
+                            <!-- Shipping Address -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5>Shipping Address</h5>
+                                    <!-- Edit Address Button (inside Checkout Form) -->
+                                    <button type="button" class="btn btn-secondary btn-sm" id="edit-address-btn">
+                                        Edit
+                                    </button>
+                                </div>
+
                                 @if($user->addresses->count() > 0)
-                                    <button class="btn btn-secondary btn-sm" id="edit-address-btn">Edit</button>
+                                    @php $address = $user->addresses->first(); @endphp
+                                    <div class="card mb-3" id="displayed-address">
+                                        <div class="card-body">
+                                            <strong>{{ $address->full_name }} - {{ $address->mobile_number }}</strong><br>
+                                            {{ $address->floor_unit_number }}, {{ $address->barangay }}, {{ $address->city }},
+                                            {{ $address->province }}<br>
+                                            {{ $address->notes }}
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="address_id" value="{{ $address->id }}">
+                                @else
+                                    <button class="btn btn-success" id="add-address-btn">+ Add Address</button>
                                 @endif
                             </div>
 
-                            @if($user->addresses->count() > 0)
-                                @php $address = $user->addresses->first(); @endphp
-                                <div class="card mb-3" id="displayed-address">
-                                    <div class="card-body">
-                                        <strong>{{ $address->full_name }} - {{ $address->mobile_number }}</strong><br>
-                                        {{ $address->floor_unit_number }}, {{ $address->barangay }}, {{ $address->city }},
-                                        {{ $address->province }}<br>
-                                        {{ $address->notes }}
+                            <!-- Cart Items -->
+                            @foreach($cartItems as $cartItem)
+                                <div class="card mb-3">
+                                    <div class="card-body d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <img src="{{ asset('storage/' . $cartItem->product->image) }}"
+                                                alt="{{ $cartItem->product->name }}" width="80">
+                                            <strong>{{ $cartItem->product->name }}</strong>
+                                            <p>Price: ₱{{ number_format($cartItem->product->price, 2) }}</p>
+                                            <p>Quantity: {{ $cartItem->quantity }}</p>
+                                        </div>
+                                        <input type="checkbox" name="selected_items[]" value="{{ $cartItem->id }}" checked>
                                     </div>
                                 </div>
-                            @else
-                                <button class="btn btn-success" id="add-address-btn">+ Add Address</button>
-                            @endif
+                            @endforeach
                         </div>
 
-                        <!-- Cart Items -->
-                        @foreach($cartItems as $cartItem)
-                            <div class="card mb-3">
-                                <div class="card-body d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <img src="{{ asset('storage/' . $cartItem->product->image) }}"
-                                            alt="{{ $cartItem->product->name }}" width="80">
-                                        <strong>{{ $cartItem->product->name }}</strong>
-                                        <p>Price: ₱{{ number_format($cartItem->product->price, 2) }}</p>
-                                        <p>Quantity: {{ $cartItem->quantity }}</p>
+                        <!-- Right Side (Payment Method) -->
+                        <div class="w-30">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="mb-3">Payment Method</h5>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="payment_method" id="credit_card"
+                                            value="credit_card" checked required>
+                                        <label class="form-check-label" for="credit_card">Credit Card</label>
                                     </div>
-                                    <input type="checkbox" name="selected_items[]" value="{{ $cartItem->id }}" checked>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="payment_method" id="paypal"
+                                            value="paypal">
+                                        <label class="form-check-label" for="paypal">PayPal</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="payment_method" id="cod"
+                                            value="cod">
+                                        <label class="form-check-label" for="cod">Cash on Delivery</label>
+                                    </div>
+                                    <button type="button" id="proceed-btn" class="btn btn-primary w-100 mt-3">Proceed to
+                                        Checkout</button>
                                 </div>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <!-- Right Side (Payment Method) -->
-                    <div class="w-30">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="mb-3">Payment Method</h5>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="radio" name="payment_method" id="credit_card"
-                                        value="credit_card" required>
-                                    <label class="form-check-label" for="credit_card">Credit Card</label>
-                                </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="radio" name="payment_method" id="paypal"
-                                        value="paypal">
-                                    <label class="form-check-label" for="paypal">PayPal</label>
-                                </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="radio" name="payment_method" id="cod" value="cod">
-                                    <label class="form-check-label" for="cod">Cash on Delivery</label>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100 mt-3">Proceed to Checkout</button>
                             </div>
                         </div>
                     </div>
                 </div>
-                </form>
+            </form>
         @else
             <p>Your cart is empty. <a href="{{ route('shop') }}">Go back to shop</a></p>
         @endif
-        </div>
+    </div>
 
-        {{-- Add Address Modal --}}
-        <div id="addressModal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header mb-4">
-                    <h4>Add New Shipping Address</h4>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="addressId" value="">
-                    <div class="modal-text">
-                        <div class="mb-3">
-                            <label>Full Name</label>
-                            <input type="text" class="form-control" placeholder="First Last">
-                        </div>
-                        <div class="mb-3">
-                            <label>Mobile Number</label>
-                            <input type="text" class="form-control" placeholder="Enter phone number">
-                        </div>
-                        <div class="mb-3">
-                            <label>Other Notes</label>
-                            <input type="text" class="form-control" placeholder="Enter notes">
-                        </div>
+    {{-- Add Address Modal --}}
+    <div id="addressModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header mb-4">
+                <h4>Add New Shipping Address</h4>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="addressId" value="">
+                <div class="modal-text">
+                    <div class="mb-3">
+                        <label>Full Name</label>
+                        <input type="text" class="form-control" placeholder="First Last">
                     </div>
-                    <div class="modal-address">
-                        <div class="mb-3">
-                            <label>Floor/Unit Number</label>
-                            <input type="text" class="form-control" placeholder="Enter floor/unit number">
-                        </div>
-                        <div class="mb-3">
-                            <label>Province</label>
-                            <input type="text" class="form-control" placeholder="Enter province">
-                        </div>
-                        <div class="mb-3">
-                            <label>City</label>
-                            <input type="text" class="form-control" placeholder="Enter city">
-                        </div>
-                        <div class="mb-3">
-                            <label>Barangay</label>
-                            <input type="text" class="form-control" placeholder="Enter barangay">
-                        </div>
+                    <div class="mb-3">
+                        <label>Mobile Number</label>
+                        <input type="text" class="form-control" placeholder="Enter phone number">
+                    </div>
+                    <div class="mb-3">
+                        <label>Other Notes</label>
+                        <input type="text" class="form-control" placeholder="Enter notes">
                     </div>
                 </div>
-                <div class="modal-actions">
-                    <button class="btn btn-secondary" id="cancelAddressBtn">Cancel</button>
-                    <button class="btn btn-primary" id="saveAddressBtn">Save</button>
+                <div class="modal-address">
+                    <div class="mb-3">
+                        <label>Floor/Unit Number</label>
+                        <input type="text" class="form-control" placeholder="Enter floor/unit number">
+                    </div>
+                    <div class="mb-3">
+                        <label>Province</label>
+                        <input type="text" class="form-control" placeholder="Enter province">
+                    </div>
+                    <div class="mb-3">
+                        <label>City</label>
+                        <input type="text" class="form-control" placeholder="Enter city">
+                    </div>
+                    <div class="mb-3">
+                        <label>Barangay</label>
+                        <input type="text" class="form-control" placeholder="Enter barangay">
+                    </div>
                 </div>
             </div>
-        </div>
-        <div id="editAddressModal" class="modal right-modal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header d-flex justify-content-between align-items-center">
-                    <h4>Edit Address</h4>
-                    <button class="btn btn-success" id="openAddAddressModal">Add</button>
-                </div>
-                <div class="modal-body">
-                    @foreach($addresses as $address)
-                        <div class="address-card">
-                            <input type="radio" name="selected_address" id="address-{{ $address->id }}"
-                                value="{{ $address->id }}" class="form-check-input">
-                            <label for="address-{{ $address->id }}">
-                                <strong>{{ $address->full_name }} - {{ $address->mobile_number }}</strong><br>
-                                {{ $address->floor_unit_number }}, {{ $address->barangay }}, {{ $address->city }},
-                                {{ $address->province }}<br>
-                                {{ $address->notes }}
-                            </label>
-                            <button class="edit-address-btn" data-id="{{ $address->id }}"
-                                data-full_name="{{ $address->full_name }}"
-                                data-mobile_number="{{ $address->mobile_number }}" data-notes="{{ $address->notes }}"
-                                data-floor_unit_number="{{ $address->floor_unit_number }}"
-                                data-province="{{ $address->province }}" data-city="{{ $address->city }}"
-                                data-barangay="{{ $address->barangay }}">Edit
-                            </button>
-                        </div>
-                    @endforeach
-                </div>
-                <div class="modal-actions">
-                    <button class="btn btn-secondary" id="closeEditAddressBtn">Close</button>
-                    <button class="btn btn-primary" id="updateAddressBtn">Update</button>
-                </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancelAddressBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveAddressBtn">Save</button>
             </div>
         </div>
     </div>
+    <div id="editAddressModal" class="modal right-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header d-flex justify-content-between align-items-center">
+                <h4>Edit Address</h4>
+                <button class="btn btn-success" id="openAddAddressModal">Add</button>
+            </div>
+            <div class="modal-body">
+                @foreach($addresses as $address)
+                    <div class="address-card">
+                        <input type="radio" name="selected_address" id="address-{{ $address->id }}"
+                            value="{{ $address->id }}" class="form-check-input">
+                        <label for="address-{{ $address->id }}">
+                            <strong>{{ $address->full_name }} - {{ $address->mobile_number }}</strong><br>
+                            {{ $address->floor_unit_number }}, {{ $address->barangay }}, {{ $address->city }},
+                            {{ $address->province }}<br>
+                            {{ $address->notes }}
+                        </label>
+                        <button class="edit-address-btn" data-id="{{ $address->id }}"
+                            data-full_name="{{ $address->full_name }}" data-mobile_number="{{ $address->mobile_number }}"
+                            data-notes="{{ $address->notes }}" data-floor_unit_number="{{ $address->floor_unit_number }}"
+                            data-province="{{ $address->province }}" data-city="{{ $address->city }}"
+                            data-barangay="{{ $address->barangay }}">Edit
+                        </button>
+                    </div>
+                @endforeach
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="closeEditAddressBtn">Close</button>
+                <button class="btn btn-primary" id="updateAddressBtn">Update</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const addressModal = document.getElementById('addressModal');
+            const editAddressModal = document.getElementById('editAddressModal');
+            const addAddressBtn = document.getElementById('add-address-btn');
+            const editAddressBtn = document.getElementById('edit-address-btn');
+            const openAddAddressModal = document.getElementById('openAddAddressModal');
+            const closeEditAddressBtn = document.getElementById('closeEditAddressBtn');
+            const cancelAddressBtn = document.getElementById('cancelAddressBtn');
+            const saveAddressBtn = document.getElementById('saveAddressBtn');
+            const addressIdInput = document.getElementById('addressId');
+            const displayedAddress = document.getElementById('displayed-address');
+            const proceedBtn = document.getElementById('proceed-btn');
+
+            // Prevent "Edit Address" from triggering form submission
+            editAddressBtn?.addEventListener('click', (e) => {
+                e.preventDefault();  // Prevent unintended submission
+                e.stopPropagation(); // Prevent bubbling issues
+                editAddressModal.style.display = 'flex';
+                console.log("Edit Address Clicked, Showing Modal...");
+            });
+
+            // Show Add Address Modal
+            addAddressBtn?.addEventListener('click', (e) => {
+                e.preventDefault();
+                addressIdInput.value = '';
+                clearAddressForm();
+                addressModal.style.display = 'flex';
+                editAddressModal.style.display = 'none';
+                console.log("Adding New Address...");
+            });
+
+            // Open Add Address Modal from Edit Modal
+            openAddAddressModal?.addEventListener('click', (e) => {
+                e.preventDefault();
+                clearAddressForm();
+                addressIdInput.value = '';
+                editAddressModal.style.display = 'none';
+                addressModal.style.display = 'flex';
+                console.log("Switching to Add Address Modal...");
+            });
+
+            // Close Edit Address Modal
+            closeEditAddressBtn?.addEventListener('click', () => {
+                editAddressModal.style.display = 'none';
+            });
+
+            // Close Add Address Modal
+            cancelAddressBtn?.addEventListener('click', () => {
+                addressModal.style.display = 'none';
+            });
+
+            // Show Edit Address Modal for Each Address
+            document.querySelectorAll('.edit-address-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const data = this.dataset;
+                    document.querySelector('input[placeholder="First Last"]').value = data.full_name;
+                    document.querySelector('input[placeholder="Enter phone number"]').value = data.mobile_number;
+                    document.querySelector('input[placeholder="Enter notes"]').value = data.notes;
+                    document.querySelector('input[placeholder="Enter floor/unit number"]').value = data.floor_unit_number;
+                    document.querySelector('input[placeholder="Enter province"]').value = data.province;
+                    document.querySelector('input[placeholder="Enter city"]').value = data.city;
+                    document.querySelector('input[placeholder="Enter barangay"]').value = data.barangay;
+                    addressIdInput.value = data.id;
+                    addressModal.style.display = 'flex';
+                    editAddressModal.style.display = 'none';
+                    console.log("Editing Address ID:", data.id);
+                });
+            });
+
+            // Save Address Functionality
+            saveAddressBtn?.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                const data = {
+                    full_name: document.querySelector('input[placeholder="First Last"]').value,
+                    mobile_number: document.querySelector('input[placeholder="Enter phone number"]').value,
+                    notes: document.querySelector('input[placeholder="Enter notes"]').value,
+                    floor_unit_number: document.querySelector('input[placeholder="Enter floor/unit number"]').value,
+                    province: document.querySelector('input[placeholder="Enter province"]').value,
+                    city: document.querySelector('input[placeholder="Enter city"]').value,
+                    barangay: document.querySelector('input[placeholder="Enter barangay"]').value,
+                };
+
+                const addressId = addressIdInput.value;
+                let url = '{{ route("checkout.saveAddress") }}';
+                let method = 'POST';
+
+                if (addressId) {
+                    url = `/checkout/updateAddress/${addressId}`;
+                    method = 'PUT';
+                }
+
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => response.json())
+                    .then(responseData => {
+                        if (responseData.success) {
+                            alert('Address saved successfully!');
+                            addressModal.style.display = 'none';
+                            location.reload();
+                        } else {
+                            alert(responseData.error || 'Something went wrong!');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+
+            // Select Address
+            document.querySelectorAll('.form-check-input[name="selected_address"]').forEach(input => {
+                input.addEventListener('change', function () {
+                    const selectedAddress = this.closest('.address-card');
+                    const addressData = {
+                        full_name: selectedAddress.querySelector('label').innerText.split('-')[0].trim(),
+                        mobile_number: selectedAddress.querySelector('label').innerText.split('-')[1].trim(),
+                        floor_unit_number: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[0].trim(),
+                        barangay: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[1].trim(),
+                        city: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[2].trim(),
+                        province: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[3].trim(),
+                        notes: selectedAddress.querySelector('label').innerText.split('\n')[2]?.trim() || ''
+                    };
+
+                    updateDisplayedAddress(addressData);
+                    document.querySelector('input[name="address_id"]').value = this.value;
+                    console.log("Address Selected:", this.value);
+                });
+            });
+
+            // Proceed to Checkout
+            proceedBtn?.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                const selectedAddress = document.querySelector('input[name="address_id"]').value;
+                if (!selectedAddress) {
+                    alert('Please select a shipping address.');
+                    return;
+                }
+
+                const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+                if (!selectedPayment) {
+                    alert('Please select a payment method.');
+                    return;
+                }
+
+                const selectedItems = Array.from(document.querySelectorAll("input[name='selected_items[]']:checked"))
+                    .map(item => item.value);
+
+                if (selectedItems.length === 0) {
+                    alert('Please select at least one product.');
+                    return;
+                }
+
+                console.log("Proceeding with checkout...");
+                console.log("Address ID:", selectedAddress);
+                console.log("Payment Method:", selectedPayment.value);
+                console.log("Selected Items:", selectedItems);
+
+                fetch("{{ route('checkout.process') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({
+                        address_id: selectedAddress,
+                        selected_items: selectedItems,
+                        payment_method: selectedPayment.value
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            alert(data.error || "Something went wrong!");
+                        }
+                    })
+                    .catch(error => console.error("Error:", error));
+            });
+
+            // Helper Functions
+            function clearAddressForm() {
+                document.querySelectorAll('#addressModal input').forEach(input => input.value = '');
+            }
+
+            function updateDisplayedAddress(address) {
+                displayedAddress.innerHTML = `
+            <div class="card-body">
+                <strong>${address.full_name} - ${address.mobile_number}</strong><br>
+                ${address.floor_unit_number}, ${address.barangay}, ${address.city}, ${address.province}<br>
+                ${address.notes}
+            </div>`;
+            }
+        });
+    </script>
 
     <style>
         .w-70 {
@@ -336,169 +545,4 @@
         }
     </style>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const addressModal = document.getElementById('addressModal');
-            const editAddressModal = document.getElementById('editAddressModal');
-            const addAddressBtn = document.getElementById('add-address-btn');
-            const editAddressBtn = document.getElementById('edit-address-btn');
-            const openAddAddressModal = document.getElementById('openAddAddressModal');
-            const cancelAddressBtn = document.getElementById('cancelAddressBtn');
-            const saveAddressBtn = document.getElementById('saveAddressBtn');
-            const closeEditAddressBtn = document.getElementById('closeEditAddressBtn');
-            const editCurrentAddressBtn = document.getElementById('editCurrentAddressBtn');
-            const addressIdInput = document.getElementById('addressId');
-            const displayedAddress = document.getElementById('displayed-address');
-
-            // Show Add Address Modal
-            addAddressBtn?.addEventListener('click', () => {
-                clearAddressForm();
-                addressIdInput.value = '';
-                addressModal.style.display = 'flex';
-                editAddressModal.style.display = 'none';
-            });
-
-            // Show Edit Address Modal
-            editAddressBtn?.addEventListener('click', () => {
-                editAddressModal.style.display = 'flex';
-            });
-
-            // Close modals when clicking outside
-            window.addEventListener('click', (e) => {
-                if (e.target === addressModal) addressModal.style.display = 'none';
-                if (e.target === editAddressModal) editAddressModal.style.display = 'none';
-            });
-
-            // Show Edit Modal with Current Address Details
-            editCurrentAddressBtn?.addEventListener('click', () => {
-                prefillAddressForm();
-                addressModal.style.display = 'flex';
-                editAddressModal.style.display = 'none';
-            });
-
-            // Open Add Address Modal from Edit Modal
-            openAddAddressModal?.addEventListener('click', () => {
-                clearAddressForm();
-                addressIdInput.value = '';
-                editAddressModal.style.display = 'none';
-                addressModal.style.display = 'flex';
-            });
-
-            // Show Edit Modal for Each Address
-            document.querySelectorAll('.edit-address-btn').forEach(button => {
-                button.addEventListener('click', function () {
-                    const data = this.dataset;
-                    document.querySelector('input[placeholder="First Last"]').value = data.full_name;
-                    document.querySelector('input[placeholder="Enter phone number"]').value = data.mobile_number;
-                    document.querySelector('input[placeholder="Enter notes"]').value = data.notes;
-                    document.querySelector('input[placeholder="Enter floor/unit number"]').value = data.floor_unit_number;
-                    document.querySelector('input[placeholder="Enter province"]').value = data.province;
-                    document.querySelector('input[placeholder="Enter city"]').value = data.city;
-                    document.querySelector('input[placeholder="Enter barangay"]').value = data.barangay;
-                    addressIdInput.value = data.id;
-                    addressModal.style.display = 'flex';
-                    editAddressModal.style.display = 'none';
-                });
-            });
-
-            // Close Edit Address Modal
-            closeEditAddressBtn?.addEventListener('click', () => {
-                editAddressModal.style.display = 'none';
-            });
-
-            // Close Add Address Modal
-            cancelAddressBtn?.addEventListener('click', () => {
-                addressModal.style.display = 'none';
-            });
-
-            // Save Address Functionality
-            saveAddressBtn?.addEventListener('click', (e) => {
-                e.preventDefault();
-
-                const data = {
-                    full_name: document.querySelector('input[placeholder="First Last"]').value,
-                    mobile_number: document.querySelector('input[placeholder="Enter phone number"]').value,
-                    notes: document.querySelector('input[placeholder="Enter notes"]').value,
-                    floor_unit_number: document.querySelector('input[placeholder="Enter floor/unit number"]').value,
-                    province: document.querySelector('input[placeholder="Enter province"]').value,
-                    city: document.querySelector('input[placeholder="Enter city"]').value,
-                    barangay: document.querySelector('input[placeholder="Enter barangay"]').value,
-                };
-
-                const addressId = addressIdInput.value;
-                let url = '{{ route("checkout.saveAddress") }}';
-                let method = 'POST';
-
-                if (addressId) {
-                    url = `/checkout/updateAddress/${addressId}`;
-                    method = 'PUT';
-                }
-
-                fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify(data)
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Address saved successfully!');
-                            addressModal.style.display = 'none';
-                            location.reload();
-                        } else {
-                            alert(data.error || 'Something went wrong!');
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-            });
-
-            // Clear Address Form
-            function clearAddressForm() {
-                document.querySelectorAll('#addressModal input').forEach(input => input.value = '');
-            }
-
-            // Prefill Address Form
-            function prefillAddressForm() {
-                document.querySelector('input[placeholder="First Last"]').value = '{{ $address->full_name ?? "" }}';
-                document.querySelector('input[placeholder="Enter phone number"]').value = '{{ $address->mobile_number ?? "" }}';
-                document.querySelector('input[placeholder="Enter notes"]').value = '{{ $address->notes ?? "" }}';
-                document.querySelector('input[placeholder="Enter floor/unit number"]').value = '{{ $address->floor_unit_number ?? "" }}';
-                document.querySelector('input[placeholder="Enter province"]').value = '{{ $address->province ?? "" }}';
-                document.querySelector('input[placeholder="Enter city"]').value = '{{ $address->city ?? "" }}';
-                document.querySelector('input[placeholder="Enter barangay"]').value = '{{ $address->barangay ?? "" }}';
-                addressIdInput.value = '{{ $address->id ?? "" }}';
-            }
-
-            // Update Displayed Address
-            function updateDisplayedAddress(address) {
-                displayedAddress.innerHTML = `
-                <div class="card-body">
-                    <strong>${address.full_name} - ${address.mobile_number}</strong><br>
-                    ${address.floor_unit_number}, ${address.barangay}, ${address.city}, ${address.province}<br>
-                    ${address.notes}
-                </div>`;
-            }
-
-            // Listen for Address Selection Change
-            document.querySelectorAll('.form-check-input').forEach(input => {
-                input.addEventListener('change', function () {
-                    const selectedAddress = this.closest('.address-card');
-                    const addressData = {
-                        full_name: selectedAddress.querySelector('label').innerText.split('-')[0].trim(),
-                        mobile_number: selectedAddress.querySelector('label').innerText.split('-')[1].trim(),
-                        floor_unit_number: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[0].trim(),
-                        barangay: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[1].trim(),
-                        city: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[2].trim(),
-                        province: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[3].trim(),
-                        notes: selectedAddress.querySelector('label').innerText.split('\n')[2]?.trim() || ''
-                    };
-
-                    updateDisplayedAddress(addressData);
-                });
-            });
-        });
-    </script>
 </x-app-layout>

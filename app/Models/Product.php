@@ -9,30 +9,43 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'user_id', 'description', 'price', 'image', 'category_id', 'stock'];
-    protected $primaryKey = 'id'; // Optional, only if you have a custom primary key
+    protected $fillable = ['name', 'description', 'price', 'stock', 'image', 'image_path', 'category_id', 'user_id'];
 
+    // Optional if you have a custom primary key
+    protected $primaryKey = 'id';
+
+    // OrderItems relationship (One-to-Many)
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
     }
 
+    // Total Sold Attribute (custom accessor to calculate total sold)
     public function getTotalSoldAttribute()
     {
-        return $this->orderItems()->join('orders', 'order_items.order_id', '=', 'orders.id')
+        return $this->orderItems()
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('orders.status', 'completed')
             ->sum('order_items.quantity');
     }
 
-
+    // Category relationship (One-to-Many, belongs to Category)
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
-    
+
+    // User relationship (One-to-Many, belongs to User)
     public function user()
     {
         return $this->belongsTo(User::class);
     }
-}
 
+    // Orders relationship (Many-to-Many via pivot table)
+    // Correct One-to-Many relation
+    public function OrderItem()
+    {
+        return $this->hasMany(OrderItem::class, 'product_id');
+    }
+
+}

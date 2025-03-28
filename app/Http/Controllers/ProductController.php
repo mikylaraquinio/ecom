@@ -16,24 +16,43 @@ class ProductController extends Controller
     {
         $query = Product::query();
 
+        // ✅ Search Filter
         if ($request->filled('search')) {
             $search = trim(strtolower($request->search));
             $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
         }
 
+        // ✅ Category Filtering (ID & Name)
         if ($request->filled('category')) {
-            $query->where('category_id', $request->category);
+            $categoryInput = $request->category;
+
+            // Check if the category input is a valid ID or Name
+            $category = Category::where('id', $categoryInput)
+                ->orWhere('name', $categoryInput)
+                ->first();
+
+            if ($category) {
+                if ($category->parent_id === null) {
+                    // If it's a main category, include subcategories
+                    $subCategoryIds = Category::where('parent_id', $category->id)->pluck('id')->toArray();
+                    $subCategoryIds[] = $category->id;
+                    $query->whereIn('category_id', $subCategoryIds);
+                } else {
+                    // If it's a subcategory, filter by its ID
+                    $query->where('category_id', $category->id);
+                }
+            }
         }
 
+        // ✅ Price Filtering
         if ($request->filled('min_price') && is_numeric($request->min_price)) {
             $query->where('price', '>=', $request->min_price);
         }
-
         if ($request->filled('max_price') && is_numeric($request->max_price)) {
             $query->where('price', '<=', $request->max_price);
         }
 
-        // ✅ FIX Stock Availability Filter
+        // ✅ Stock Availability
         if ($request->filled('stock')) {
             if ($request->stock === 'in_stock') {
                 $query->where('stock', '>', 0);
@@ -42,31 +61,34 @@ class ProductController extends Controller
             }
         }
 
-        // **Sorting Logic**
+        // ✅ Sorting Logic
         if ($request->filled('sort_by')) {
-            if ($request->sort_by === 'low_to_high') {
-                $query->orderBy('price', 'asc');
-            } elseif ($request->sort_by === 'high_to_low') {
-                $query->orderBy('price', 'desc');
-            } elseif ($request->sort_by === 'newest') {
-                $query->orderBy('created_at', 'desc');
+            switch ($request->sort_by) {
+                case 'low_to_high':
+                    $query->orderBy('price', 'asc');
+                    break;
+                case 'high_to_low':
+                    $query->orderBy('price', 'desc');
+                    break;
+                case 'newest':
+                    $query->orderBy('created_at', 'desc');
+                    break;
             }
         }
 
-        // Debugging Log
-        Log::info('Filter parameters:', $request->all());
-
+        // ✅ Fetch Products
         $products = $query->get();
-        $categories = Category::all();
 
+        // ✅ Fetch Categories in Hierarchical Structure
+        $categories = Category::whereNull('parent_id')->with('subcategories')->get();
+
+        // ✅ AJAX Support for Dynamic Filtering
         if ($request->ajax()) {
             return view('partials.product-list', compact('products'))->render();
         }
 
         return view('shop', compact('products', 'categories'));
     }
-
-
 
     public function autocomplete(Request $request)
     {
@@ -115,58 +137,62 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        // Validate the request
         $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'required|string',
             'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0|max:999',
-            'category_id' => 'required|exists:categories,id',
-            'image' => 'nullable|image|max:2048',
-
+            'stock' => 'required|integer|min:0',
+            'category' => 'required|exists:categories,id',
         ]);
 
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('products', 'public');
+        } else {
+            return back()->with('error', 'Image upload failed.');
+        }
+
+        // Create new product
         $product = new Product();
         $product->name = $request->name;
         $product->description = $request->description;
         $product->price = $request->price;
         $product->stock = $request->stock;
-        $product->category_id = $request->category_id;
-        $product->user_id = Auth::check() ? Auth::id() : null;
-
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('products', 'public');
-            $product->image = $imagePath;
-        }
-
+        $product->image = $imagePath; // Store in the 'image' column
+        $product->image_path = asset('storage/' . $imagePath); // Store full path in 'image_path'
+        $product->category_id = $request->category;
+        $product->user_id = auth()->id(); // Make sure user is logged in
         $product->save();
 
-        return redirect()->back()->with('success', 'Product added successfully!');
+        return redirect()->back()->with('success', 'Product added successfully.');
     }
+
 
     public function update(Request $request, $id)
     {
         $product = Product::findOrFail($id);
 
-        // Ensure user is authenticated
-        if (!Auth::check() || $product->user_id !== Auth::id()) {
-            return redirect()->back()->withErrors(['error' => 'Unauthorized!']);
-        }
+        $product->name = $request->name;
+        $product->description = $request->description;
+        $product->price = $request->price;
+        $product->stock = $request->stock;
+        $product->category_id = $request->category;
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric',
-            'stock' => 'required|integer|min:0',
-            'category_id' => 'required|exists:categories,id',
-            'image' => 'nullable|image|max:2048',
-        ]);
-
+        // Handle Image Upload
         if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($product->image && Storage::exists('public/' . $product->image)) {
+                Storage::delete('public/' . $product->image);
+            }
+
+            // Store new image
             $path = $request->file('image')->store('products', 'public');
             $product->image = $path;
         }
 
-        $product->update($request->except('image'));
+        $product->save();
 
         return redirect()->back()->with('success', 'Product updated successfully!');
     }

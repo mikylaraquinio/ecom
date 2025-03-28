@@ -19,12 +19,74 @@
             <div class="col-md-9">
                 <div class="tab-content">
                     @if(auth()->check() && auth()->user()->role === 'seller')
-
-                        <!-- Order Status Section -->
-                        <div class="tab-pane fade show active" id="order-status" role="tabpanel">
-                            <h5>Order Status</h5>
-                            <p>View and manage the status of your orders here.</p>
+                    <div class="tab-pane fade show active" id="order-status" role="tabpanel">
+                        <h5>Your Orders</h5>
+                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+                            @if(isset($orders) && $orders->count() > 0)
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Order ID</th>
+                                            <th>Products</th>
+                                            <th>Total Price</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($orders as $order)
+                                            <tr>
+                                                <td>{{ $order->id }}</td>
+                                                <td>
+                                                    <ul>
+                                                        @foreach($order->orderItems as $item)
+                                                            <li>{{ $item->product->name }} (x{{ $item->quantity }})</li>
+                                                        @endforeach
+                                                    </ul>
+                                                </td>
+                                                <td>₱{{ number_format($order->total_amount, 2) }}</td>
+                                                <td>
+                                                    <span class="badge text-white 
+                                                        @if($order->status == 'pending') bg-warning
+                                                        @elseif($order->status == 'accepted') bg-success
+                                                        @elseif($order->status == 'denied') bg-danger
+                                                        @elseif($order->status == 'shipped') bg-primary
+                                                        @endif">
+                                                        {{ ucfirst($order->status) }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    @if($order->status == 'pending')
+                                                        <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <input type="hidden" name="status" value="accepted">
+                                                            <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                                                        </form>
+                                                        <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" style="display:inline;">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <input type="hidden" name="status" value="denied">
+                                                            <button type="submit" class="btn btn-danger btn-sm">Deny</button>
+                                                        </form>
+                                                    @elseif($order->status == 'accepted')
+                                                        <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <input type="hidden" name="status" value="shipped">
+                                                            <button type="submit" class="btn btn-primary btn-sm">Mark as Shipped</button>
+                                                        </form>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            @else
+                                <p>No orders available.</p>
+                            @endif
                         </div>
+                    </div>
 
                         <!-- My Shop Section -->
                         <div class="tab-pane fade" id="my-shop" role="tabpanel">
@@ -121,8 +183,16 @@
 
                                                             <div class="form-group">
                                                                 <label>Product Image</label>
-                                                                <input type="file" class="form-control" name="image"
-                                                                    accept="image/*">
+
+                                                                <!-- Show Existing Image Preview -->
+                                                                @if($product->image)
+                                                                    <div class="mb-2">
+                                                                        <img src="{{ asset('storage/' . $product->image) }}" alt="Product Image" width="100">
+                                                                    </div>
+                                                                @endif
+
+                                                                <!-- File Input for New Image -->
+                                                                <input type="file" class="form-control" name="image" accept="image/*">
                                                                 <small>Leave empty to keep existing image</small>
                                                             </div>
                                                             <div class="form-group">
@@ -145,79 +215,30 @@
                                                                 <input type="number" class="form-control" name="stock"
                                                                     value="{{ $product->stock }}" required min="0">
                                                             </div>
+                                                            <div class="form-group">
+                                                                <label for="category-dropdown" class="fw-bold text-success">Category</label>
+                                                                <select class="form-control" id="category-dropdown" name="category">
+                                                                    <option value="">Select Category</option>
 
-                                                            <div class="form-group position-relative">
-                                                                <label for="category-dropdown"
-                                                                    class="fw-bold text-success">Category</label>
-                                                                <div class="dropdown w-100" data-bs-auto-close="outside">
-                                                                    <button class="btn btn-outline-success dropdown-toggle w-100"
-                                                                        type="button" id="categoryDropdownButton"
-                                                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                                                        Select Category
-                                                                    </button>
-                                                                    <div class="dropdown-menu w-100 p-0 position-absolute big-dropdown"
-                                                                        id="categoryDropdown">
-                                                                        <div class="d-flex">
-                                                                            <div class="shortcut-links p-2 border-end">
-                                                                                <ul class="list-group">
-                                                                                    <li
-                                                                                        class="list-group-item fw-bold text-success text-center">
-                                                                                        Quick Access</li>
-                                                                                    @foreach($mainCategories as $category)
-                                                                                        <li>
-                                                                                            <a href="#"
-                                                                                                class="list-group-item list-group-item-action shortcut-category"
-                                                                                                data-target="category-section-{{ $category->id }}">
-                                                                                                ⏩
-                                                                                                {!! getCategoryIcon($category->name) !!}
-                                                                                                {{ $category->name }}
-                                                                                            </a>
-                                                                                        </li>
-                                                                                    @endforeach
-                                                                                </ul>
-                                                                            </div>
-                                                                            <div class="flex-grow-1 p-2">
-                                                                                <ul class="list-unstyled mb-0">
-                                                                                    @foreach($mainCategories as $category)
-                                                                                        <li id="category-section-{{ $category->id }}">
-                                                                                            <a href="#"
-                                                                                                class="dropdown-item category-option"
-                                                                                                data-id="{{ $category->id }}">
-                                                                                                {!! getCategoryIcon($category->name) !!}
-                                                                                                {{ $category->name }}
-                                                                                            </a>
-                                                                                        </li>
-                                                                                        @foreach($category->children as $subCategory)
-                                                                                            <li>
-                                                                                                <a href="#"
-                                                                                                    class="dropdown-item category-option ms-3"
-                                                                                                    data-id="{{ $subCategory->id }}">
-                                                                                                    &nbsp;&nbsp; ├─
-                                                                                                    {!! getCategoryIcon($subCategory->name, $category->name) !!}
-                                                                                                    {{ $subCategory->name }}
-                                                                                                </a>
-                                                                                            </li>
-                                                                                            @foreach($subCategory->children as $subSubCategory)
-                                                                                                <li>
-                                                                                                    <a href="#"
-                                                                                                        class="dropdown-item category-option ms-5"
-                                                                                                        data-id="{{ $subSubCategory->id }}">
-                                                                                                        &nbsp;&nbsp;&nbsp;&nbsp; ├─
-                                                                                                        {!! getCategoryIcon($subSubCategory->name, $subCategory->name, $category->name) !!}
-                                                                                                        {{ $subSubCategory->name }}
-                                                                                                    </a>
-                                                                                                </li>
-                                                                                            @endforeach
-                                                                                        @endforeach
-                                                                                    @endforeach
-                                                                                </ul>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <input type="hidden" name="category_id" id="selectedCategoryId">
+                                                                    @foreach($mainCategories as $category)
+                                                                        <!-- Main Category -->
+                                                                        <option value="{{ $category->id }}" class="fw-bold" 
+                                                                            {{ $product->category_id == $category->id ? 'selected' : '' }}>
+                                                                            {{ $category->name }}
+                                                                        </option>
+
+                                                                        <!-- Subcategories -->
+                                                                        @if ($category->subcategories->count() > 0)
+                                                                            @foreach ($category->subcategories as $subCategory)
+                                                                                <option value="{{ $subCategory->id }}" 
+                                                                                    {{ $product->category_id == $subCategory->id ? 'selected' : '' }}>
+                                                                                    &nbsp;&nbsp;&nbsp; ├─ {{ $subCategory->name }}
+                                                                                </option>
+                                                                            @endforeach
+                                                                        @endif
+                                                                    @endforeach
+                                                                </select>
                                                             </div>
-
                                                             <button type="submit" class="btn btn-success">Update Product</button>
                                                         </form>
                                                     </div>
@@ -257,71 +278,38 @@
                                     <label>Stock Quantity</label>
                                     <input type="number" class="form-control" name="stock" required min="0">
                                 </div>
-                                <div class="form-group position-relative">
-                                    <label for="category-dropdown" class="fw-bold text-success"></label>
-                                    <div class="dropdown w-100" data-bs-auto-close="outside">
-                                        <button class="btn btn-outline-success dropdown-toggle w-100" type="button"
-                                            id="categoryDropdownButton" data-bs-toggle="dropdown" aria-expanded="false">
-                                            Select Category
-                                        </button>
-                                        <div class="dropdown-menu w-100 p-0 position-absolute big-dropdown"
-                                            id="categoryDropdown">
-                                            <div class="d-flex">
-                                                <div class="shortcut-links p-2 border-end">
-                                                    <ul class="list-group">
-                                                        <li class="list-group-item fw-bold text-success text-center">Quick
-                                                            Access</li>
-                                                        @foreach($mainCategories as $category)
-                                                            <li>
-                                                                <a href="#"
-                                                                    class="list-group-item list-group-item-action shortcut-category"
-                                                                    data-target="category-section-{{ $category->id }}">
-                                                                    ⏩ {!! getCategoryIcon($category->name) !!}
-                                                                    {{ $category->name }}
-                                                                </a>
-                                                            </li>
-                                                        @endforeach
-                                                    </ul>
-                                                </div>
-                                                <div class="flex-grow-1 p-2">
-                                                    <ul class="list-unstyled mb-0">
-                                                        @foreach($mainCategories as $category)
-                                                            <li id="category-section-{{ $category->id }}">
-                                                                <a href="#" class="dropdown-item category-option"
-                                                                    data-id="{{ $category->id }}">
-                                                                    {!! getCategoryIcon($category->name) !!}
-                                                                    {{ $category->name }}
-                                                                </a>
-                                                            </li>
-                                                            @foreach($category->children as $subCategory)
-                                                                <li>
-                                                                    <a href="#" class="dropdown-item category-option ms-3"
-                                                                        data-id="{{ $subCategory->id }}">
-                                                                        &nbsp;&nbsp; ├─
-                                                                        {!! getCategoryIcon($subCategory->name, $category->name) !!}
-                                                                        {{ $subCategory->name }}
-                                                                    </a>
-                                                                </li>
-                                                                @foreach($subCategory->children as $subSubCategory)
-                                                                    <li>
-                                                                        <a href="#" class="dropdown-item category-option ms-5"
-                                                                            data-id="{{ $subSubCategory->id }}">
-                                                                            &nbsp;&nbsp;&nbsp;&nbsp; ├─
-                                                                            {!! getCategoryIcon($subSubCategory->name, $subCategory->name, $category->name) !!}
-                                                                            {{ $subSubCategory->name }}
-                                                                        </a>
-                                                                    </li>
-                                                                @endforeach
-                                                            @endforeach
-                                                        @endforeach
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <input type="hidden" name="category_id" id="selectedCategoryId">
+                                <div class="form-group">
+                                    <label for="category-dropdown" class="fw-bold text-success">
+                                        Category
+                                        <i class="fas fa-info-circle text-primary" data-bs-toggle="tooltip" title="Select a category from the list."></i>
+                                    </label>
+                                    <select class="form-control" id="category-dropdown" name="category">
+                                        <option value="">Select Category</option>
+
+                                        @foreach($mainCategories as $category)
+                                            @php
+                                                $mainIcon = getCategoryIcon($category->name); // Get main category's icon
+                                            @endphp
+
+                                            <!-- Main Category -->
+                                            <option value="{{ $category->id }}" class="fw-bold">
+                                                {{ $mainIcon }} {{ $category->name }}
+                                            </option>
+
+                                            <!-- Loop through Subcategories -->
+                                            @if ($category->subcategories->count() > 0)
+                                                @foreach ($category->subcategories as $subCategory)
+                                                    @php
+                                                        $subIcon = getCategoryIcon($subCategory->name, $category->name); // Inherit main category's icon
+                                                    @endphp
+                                                    <option value="{{ $subCategory->id }}">
+                                                        &nbsp;&nbsp;&nbsp; ├─ {{ $subIcon }} {{ $subCategory->name }}
+                                                    </option>
+                                                @endforeach
+                                            @endif
+                                        @endforeach
+                                    </select>
                                 </div>
-                                <br>
                                 <button type="submit" class="btn btn-success">Add Product</button>
                             </form>
                         </div>
@@ -338,111 +326,12 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            function initializeCategoryDropdown(modal) {
-                const dropdownMenu = modal.querySelector('.big-dropdown');
-                const categoryButton = modal.querySelector('#categoryDropdownButton');
-                const hiddenInput = modal.querySelector('#selectedCategoryId');
-
-                // Handle category selection
-                modal.querySelectorAll('.category-option').forEach(item => {
-                    item.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        const categoryId = this.getAttribute('data-id');
-                        const categoryName = this.innerText.trim();
-
-                        if (hiddenInput && categoryButton) {
-                            hiddenInput.value = categoryId;
-                            categoryButton.innerText = categoryName;
-                        }
-                    });
-                });
-
-                // Handle quick access scrolling
-                modal.querySelectorAll('.shortcut-category').forEach(item => {
-                    item.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        e.stopPropagation(); // Prevent dropdown from closing
-
-                        const targetId = this.getAttribute('data-target');
-                        const targetElement = modal.querySelector(`#${targetId}`);
-
-                        if (targetElement && dropdownMenu) {
-                            const targetPosition = targetElement.offsetTop - dropdownMenu.offsetTop;
-
-                            dropdownMenu.scrollTo({
-                                top: targetPosition,
-                                behavior: 'smooth'
-                            });
-                        }
-                    });
-                });
-            }
-
-            // Initialize dropdowns for all modals (Edit and Add)
-            document.querySelectorAll('.modal').forEach(modal => {
-                initializeCategoryDropdown(modal);
+        document.addEventListener("DOMContentLoaded", function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
             });
-
-            // Also explicitly target the Add Product form
-            const addProductForm = document.querySelector('#add-product');
-            if (addProductForm) {
-                initializeCategoryDropdown(addProductForm);
-            }
         });
     </script>
-
-    <style>
-        .form-container {
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
-        }
-
-        .category-shortcuts {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            max-width: 100px;
-            position: sticky;
-            top: 10px;
-            height: max-content;
-        }
-
-        .category-shortcuts button {
-            padding: 3px 5px;
-            border: none;
-            background: #28a745;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
-            text-align: left;
-            width: 100%;
-        }
-
-        .category-shortcuts button:hover {
-            background: rgb(255, 255, 255);
-        }
-
-        .form-group {
-            flex-grow: 1;
-        }
-
-        .big-dropdown {
-            max-height: 400px;
-            /* Set the height you want for your dropdown */
-            overflow-y: auto;
-            width: 800px;
-            /* Make the dropdown bigger */
-        }
-
-        .shortcut-links {
-            position: sticky;
-            top: 0;
-            height: 100%;
-            background: white;
-        }
-    </style>
 
 </x-app-layout>

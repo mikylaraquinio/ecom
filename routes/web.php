@@ -53,6 +53,8 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::post('/profile/update-picture', [ProfileController::class, 'updateProfilePicture'])->name('profile.updatePicture');
 });
+Route::get('/user_profile', [ProfileController::class, 'showProfile'])->middleware(['auth', 'verified'])->name('user_profile');
+
 
 
 
@@ -76,6 +78,7 @@ Route::get('/subcategories/{id}/products', [ProductController::class, 'getProduc
 Route::middleware(['auth'])->group(function () {
     Route::resource('products', ProductController::class);
     Route::get('/my-products', [ProductController::class, 'myProducts'])->name('products.myProducts');
+    Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
 });
 
 Route::get('/autocomplete', [ProductController::class, 'autocomplete']);
@@ -92,12 +95,14 @@ Route::post('/checkout', [CartController::class, 'process'])->name('checkout.pro
 // Checkout Routes
 Route::post('/checkout', [CheckoutController::class, 'prepareCheckout'])->name('checkout.prepare');
 Route::get('/checkout', [CheckoutController::class, 'showCheckout'])->name('checkout.show');
-Route::post('/checkout/process', [CheckoutController::class, 'processCheckout'])->name('checkout.process'); // Corrected this
+Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process'); // Corrected this
 Route::post('/checkout/save-address', [CheckoutController::class, 'saveAddress'])->name('checkout.saveAddress');
 Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
 Route::get('/checkout/getAddress', [CheckoutController::class, 'getAddress'])->name('checkout.getAddress');
 Route::put('/checkout/updateAddress/{id}', [CheckoutController::class, 'updateAddress'])->name('checkout.updateAddress');
-Route::get('/checkout/confirmation/{order}', [CheckoutController::class, 'confirmation'])->name('checkout.confirmation');
+Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
+
+
 
 
 /*Orders*/
@@ -108,6 +113,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/order/{order}/cancel', [CartController::class, 'cancel'])->name('order.cancel');
     Route::get('/order/{order}/edit', [CartController::class, 'edit'])->name('order.edit');
 });
+Route::get('/my-orders', [SellerController::class, 'myOrders'])->name('buyer.orders')->middleware('auth');
+Route::patch('/seller/orders/{id}/update', [SellerController::class, 'updateOrderStatus'])->name('seller.updateOrderStatus');
+Route::get('/orders/{id}/confirm', [SellerController::class, 'confirmReceipt'])->name('buyer.confirm-receipt');
+
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
