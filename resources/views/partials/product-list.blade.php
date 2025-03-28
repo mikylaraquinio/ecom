@@ -1,5 +1,5 @@
 <div class="container px-4 px-lg-5 mt-5">
-    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-4 justify-content-center">
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4 justify-content-center">
         @forelse($products as $product)
             @php
                 $imageUrl = $product->image 

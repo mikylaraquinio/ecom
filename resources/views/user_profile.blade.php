@@ -8,8 +8,8 @@
                         <!-- Profile Picture with Edit Icon -->
                         <label for="profilePictureInput" class="position-relative d-inline-block">
                             <img src="{{ auth()->user()->profile_picture
-    ? asset('storage/' . auth()->user()->profile_picture)
-    : asset('assets/default.png') }}" alt="Profile Picture" class="rounded-circle mb-2" width="80" height="80"
+                                ? asset('storage/' . auth()->user()->profile_picture)
+                                : asset('assets/default.png') }}" alt="Profile Picture" class="rounded-circle mb-2" width="80" height="80"
                                 style="border: 3px solid #fff; object-fit: cover; aspect-ratio: 1/1;">
 
                             <!-- Edit Icon -->
@@ -61,11 +61,12 @@
                             </a>
                         </li>
                         @if(auth()->user()->role !== 'seller')
-                            <li class="nav-item mt-3 text-center">
-                                <a href="{{ route('farmers.sell') }}" class="btn btn-success">
-                                    <i class="fas fa-store me-2"></i> Start Selling
+                            <div>
+                                <a href="{{ route('farmers.sell') }}" class="btn btn-success" data-toggle="modal"
+                                    data-target="#ModalCreate">
+                                    <i class="fas fa-store mr-2"></i> Start Selling
                                 </a>
-                            </li>
+                            </div>
                         @endif
                         @if(auth()->user()->role === 'seller')
                             <li class="nav-item mt-2 text-center">
@@ -314,8 +315,8 @@
         }
     </script>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
     @include('farmers.modal.sell')
 </x-app-layout>

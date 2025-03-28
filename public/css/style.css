@@ -4,7 +4,7 @@ html, body {
     font-family: 'Poppins', sans-serif;
     display: flex;
     flex-direction: column;
-    padding-top: 30px;
+    padding-top: 50px;
 }
 
 .min-h-screen {
@@ -411,19 +411,7 @@ main {
 }
 
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .btn {
-        padding: 8px 12px;
-        font-size: 14px;
-    }
-    .card {
-        padding: 10px;
-    }
-    .account-settings-links .list-group-item {
-        padding: 10px 15px;
-    }
-}
+
 
 /*modal*/
 
@@ -599,5 +587,78 @@ input[type="checkbox"] {
 
     input, select {
         width: 100%;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    .card {
+        padding: 10px;
+    }
+    .account-settings-links .list-group-item {
+        padding: 10px 15px;
+    }
+}
+
+/* Banner Section */
+@media (max-width: 768px) {
+    .l-title {
+        font-size: 28px;
+        margin-top: 50px;
+    }
+    #banner .row {
+        flex-direction: column-reverse; /* Stack image below text */
+        text-align: center;
+    }
+    .small-img {
+        max-height: 250px;
+        top: 0;
+        right: 0;
+    }
+}
+
+/* Featured Categories */
+@media (max-width: 992px) {
+    .category-card {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .category-card {
+        width: 100%;
+        text-align: center;
+    }
+    .category-img {
+        height: 200px;
+    }
+}
+
+/* Start Now Section */
+@media (max-width: 768px) {
+    #start_now {
+        height: auto;
+        padding: 50px 0;
+        text-align: center;
+        background-position: center center;
+    }
+    #start_now h1 {
+        font-size: 24px;
+        padding-bottom: 20px;
+    }
+}
+
+/* General Improvements */
+@media (max-width: 576px) {
+    .p-title {
+        font-size: 22px;
+    }
+    .view-btn {
+        padding: 6px 15px;
+        font-size: 14px;
     }
 }

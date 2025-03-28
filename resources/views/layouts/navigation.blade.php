@@ -1,9 +1,11 @@
-<header class="header fixed-top">
+<header class="header fixed-top shadow">
     <div class="header-inner">
         <div class="container">
             @if (Route::has('login')) 
                 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-                    <a class="navbar-brand" href="#">FarmSmart</a>
+                    <a class="navbar-brand" href="#">
+                        <img src="assets/logo.png" alt="FarmSmart Logo" style="height: 50px;">
+                    </a>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                         <span class="navbar-toggler-icon"></span>
                     </button>

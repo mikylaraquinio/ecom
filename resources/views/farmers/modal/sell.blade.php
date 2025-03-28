@@ -127,7 +127,17 @@
 @endif
 
 <script>
-    document.querySelector("form").addEventListener("submit", function(event) {
+    document.addEventListener("DOMContentLoaded", function () {
+    const termsCheckbox = document.getElementById("terms");
+    const submitButton = document.querySelector("button[type='submit']");
+    
+    termsCheckbox.addEventListener("change", function () {
+        submitButton.disabled = !this.checked;
+    });
+
+    document.querySelector("form").addEventListener("submit", function (event) {
         console.log("Submitting form:", this.method, this.action);
     });
+});
+
 </script>

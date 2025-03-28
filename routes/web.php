@@ -61,7 +61,7 @@ Route::get('/user_profile', [ProfileController::class, 'showProfile'])->middlewa
 /* Farmers (Seller Registration) */
 Route::middleware(['auth'])->group(function () {
     Route::get('/farmers/sell', [SellerController::class, 'sell'])->name('farmers.sell');
-    Route::post('/farmers/sell/store', [SellerController::class, 'storeSeller'])->name('farmers.storeSeller');
+    Route::post('/farmers/store-seller', [SellerController::class, 'storeSeller'])->name('farmers.storeSeller');
 
     Route::middleware(['role:seller'])->group(function () {
         Route::get('/seller/dashboard', [SellerController::class, 'dashboard'])->name('seller.dashboard');
