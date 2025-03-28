@@ -1,11 +1,10 @@
 <x-app-layout>
-    <div class="container mt-5">
+<div class="container mt-5">
         <h2 class="mb-4">Shopping Cart</h2>
 
         @if($cartItems->count() > 0)
             <div class="row">
                 <div class="col-md-8">
-                    {{-- Removed action and method since we're handling via JS --}}
                     <form id="cart-form" onsubmit="return false;">
                         <div class="d-flex justify-content-between mb-2">
                             <div>
@@ -64,15 +63,12 @@
                     </form>
                 </div>
 
-                <!-- Cart Sidebar -->
                 <div class="col-md-4">
                     <div class="card p-3 text-center position-sticky shadow" style="top: 20px; min-height: 300px;">
                         <h4>Total: ₱<span id="total-price">{{ number_format($total, 2) }}</span></h4>
 
-                        <!-- 🟢 Selected product names will be shown here -->
                         <div id="selected-products" class="mt-3 text-start"></div>
 
-                        <!-- Proceed to Checkout Button (Single) -->
                         <button 
                             class="btn btn-success btn-block mt-3 proceed-to-checkout" 
                             id="checkout-btn"
@@ -80,63 +76,6 @@
                             Proceed to Checkout
                         </button>
                     </div>
-                </div>
-            </div>
-
-            <!-- Checkout Modals for Each Product -->
-            @foreach($cartItems as $cartItem)
-                @if ($cartItem->product)
-                    <!-- Checkout Modal for Product -->
-                    <div class="modal fade" id="productModal{{ $cartItem->id }}" tabindex="-1" aria-labelledby="checkoutModalLabel"
-                        aria-hidden="true">
-                        <div class="modal-dialog modal-xl">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="checkoutModalLabel">Checkout - {{ $cartItem->product->name }}</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    {{-- Display Product Details --}}
-                                    <div class="text-center mb-3">
-                                        <img src="{{ asset('storage/' . $cartItem->product->image) }}" alt="{{ $cartItem->product->name }}"
-                                            class="img-fluid mb-3" style="max-height: 200px;">
-                                        <h5>{{ $cartItem->product->name }}</h5>
-                                        <p>Price: ₱{{ number_format($cartItem->product->price, 2) }}</p>
-                                        <p>{{ $cartItem->product->description }}</p>
-                                    </div>
-
-                                    {{-- Checkout Form --}}
-                                    <form action="{{ route('checkout.process') }}" method="POST">
-                                        @csrf
-                                        <input type="hidden" name="product_id" value="{{ $cartItem->product->id }}">
-
-                                        <div class="mb-3">
-                                            <label for="name" class="form-label">Full Name</label>
-                                            <input type="text" class="form-control" id="name" name="name" required>
-                                        </div>
-
-                                        <div class="mb-3">
-                                            <label for="payment" class="form-label">Payment Method</label>
-                                            <select class="form-select" id="payment" name="payment_method" required>
-                                                <option value="credit_card">Credit Card</option>
-                                                <option value="paypal">PayPal</option>
-                                                <option value="cod">Cash on Delivery</option>
-                                            </select>
-                                        </div>
-
-                                        <button type="submit" class="btn btn-primary w-100">Confirm & Place Order</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-            @endforeach
-
-
-            <div id="loading-screen" class="loading-overlay d-none">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
         @else

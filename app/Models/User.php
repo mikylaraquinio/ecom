@@ -17,7 +17,7 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
-    protected $fillable = [
+     protected $fillable = [
         'name',
         'email',
         'password',
@@ -26,6 +26,12 @@ class User extends Authenticatable
         'birthdate',
         'gender',
         'profile_picture',
+        'role', // Ensure role column exists
+        'farm_name',
+        'farm_address',
+        'government_id',
+        'farm_registration_certificate',
+        'mobile_money',
     ];
 
     /**
@@ -68,5 +74,9 @@ class User extends Authenticatable
     public function addresses()
     {
         return $this->hasMany(Address::class);
+    }
+    public function seller()
+    {
+        return $this->hasOne(Seller::class, 'user_id');
     }
 }

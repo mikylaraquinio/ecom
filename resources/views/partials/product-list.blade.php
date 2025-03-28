@@ -1,5 +1,5 @@
 <div class="container px-4 px-lg-5 mt-5">
-    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4 justify-content-center">
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
         @forelse($products as $product)
             @php
                 $imageUrl = $product->image 
@@ -7,25 +7,39 @@
                     : asset('assets/products.jpg'); // Default fallback image
             @endphp
 
-            <div class="col d-flex justify-content-center">
-                <a href="#" data-bs-toggle="modal" data-bs-target="#productModal{{ $product->id }}"
-                    class="text-decoration-none">
+            <div class="col d-flex">
+                <a href="#" data-bs-toggle="modal" data-bs-target="#productModal{{ $product->id }}" class="text-decoration-none w-100">
 
-                    <!-- Single Product Box -->
-                    <div class="p-2 shadow-sm rounded bg-white text-center product-box"
-                        style="cursor: pointer; width: 200px; min-height: 250px; display: flex; flex-direction: column; justify-content: space-between; transition: 0.3s;">
+                    <!-- Product Card -->
+                    <div class="shadow-sm rounded bg-white p-3 text-center product-box d-flex flex-column justify-content-between"
+                        style="cursor: pointer; width: 100%; min-height: 280px; transition: 0.3s; border-radius: 12px;">
 
                         <!-- Product Image -->
-                        <img src="{{ $imageUrl }}" alt="{{ $product->name }}"
-                            style="object-fit: cover; height: 60%; width: 100%; border-radius: 5px;">
+                        <div class="position-relative">
+                            <img src="{{ $imageUrl }}" alt="{{ $product->name }}"
+                                class="w-100 rounded-top" style="height: 150px; object-fit: cover;">
+
+                            <!-- Wishlist & Quick View Icons -->
+                            <div class="position-absolute top-0 end-0 p-2">
+                                <button class="btn btn-sm btn-outline-danger border-0 p-1"><i class="fas fa-heart"></i></button>
+                                <button class="btn btn-sm btn-outline-secondary border-0 p-1"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
 
                         <!-- Product Details -->
                         <h6 class="fw-bolder text-truncate mt-2" style="color: #222; font-size: 14px;">
                             {{ $product->name }}
                         </h6>
-                        <p class="mb-0 fw-bold" style="color: #2d6a4f; font-size: 13px;">
+                        <p class="mb-0 fw-bold" style="color: #2d6a4f; font-size: 14px;">
                             ₱{{ number_format($product->price, 2) }}
                         </p>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between mt-2">
+                            <button class="btn btn-sm btn-outline-success w-100 add-to-cart" data-product-id="{{ $product->id }}">
+                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                            </button>
+                        </div>
                     </div>
                 </a>
             </div>
@@ -43,11 +57,9 @@
                         </div>
                         <div class="modal-body">
                             <div class="row">
-                                <!-- Image on Left -->
                                 <div class="col-md-5">
                                     <img class="img-fluid rounded w-100" src="{{ $imageUrl }}" alt="{{ $product->name }}">
                                 </div>
-                                <!-- Texts on Right -->
                                 <div class="col-md-7">
                                     <h6 class="fw-bold" style="color: #222;">{{ $product->name }}</h6>
                                     <p style="color: #444;">{{ $product->description ?? 'No description available.' }}</p>
@@ -60,9 +72,7 @@
                         </div>
                         <div class="modal-footer d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
-                            <!-- Add to Cart Button -->
-                            <button type="button" class="btn btn-success add-to-cart-modal"
-                                data-product-id="{{ $product->id }}">
+                            <button type="button" class="btn btn-success add-to-cart-modal" data-product-id="{{ $product->id }}">
                                 Add to Cart
                             </button>
                         </div>
@@ -77,9 +87,9 @@
 
 <style>
     .product-box {
-        transition: 0.3s ease-in-out;
         border: 2px solid #A7D7A8;
-        min-height: 250px;
+        min-height: 280px;
+        transition: 0.3s ease-in-out;
     }
 
     .product-box:hover {

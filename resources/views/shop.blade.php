@@ -1,4 +1,29 @@
 <x-app-layout>
+    <section class="header-banner" style="position: relative; text-align: center;">
+        <div style="position: relative; width: 100%; height: 300px; overflow: hidden;">
+            <img src="{{ asset('assets/shop-bg2.jpg') }}" alt="Shop Banner" 
+                style="width: 100%; height: 100%; object-fit: cover; filter: brightness(50%);">
+            
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4);"></div>
+        </div>
+
+        <div class="banner-text" 
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+            
+            <p style="font-family: 'Pacifico', cursive; color: #ffcc00; font-size: 1.5rem; margin-bottom: 10px;">
+                "Supporting farmers by providing a fair marketplace for their products"
+            </p>
+
+            <h1 style="font-family: 'Fredoka One', sans-serif; color: white; font-size: 3rem; font-weight: bold; text-shadow: 2px 2px 8px rgba(0,0,0,0.6);">
+                SHOP PRODUCTS
+            </h1>
+
+            <div style="width: 120px; height: 5px; background-color: #ffcc00; margin: 10px auto; border-radius: 10px;"></div>
+        </div>
+    </section>
+
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Fredoka+One&display=swap" rel="stylesheet">
+
     <!-- Search Bar + Filters -->
     <section class="py-4 bg-light">
         <div class="container px-4 px-lg-5">

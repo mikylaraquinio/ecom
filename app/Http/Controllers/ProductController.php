@@ -13,82 +13,77 @@ use Illuminate\Support\Facades\Log;
 class ProductController extends Controller
 {
     public function index(Request $request)
-    {
-        $query = Product::query();
+{
+    $query = Product::query();
 
-        // ✅ Search Filter
-        if ($request->filled('search')) {
-            $search = trim(strtolower($request->search));
-            $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
-        }
-
-        // ✅ Category Filtering (ID & Name)
-        if ($request->filled('category')) {
-            $categoryInput = $request->category;
-
-            // Check if the category input is a valid ID or Name
-            $category = Category::where('id', $categoryInput)
-                ->orWhere('name', $categoryInput)
-                ->first();
-
-            if ($category) {
-                if ($category->parent_id === null) {
-                    // If it's a main category, include subcategories
-                    $subCategoryIds = Category::where('parent_id', $category->id)->pluck('id')->toArray();
-                    $subCategoryIds[] = $category->id;
-                    $query->whereIn('category_id', $subCategoryIds);
-                } else {
-                    // If it's a subcategory, filter by its ID
-                    $query->where('category_id', $category->id);
-                }
-            }
-        }
-
-        // ✅ Price Filtering
-        if ($request->filled('min_price') && is_numeric($request->min_price)) {
-            $query->where('price', '>=', $request->min_price);
-        }
-        if ($request->filled('max_price') && is_numeric($request->max_price)) {
-            $query->where('price', '<=', $request->max_price);
-        }
-
-        // ✅ Stock Availability
-        if ($request->filled('stock')) {
-            if ($request->stock === 'in_stock') {
-                $query->where('stock', '>', 0);
-            } elseif ($request->stock === 'out_of_stock') {
-                $query->where('stock', 0);
-            }
-        }
-
-        // ✅ Sorting Logic
-        if ($request->filled('sort_by')) {
-            switch ($request->sort_by) {
-                case 'low_to_high':
-                    $query->orderBy('price', 'asc');
-                    break;
-                case 'high_to_low':
-                    $query->orderBy('price', 'desc');
-                    break;
-                case 'newest':
-                    $query->orderBy('created_at', 'desc');
-                    break;
-            }
-        }
-
-        // ✅ Fetch Products
-        $products = $query->get();
-
-        // ✅ Fetch Categories in Hierarchical Structure
-        $categories = Category::whereNull('parent_id')->with('subcategories')->get();
-
-        // ✅ AJAX Support for Dynamic Filtering
-        if ($request->ajax()) {
-            return view('partials.product-list', compact('products'))->render();
-        }
-
-        return view('shop', compact('products', 'categories'));
+    // ✅ Search Filter
+    if ($request->filled('search')) {
+        $search = trim(strtolower($request->search));
+        $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
     }
+
+    // ✅ Category Filtering (ID & Name)
+    if ($request->filled('category')) {
+        $categoryInput = $request->category;
+
+        // Check if the category input is a valid ID or Name
+        $category = Category::where('id', $categoryInput)
+            ->orWhere('name', $categoryInput)
+            ->first();
+
+        if ($category) {
+            if ($category->parent_id === null) {
+                // If it's a main category, include subcategories
+                $subCategoryIds = Category::where('parent_id', $category->id)->pluck('id')->toArray();
+                $subCategoryIds[] = $category->id;
+                $query->whereIn('category_id', $subCategoryIds);
+            } else {
+                // If it's a subcategory, filter by its ID
+                $query->where('category_id', $category->id);
+            }
+        }
+    }
+
+    // ✅ Price Filtering
+    if ($request->filled('min_price') && is_numeric($request->min_price)) {
+        $query->where('price', '>=', $request->min_price);
+    }
+    if ($request->filled('max_price') && is_numeric($request->max_price)) {
+        $query->where('price', '<=', $request->max_price);
+    }
+
+    // ✅ Stock Availability - Hide Out of Stock Products
+    $query->where('stock', '>', 0); // 🔥 This line hides products with stock = 0
+
+    // ✅ Sorting Logic
+    if ($request->filled('sort_by')) {
+        switch ($request->sort_by) {
+            case 'low_to_high':
+                $query->orderBy('price', 'asc');
+                break;
+            case 'high_to_low':
+                $query->orderBy('price', 'desc');
+                break;
+            case 'newest':
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
+    }
+
+    // ✅ Fetch Products
+    $products = $query->get();
+
+    // ✅ Fetch Categories in Hierarchical Structure
+    $categories = Category::whereNull('parent_id')->with('subcategories')->get();
+
+    // ✅ AJAX Support for Dynamic Filtering
+    if ($request->ajax()) {
+        return view('partials.product-list', compact('products'))->render();
+    }
+
+    return view('shop', compact('products', 'categories'));
+}
+
 
     public function autocomplete(Request $request)
     {

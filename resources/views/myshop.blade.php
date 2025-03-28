@@ -21,110 +21,143 @@
                     @if(auth()->check() && auth()->user()->role === 'seller')
                     <div class="tab-pane fade show active" id="order-status" role="tabpanel">
                         <h5>Your Orders</h5>
-                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
-                            @if(isset($orders) && $orders->count() > 0)
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Order ID</th>
-                                            <th>Products</th>
-                                            <th>Total Price</th>
-                                            <th>Status</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($orders as $order)
+                            <div class="table-responsive" style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+                                @if(isset($orders) && $orders->count() > 0)
+                                    <table class="table">
+                                        <thead>
                                             <tr>
-                                                <td>{{ $order->id }}</td>
-                                                <td>
-                                                    <ul>
-                                                        @foreach($order->orderItems as $item)
-                                                            <li>{{ $item->product->name }} (x{{ $item->quantity }})</li>
-                                                        @endforeach
-                                                    </ul>
-                                                </td>
-                                                <td>₱{{ number_format($order->total_amount, 2) }}</td>
-                                                <td>
-                                                    <span class="badge text-white 
-                                                        @if($order->status == 'pending') bg-warning
-                                                        @elseif($order->status == 'accepted') bg-success
-                                                        @elseif($order->status == 'denied') bg-danger
-                                                        @elseif($order->status == 'shipped') bg-primary
-                                                        @endif">
-                                                        {{ ucfirst($order->status) }}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    @if($order->status == 'pending')
-                                                        <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
-                                                            @csrf
-                                                            @method('PATCH')
-                                                            <input type="hidden" name="status" value="accepted">
-                                                            <button type="submit" class="btn btn-success btn-sm">Accept</button>
-                                                        </form>
-                                                        <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" style="display:inline;">
-                                                            @csrf
-                                                            @method('PATCH')
-                                                            <input type="hidden" name="status" value="denied">
-                                                            <button type="submit" class="btn btn-danger btn-sm">Deny</button>
-                                                        </form>
-                                                    @elseif($order->status == 'accepted')
-                                                        <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
-                                                            @csrf
-                                                            @method('PATCH')
-                                                            <input type="hidden" name="status" value="shipped">
-                                                            <button type="submit" class="btn btn-primary btn-sm">Mark as Shipped</button>
-                                                        </form>
-                                                    @endif
-                                                </td>
+                                                <th>Order ID</th>
+                                                <th>Buyer</th>
+                                                <th>Shipping Address</th>
+                                                <th>Products</th>
+                                                <th>Total Price</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
                                             </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            @else
-                                <p>No orders available.</p>
-                            @endif
+                                        </thead>
+                                        <tbody>
+                                            @foreach($orders as $order)
+                                                <tr>
+                                                    <td>{{ $order->id }}</td>
+                                                    <td>{{ $order->buyer->name }}</td>
+                                                    <td>
+                                                        @if($order->shippingAddress)
+                                                            {{ $order->shippingAddress->full_name }}<br>
+                                                            {{ $order->shippingAddress->floor_unit_number ? $order->shippingAddress->floor_unit_number . ', ' : '' }}
+                                                            {{ $order->shippingAddress->barangay }}, {{ $order->shippingAddress->city }}, {{ $order->shippingAddress->province }}<br>
+                                                            <strong>Contact:</strong> {{ $order->shippingAddress->mobile_number }}
+                                                        @else
+                                                            N/A
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        <ul>
+                                                            @foreach($order->orderItems as $item)
+                                                                <li>{{ $item->product->name }} (x{{ $item->quantity }})</li>
+                                                            @endforeach
+                                                        </ul>
+                                                    </td>
+                                                    <td>₱{{ number_format($order->total_amount, 2) }}</td>
+                                                    <td>
+                                                        <span class="badge text-white 
+                                                            @if($order->status == 'pending') bg-warning
+                                                            @elseif($order->status == 'accepted') bg-success
+                                                            @elseif($order->status == 'denied') bg-danger
+                                                            @elseif($order->status == 'shipped') bg-primary
+                                                            @endif">
+                                                            {{ ucfirst($order->status) }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        @if($order->status == 'pending')
+                                                            <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <input type="hidden" name="status" value="accepted">
+                                                                <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                                                            </form>
+                                                            <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" style="display:inline;">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <input type="hidden" name="status" value="denied">
+                                                                <button type="submit" class="btn btn-danger btn-sm">Deny</button>
+                                                            </form>
+                                                        @elseif($order->status == 'accepted')
+                                                            <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <input type="hidden" name="status" value="shipped">
+                                                                <button type="submit" class="btn btn-primary btn-sm">Mark as Shipped</button>
+                                                            </form>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                @else
+                                    <p>No orders available.</p>
+                                @endif
+                            </div>
                         </div>
-                    </div>
 
                         <!-- My Shop Section -->
                         <div class="tab-pane fade" id="my-shop" role="tabpanel">
                             <h5>My Shop</h5>
 
                             @if(auth()->check() && auth()->user()->role === 'seller')
-                                @if(auth()->user()->shop)
-                                    <div class="shop-details">
-                                        <h5>{{ auth()->user()->shop->name }}</h5>
-                                        <p><strong>Farm Name:</strong> {{ auth()->user()->storeseller->farm_name ?? 'N/A' }}</p>
-                                        <p><strong>Location:</strong> {{ auth()->user()->storeseller->farm_address ?? 'N/A' }}</p>
+                            <div class="shop-details">
+                                <h5>Seller Information</h5>
+                                <p><strong>Farm Name:</strong> {{ auth()->user()->farm_name ?? 'N/A' }}</p>
+                                <p><strong>Location:</strong> {{ auth()->user()->farm_address ?? 'N/A' }}</p>
 
-                                        @if(auth()->user()->storeseller->gov_id)
-                                            <p><strong>Government ID:</strong>
-                                                <a href="{{ asset('storage/' . auth()->user()->storeseller->gov_id) }}"
-                                                    target="_blank">View</a>
-                                            </p>
-                                        @endif
+                                @if(auth()->user()->government_id)
+                                    <p><strong>Government ID:</strong>
+                                        <a href="{{ asset('storage/' . auth()->user()->government_id) }}" target="_blank">View</a>
+                                    </p>
+                                @endif
 
-                                        @if(auth()->user()->storeseller->farm_certificate)
-                                            <p><strong>Farm Certificate:</strong>
-                                                <a href="{{ asset('storage/' . auth()->user()->storeseller->farm_certificate) }}"
-                                                    target="_blank">View</a>
-                                            </p>
-                                        @endif
+                                @if(auth()->user()->farm_registration_certificate)
+                                    <p><strong>Farm Certificate:</strong>
+                                        <a href="{{ asset('storage/' . auth()->user()->farm_registration_certificate) }}" target="_blank">View</a>
+                                    </p>
+                                @endif
 
-                                        <p><strong>Mobile Money:</strong>
-                                            {{ auth()->user()->storeseller->mobile_money ?? 'Not provided' }}</p>
+                                <p><strong>Mobile Money:</strong> 
+                                    {{ auth()->user()->mobile_money ?? 'Not provided' }}</p>
+                            </div>
+
+                                <!-- Display Products -->
+                                <h5 class="mt-4">My Products</h5>
+
+                                @php
+                                    $products = \App\Models\Product::where('user_id', auth()->id())->get();
+                                @endphp
+
+                                @if($products->isNotEmpty())
+                                    <div class="row">
+                                        @foreach($products as $product)
+                                            <div class="col-md-4">
+                                                <div class="card mb-3">
+                                                    <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top" alt="{{ $product->name }}">
+                                                    <div class="card-body">
+                                                        <h5 class="card-title">{{ $product->name }}</h5>
+                                                        <p class="card-text"><strong>Price:</strong> ${{ number_format($product->price, 2) }}</p>
+                                                        <p class="card-text"><strong>Stock:</strong> {{ $product->stock }}</p>
+                                                        <p class="card-text">{{ Str::limit($product->description, 100) }}</p>
+                                                        <a href="{{ route('products.show', $product->id) }}" class="btn btn-primary">View Details</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
                                     </div>
                                 @else
-                                    <p>Your shop is not yet set up. Please complete your registration.</p>
+                                    <p>No products found.</p>
                                 @endif
                             @else
-                                <p>You need to be a seller to view shop details.</p>
+                                <p>You need to be a seller to view this section.</p>
                             @endif
                         </div>
-
-
 
                         <!-- My Products Section -->
                         <div class="tab-pane fade" id="my-products" role="tabpanel">

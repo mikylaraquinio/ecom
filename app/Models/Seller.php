@@ -10,12 +10,18 @@ class Seller extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'farm_name',
         'farm_address',
-        'gov_id',
-        'farm_certificate',
-        'mobile_money',
-        'terms',
+        'government_id',
+        'farm_registration_certificate',
+        'mobile_payment_number',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
+
 
