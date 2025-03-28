@@ -8,8 +8,9 @@
                         <!-- Profile Picture with Edit Icon -->
                         <label for="profilePictureInput" class="position-relative d-inline-block">
                             <img src="{{ auth()->user()->profile_picture
-                                ? asset('storage/' . auth()->user()->profile_picture)
-                                : asset('assets/default.png') }}" alt="Profile Picture" class="rounded-circle mb-2" width="80" height="80"
+    ? asset('storage/' . auth()->user()->profile_picture)
+    : asset('assets/default.png') }}" alt="Profile Picture" class="rounded-circle mb-2"
+                                width="80" height="80"
                                 style="border: 3px solid #fff; object-fit: cover; aspect-ratio: 1/1;">
 
                             <!-- Edit Icon -->
@@ -133,11 +134,25 @@
                                                                             {{ $orderItem->quantity }}</p>
                                                                         <p class="small mb-2"><strong>Stock:</strong>
                                                                             {{ $product->stock }}</p>
-                                                                        <span
-                                                                            class="badge 
-                                                                                                                                                    {{ $order->status === 'pending' ? 'bg-warning' : 'bg-success' }}">
-                                                                            {{ $order->status === 'pending' ? 'Pending' : 'To Be Delivered' }}
+
+                                                                        <!-- Order Status Badge -->
+                                                                        <span class="badge 
+                                                                    {{ $order->status === 'pending' ? 'bg-warning' : 'bg-success' }}">
+                                                                            {{ $order->status === 'pending' ? 'Pending' : 'Ready to Ship' }}
                                                                         </span>
+
+                                                                        <!-- Cancel Order Button (Only for Pending or Accepted) -->
+                                                                        @if($order->status === 'pending' || $order->status === 'accepted')
+                                                                            <form action="{{ route('buyer.cancelOrder', $order->id) }}"
+                                                                                method="POST" style="display:inline;">
+                                                                                @csrf
+                                                                                @method('PATCH')
+                                                                                <input type="hidden" name="status" value="canceled">
+                                                                                <button type="submit" class="btn btn-danger btn-sm mt-2">
+                                                                                    Cancel
+                                                                                </button>
+                                                                            </form>
+                                                                        @endif
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -192,7 +207,7 @@
                                                                         <p class="small mb-2"><strong>Stock:</strong>
                                                                             {{ $product->stock }}</p>
                                                                         <span class="badge bg-info">
-                                                                            To Receive
+                                                                            Shipped(To Receive)
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -217,9 +232,53 @@
                                 @if($ordersToReview->isEmpty())
                                     <p>No orders to review.</p>
                                 @else
-                                    @foreach($ordersToReview as $order)
-                                        <p>Order #{{ $order->id }} - {{ $order->status }}</p>
-                                    @endforeach
+                                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                                        @foreach($ordersToReview as $order)
+                                            @foreach($order->orderItems as $orderItem)
+                                                @php
+                                                    $product = $orderItem->product;
+                                                    $imageUrl = $product && $product->image
+                                                        ? asset('storage/' . $product->image)
+                                                        : asset('assets/products.jpg');
+                                                @endphp
+
+                                                @if($product)
+                                                    <div class="col">
+                                                        <div class="card shadow-sm h-100">
+                                                            <div class="row g-0">
+                                                                <div class="col-4">
+                                                                    <img src="{{ $imageUrl }}"
+                                                                        class="img-fluid rounded-start p-2 object-fit-cover"
+                                                                        alt="{{ $product->name }}"
+                                                                        style="width: 100%; height: 100px; object-fit: cover;">
+                                                                </div>
+                                                                <div class="col-8">
+                                                                    <div class="card-body p-2">
+                                                                        <h6 class="card-title text-truncate">
+                                                                            {{ $product->name }}
+                                                                        </h6>
+                                                                        <p class="small mb-1"><strong>Price:</strong>
+                                                                            ${{ number_format($product->price, 2) }}</p>
+                                                                        <p class="small mb-1"><strong>Qty:</strong>
+                                                                            {{ $orderItem->quantity }}</p>
+                                                                        <p class="small mb-2"><strong>Stock:</strong>
+                                                                            {{ $product->stock }}</p>
+                                                                            <span class="badge bg-success">Completed</span></p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @else
+                                                    <div class="col">
+                                                        <div class="alert alert-danger small p-2 text-center">
+                                                            Product information not available
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        @endforeach
+                                    </div>
                                 @endif
                             </div>
                         </div>
@@ -315,8 +374,8 @@
         }
     </script>
 
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
     @include('farmers.modal.sell')
 </x-app-layout>

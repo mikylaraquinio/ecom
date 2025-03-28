@@ -1,5 +1,5 @@
 <x-app-layout>
-<div class="container mt-5">
+    <div class="container mt-5">
         <h2 class="mb-4">Shopping Cart</h2>
 
         @if($cartItems->count() > 0)
@@ -82,46 +82,41 @@
             <p class="text-muted">Your cart is empty. <a href="{{ route('shop') }}">Continue Shopping</a></p>
         @endif
     </div>
-    <script>
+    
+<script>
     document.addEventListener("DOMContentLoaded", function () {
         const selectAllCheckbox = document.getElementById("select-all");
-        const productCheckboxes = document.querySelectorAll(".product-checkbox");
         const deleteSelectedBtn = document.getElementById("delete-selected");
         const totalPriceEl = document.getElementById("total-price");
         const checkoutBtn = document.getElementById("checkout-btn");
         const loadingScreen = document.getElementById("loading-screen");
-        const cartBody = document.querySelector("tbody"); 
+        const cartBody = document.querySelector("tbody");
 
-        // Show loading
         function showLoading() {
-            loadingScreen.classList.remove("d-none");
+            loadingScreen?.classList.remove("d-none");
         }
 
-        // Hide loading
         function hideLoading() {
-            loadingScreen.classList.add("d-none");
+            loadingScreen?.classList.add("d-none");
         }
 
-        // Update total price
         function updateTotal() {
             let total = 0;
             let hasCheckedItems = false;
             const selectedProductsContainer = document.getElementById("selected-products");
-            selectedProductsContainer.innerHTML = ""; 
+            selectedProductsContainer.innerHTML = "";
 
-            productCheckboxes.forEach(cb => {
-                if (cb.checked) {
-                    const row = cb.closest("tr");
-                    const price = parseFloat(cb.dataset.price);
-                    const quantity = parseInt(row.querySelector(".quantity-input").value);
-                    total += price * quantity;
-                    hasCheckedItems = true;
+            document.querySelectorAll(".product-checkbox:checked").forEach(cb => {
+                const row = cb.closest("tr");
+                const price = parseFloat(cb.dataset.price);
+                const quantity = parseInt(row.querySelector(".quantity-input").value);
+                total += price * quantity;
+                hasCheckedItems = true;
 
-                    const productName = row.querySelector("td:nth-child(2)").innerText.trim();
-                    const productItem = document.createElement("div");
-                    productItem.textContent = `${productName} × ${quantity}`;
-                    selectedProductsContainer.appendChild(productItem);
-                }
+                const productName = row.querySelector("td:nth-child(2)").innerText.trim();
+                const productItem = document.createElement("div");
+                productItem.textContent = `${productName} × ${quantity}`;
+                selectedProductsContainer.appendChild(productItem);
             });
 
             totalPriceEl.textContent = total.toFixed(2);
@@ -129,33 +124,27 @@
             checkoutBtn.disabled = !hasCheckedItems;
         }
 
-        // Check if cart is empty and reload
         function checkIfCartIsEmpty() {
-            if (cartBody.children.length === 0) {
-                window.location.reload(); 
+            if (!cartBody.querySelector("tr")) {
+                window.location.reload();
             }
         }
 
-        // Select all checkbox
         selectAllCheckbox?.addEventListener("change", function () {
-            const isChecked = this.checked;
-            productCheckboxes.forEach(cb => cb.checked = isChecked);
+            document.querySelectorAll(".product-checkbox").forEach(cb => cb.checked = this.checked);
             updateTotal();
         });
 
-        // Checkbox change (individual checkbox logic)
-        productCheckboxes.forEach(cb => cb.addEventListener("change", function () {
-            updateTotal();
+        document.addEventListener("change", function (e) {
+            if (e.target.classList.contains("product-checkbox")) {
+                updateTotal();
+                selectAllCheckbox.checked = [...document.querySelectorAll(".product-checkbox")].every(cb => cb.checked);
+            }
+        });
 
-            const allChecked = [...productCheckboxes].every(cb => cb.checked);
-            selectAllCheckbox.checked = allChecked;
-        }));
-
-        // Delete selected items
         deleteSelectedBtn.addEventListener("click", function () {
             const selectedIds = [...document.querySelectorAll(".product-checkbox:checked")].map(cb => cb.value);
             if (selectedIds.length === 0) return alert("Select at least one item to delete.");
-
             if (!confirm("Are you sure you want to delete selected items?")) return;
 
             showLoading();
@@ -171,23 +160,20 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    selectedIds.forEach(id => {
-                        document.getElementById(`cart-item-${id}`)?.remove();
-                    });
+                    selectedIds.forEach(id => document.getElementById(`cart-item-${id}`)?.remove());
                     updateTotal();
                     checkIfCartIsEmpty();
                 } else {
                     alert("Error deleting items.");
                 }
             })
-            .catch(err => console.error(err))
+            .catch(err => console.error("Error:", err))
             .finally(() => hideLoading());
         });
 
-        // Single item remove
-        document.querySelectorAll(".remove-item").forEach(button => {
-            button.addEventListener("click", function () {
-                const itemId = this.dataset.id;
+        document.addEventListener("click", function (e) {
+            if (e.target.classList.contains("remove-item")) {
+                const itemId = e.target.dataset.id;
                 if (!confirm("Are you sure you want to remove this item?")) return;
 
                 showLoading();
@@ -215,30 +201,23 @@
                     alert("Something went wrong. Please try again.");
                 })
                 .finally(() => hideLoading());
-            });
-        });
+            }
 
-        // Quantity increment
-        document.querySelectorAll(".increment-btn").forEach(button => {
-            button.addEventListener("click", function () {
-                const itemId = this.dataset.id;
+            if (e.target.classList.contains("increment-btn")) {
+                const itemId = e.target.dataset.id;
                 const inputField = document.querySelector(`.quantity-input[data-id='${itemId}']`);
                 const newQuantity = parseInt(inputField.value) + 1;
                 updateQuantity(itemId, newQuantity, inputField);
-            });
-        });
+            }
 
-        // Quantity decrement
-        document.querySelectorAll(".decrement-btn").forEach(button => {
-            button.addEventListener("click", function () {
-                const itemId = this.dataset.id;
+            if (e.target.classList.contains("decrement-btn")) {
+                const itemId = e.target.dataset.id;
                 const inputField = document.querySelector(`.quantity-input[data-id='${itemId}']`);
                 const newQuantity = Math.max(1, parseInt(inputField.value) - 1);
                 updateQuantity(itemId, newQuantity, inputField);
-            });
+            }
         });
 
-        // Update quantity AJAX
         function updateQuantity(itemId, newQuantity, inputField) {
             showLoading();
 
@@ -255,10 +234,8 @@
             .then(data => {
                 if (data.success) {
                     inputField.value = data.new_quantity;
-
                     const price = parseFloat(document.querySelector(`.product-checkbox[value='${itemId}']`).dataset.price);
                     document.querySelector(`#cart-item-${itemId} .subtotal`).textContent = `₱${(price * data.new_quantity).toFixed(2)}`;
-
                     updateTotal();
                 } else {
                     alert(data.message || "Error updating quantity.");

@@ -80,8 +80,26 @@ class CheckoutController extends Controller
     public function updateAddress(Request $request, $addressId)
     {
         $user = auth()->user();
-        $address = $user->addresses()->findOrFail($addressId);
 
+        // Validate input fields
+        $request->validate([
+            'full_name' => 'required|string|max:255',
+            'mobile_number' => 'required|string|max:20',
+            'floor_unit_number' => 'nullable|string|max:255',
+            'province' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'barangay' => 'required|string|max:255',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        // Find the address belonging to the authenticated user
+        $address = $user->addresses()->find($addressId);
+
+        if (!$address) {
+            return response()->json(['success' => false, 'message' => 'Address not found.'], 404);
+        }
+
+        // Update the address fields
         $address->update([
             'full_name' => $request->input('full_name'),
             'mobile_number' => $request->input('mobile_number'),
@@ -92,14 +110,18 @@ class CheckoutController extends Controller
             'notes' => $request->input('notes'),
         ]);
 
-        return response()->json(['success' => true, 'address' => $address]);
+        return response()->json(['success' => true, 'message' => 'Address updated successfully!', 'address' => $address]);
     }
+
     public function checkout()
     {
         $user = auth()->user();
-        $address = $user->addresses->first(); // Get the user's default or first address
-        return view('checkout', compact('address'));
+        $addresses = $user->addresses; // Get all addresses
+        $defaultAddress = $addresses->first(); // Get the first/default address
+
+        return view('checkout', compact('addresses', 'defaultAddress'));
     }
+
 
     // In CheckoutController.php
     public function process(Request $request)
@@ -158,6 +180,17 @@ class CheckoutController extends Controller
             ], 500);
         }
     }
+    public function saveSelectedAddress(Request $request)
+    {
+        $request->validate([
+            'address_id' => 'required|exists:addresses,id'
+        ]);
+
+        session(['selected_address_id' => $request->address_id]);
+
+        return response()->json(['success' => true]);
+    }
+
 
     public function success()
     {

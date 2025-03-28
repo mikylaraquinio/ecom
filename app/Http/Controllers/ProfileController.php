@@ -162,21 +162,42 @@ class ProfileController extends Controller
 
         // Fetch orders with order items and products
         $ordersToShip = $user->orders()
-            ->where('status', 'pending') // Orders pending shipment
+            ->whereIn('status', ['pending', 'accepted']) // Fetch both statuses
             ->with('orderItems.product')
             ->get();
 
         $ordersToReceive = $user->orders()
-            ->where('status', 'accepted') // Orders accepted by the seller
+            ->where('status', 'shipped') // Orders accepted by the seller
             ->with('orderItems.product')
             ->get();
 
         $ordersToReview = $user->orders()
-            ->where('status', 'delivered') // Completed orders ready for review
+            ->where('status', 'completed') // Completed orders ready for review
             ->with('orderItems.product')
             ->get();
 
         return view('user_profile', compact('ordersToShip', 'ordersToReceive', 'ordersToReview'));
+    }
+
+    public function cancelOrder($id)
+    {
+        $order = Order::findOrFail($id);
+
+        if ($order->status == 'pending') {
+            // Directly cancel if still pending
+            $order->update(['status' => 'canceled']);
+            return redirect()->back()->with('success', 'Order has been canceled.');
+        } elseif ($order->status == 'accepted') {
+            // If accepted, request seller approval
+            $order->update(['status' => 'cancel_requested']);
+
+            // Notify the seller (if you have a notification system)
+            // Notification::send($order->seller, new OrderCancelRequest($order));
+
+            return redirect()->back()->with('success', 'Cancelation request sent to the seller.');
+        }
+
+        return redirect()->back()->with('error', 'Order cannot be canceled at this stage.');
     }
 
 }

@@ -17,39 +17,39 @@ class SellerController extends Controller
     }
 
     public function storeSeller(Request $request)
-{
-    $request->validate([
-        'farm_name' => 'required|string|max:255',
-        'farm_address' => 'required|string|max:255',
-        'gov_id' => 'nullable|file|mimes:jpg,png,pdf|max:2048',
-        'farm_certificate' => 'nullable|file|mimes:jpg,png,pdf|max:2048',
-        'mobile_money' => 'nullable|string|max:20',
-        'terms' => 'required|accepted',
-    ]);
+    {
+        $request->validate([
+            'farm_name' => 'required|string|max:255',
+            'farm_address' => 'required|string|max:255',
+            'gov_id' => 'nullable|file|mimes:jpg,png,pdf|max:2048',
+            'farm_certificate' => 'nullable|file|mimes:jpg,png,pdf|max:2048',
+            'mobile_money' => 'nullable|string|max:20',
+            'terms' => 'required|accepted',
+        ]);
 
-    // Get authenticated user
-    $user = Auth::user();
+        // Get authenticated user
+        $user = Auth::user();
 
-    if (!$user || !$user instanceof User) {
-        return redirect()->back()->with('error', 'User not found or not authenticated.');
+        if (!$user || !$user instanceof User) {
+            return redirect()->back()->with('error', 'User not found or not authenticated.');
+        }
+
+        // Handle file uploads
+        $govIdPath = $request->hasFile('gov_id') ? $request->file('gov_id')->store('documents', 'public') : $user->gov_id;
+        $farmCertPath = $request->hasFile('farm_certificate') ? $request->file('farm_certificate')->store('documents', 'public') : $user->farm_certificate;
+
+        // Manually updating attributes instead of using update()
+        $user->farm_name = $request->farm_name;
+        $user->farm_address = $request->farm_address;
+        $user->gov_id = $govIdPath;
+        $user->farm_certificate = $farmCertPath;
+        $user->mobile_money = $request->mobile_money;
+        $user->role = 'seller'; // Change user role to seller
+
+        $user->save(); // Save changes to the database
+
+        return redirect()->route('user_profile')->with('success', 'Seller registration successful!');
     }
-
-    // Handle file uploads
-    $govIdPath = $request->hasFile('gov_id') ? $request->file('gov_id')->store('documents', 'public') : $user->gov_id;
-    $farmCertPath = $request->hasFile('farm_certificate') ? $request->file('farm_certificate')->store('documents', 'public') : $user->farm_certificate;
-
-    // Manually updating attributes instead of using update()
-    $user->farm_name = $request->farm_name;
-    $user->farm_address = $request->farm_address;
-    $user->gov_id = $govIdPath;
-    $user->farm_certificate = $farmCertPath;
-    $user->mobile_money = $request->mobile_money;
-    $user->role = 'seller'; // Change user role to seller
-
-    $user->save(); // Save changes to the database
-
-    return redirect()->route('user_profile')->with('success', 'Seller registration successful!');
-}
 
     public function myOrders()
     {
@@ -96,10 +96,27 @@ class SellerController extends Controller
     public function updateOrderStatus(Request $request, $id)
     {
         $order = Order::findOrFail($id);
-        $order->update(['status' => $request->status]);
+        $newStatus = $request->input('status');
 
-        return redirect()->route('myshop')->with('success', 'Order status updated successfully!');
+        // When marking as completed, reduce stock
+        if ($newStatus === 'completed') {
+            foreach ($order->orderItems as $item) {
+                $product = $item->product;
+                if ($product->stock >= $item->quantity) {
+                    $product->stock -= $item->quantity;
+                    $product->save();
+                } else {
+                    return redirect()->back()->with('error', "Not enough stock for {$product->name}.");
+                }
+            }
+        }
+
+        // Update order status
+        $order->update(['status' => $newStatus]);
+
+        return redirect()->route('myshop')->with('success', 'Order status updated successfully.');
     }
+
 
     public function myShop()
     {
@@ -134,4 +151,28 @@ class SellerController extends Controller
 
         return redirect()->route('buyer.orders')->with('success', 'Order received successfully!');
     }
+    public function approveCancel($id)
+    {
+        $order = Order::findOrFail($id);
+
+        if ($order->status == 'cancel_requested') {
+            $order->update(['status' => 'canceled']);
+            return redirect()->route('myshop')->with('success', 'Order has been successfully canceled.');
+        }
+
+        return redirect()->route('myshop')->with('error', 'Invalid request.');
+    }
+
+    public function denyCancel($id)
+    {
+        $order = Order::findOrFail($id);
+
+        if ($order->status == 'cancel_requested') {
+            $order->update(['status' => 'accepted']);
+            return redirect()->route('myshop')->with('success', 'Cancelation denied. Order is still accepted.');
+        }
+
+        return redirect()->route('myshop')->with('error', 'Invalid request.');
+    }
+
 }
