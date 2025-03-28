@@ -1,6 +1,6 @@
 <x-app-layout>
     <div class="container-fluid">
-        <div class="row mt-4">
+        <div class="row">
             <!-- Sidebar -->
             <nav class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="position-sticky">
@@ -13,10 +13,11 @@
                                 style="border: 3px solid #fff; object-fit: cover; aspect-ratio: 1/1;">
 
                             <!-- Edit Icon -->
-                            <div class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center">
+                            <div class="position-absolute d-flex justify-content-center align-items-center"
+                                style="width: 30px; height: 30px; bottom: 0; right: 0;">
                                 <div class="bg-dark bg-opacity-50 rounded-circle d-flex align-items-center justify-content-center"
-                                    style="width: 30px; height: 30px; position: absolute; bottom: 5px; right: 5px;">
-                                    <i class="fas fa-pen text-white"></i>
+                                    style="width: 30px; height: 30px;">
+                                    <i class="fas fa-pen text-white" style="font-size: 14px;"></i>
                                 </div>
                             </div>
 
@@ -47,12 +48,12 @@
                     <ul class="nav flex-column mt-3">
                         <li class="nav-item">
                             <a class="nav-link text-white active" href="#user-dashboard" data-toggle="pill">
-                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                <i class="fas fa-seedling me-2"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-white" href="#account-general" data-toggle="pill">
-                                <i class="fas fa-cog me-2"></i> General Settings
+                                <i class="fas fa-leaf me-2"></i> General Settings
                             </a>
                         </li>
                         <li class="nav-item">
@@ -60,20 +61,19 @@
                                 <i class="fas fa-lock me-2"></i> Change Password
                             </a>
                         </li>
+
                         @if(auth()->user()->role !== 'seller')
-                            <div>
-                                <a href="{{ route('farmers.sell') }}" class="btn btn-success" data-toggle="modal"
-                                    data-target="#ModalCreate">
-                                    <i class="fas fa-store mr-2"></i> Start Selling
+                            <div class="text-center mt-3">
+                                <a href="{{ route('farmers.sell') }}" class="btn btn-success shadow-sm rounded-pill px-4 d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-tractor me-2"></i> Start Selling
                                 </a>
                             </div>
-                        @endif
-                        @if(auth()->user()->role === 'seller')
-                            <li class="nav-item mt-2 text-center">
-                                <a href="{{ route('myshop') }}" class="btn btn-primary">
-                                    My Shop
+                        @else
+                            <div class="text-center mt-3">
+                                <a href="{{ route('myshop') }}" class="btn text-white shadow-sm rounded-pill px-4 d-flex align-items-center justify-content-center" style="background-color: #8B5E3C;">
+                                    <i class="fas fa-basket me-2"></i> My Shop
                                 </a>
-                            </li>
+                            </div>
                         @endif
                     </ul>
                 </div>
@@ -273,23 +273,33 @@
                     </div>
 
                     <div class="tab-pane fade" id="account-change-password">
-                        <form method="POST" action="{{ route('profile.updatePassword') }}">
-                            @csrf
-                            <div>
-                                <label for="current_password">Current Password</label>
-                                <input type="password" name="current_password" class="form-control" required>
-                            </div>
-                            <div>
-                                <label for="new_password">New Password</label>
-                                <input type="password" name="new_password" class="form-control" required>
-                            </div>
-                            <div>
-                                <label for="new_password_confirmation">Confirm New Password</label>
-                                <input type="password" name="new_password_confirmation" class="form-control" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Update Password</button>
-                        </form>
-                    </div>
+    <div class="card shadow-sm border-0 p-4 mx-auto" style="max-width: 380px; border-radius: 12px;">
+        <form method="POST" action="{{ route('profile.updatePassword') }}">
+            @csrf
+            <h5 class="mb-3 text-center fw-bold">Change Password</h5>
+
+            <div class="mb-3">
+                <label class="form-label fw-medium">Current Password</label>
+                <input type="password" name="current_password" class="form-control rounded-3" placeholder="Enter current password" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-medium">New Password</label>
+                <input type="password" name="new_password" class="form-control rounded-3" placeholder="Enter new password" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-medium">Confirm New Password</label>
+                <input type="password" name="new_password_confirmation" class="form-control rounded-3" placeholder="Re-enter new password" required>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100 rounded-3 d-flex align-items-center justify-content-center">
+                <i class="fas fa-lock me-2"></i> Update Password
+            </button>
+        </form>
+    </div>
+</div>
+
                 </div>
             </main>
         </div>

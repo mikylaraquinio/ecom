@@ -39,43 +39,54 @@
 
                             <!-- Cart Items -->
                             @foreach($cartItems as $cartItem)
-                                <div class="card mb-3">
-                                    <div class="card-body d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <img src="{{ asset('storage/' . $cartItem->product->image) }}"
-                                                alt="{{ $cartItem->product->name }}" width="80">
-                                            <strong>{{ $cartItem->product->name }}</strong>
-                                            <p>Price: ₱{{ number_format($cartItem->product->price, 2) }}</p>
-                                            <p>Quantity: {{ $cartItem->quantity }}</p>
-                                        </div>
-                                        <input type="checkbox" name="selected_items[]" value="{{ $cartItem->id }}" checked>
+                                <div class="d-flex align-items-center border rounded p-3 mb-3 shadow-sm">
+                                    <!-- Product Image -->
+                                    <img src="{{ asset('storage/' . $cartItem->product->image) }}" 
+                                        alt="{{ $cartItem->product->name }}" 
+                                        width="90" class="rounded me-4">
+
+                                    <!-- Product Details -->
+                                    <div class="flex-grow-1">
+                                        <strong class="d-block fs-5">{{ $cartItem->product->name }}</strong>
+                                        <p class="mb-1 text-muted fs-6">₱{{ number_format($cartItem->product->price, 2) }}</p>
+                                        <p class="mb-0 text-muted fs-6">Qty: {{ $cartItem->quantity }}</p>
                                     </div>
+
+                                    <!-- Checkbox -->
+                                    <input type="checkbox" name="selected_items[]" value="{{ $cartItem->id }}" checked class="form-check-input">
                                 </div>
                             @endforeach
                         </div>
 
                         <!-- Right Side (Payment Method) -->
                         <div class="w-30">
-                            <div class="card">
+                            <div class="card shadow-sm">
                                 <div class="card-body">
-                                    <h5 class="mb-3">Payment Method</h5>
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="credit_card"
-                                            value="credit_card" checked required>
-                                        <label class="form-check-label" for="credit_card">Credit Card</label>
+                                    <h5 class="mb-3 text-center">Payment Method</h5>
+                                    
+                                    <!-- Payment Options -->
+                                    <div class="d-flex flex-column gap-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="payment_method" id="credit_card"
+                                                value="credit_card" checked required>
+                                            <label class="form-check-label ms-2" for="credit_card">Credit Card</label>
+                                        </div>
+
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="payment_method" id="paypal"
+                                                value="paypal">
+                                            <label class="form-check-label ms-2" for="paypal">PayPal</label>
+                                        </div>
+
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="payment_method" id="cod"
+                                                value="cod">
+                                            <label class="form-check-label ms-2" for="cod">Cash on Delivery</label>
+                                        </div>
                                     </div>
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="paypal"
-                                            value="paypal">
-                                        <label class="form-check-label" for="paypal">PayPal</label>
-                                    </div>
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="cod"
-                                            value="cod">
-                                        <label class="form-check-label" for="cod">Cash on Delivery</label>
-                                    </div>
-                                    <button type="button" id="proceed-btn" class="btn btn-primary w-100 mt-3">Proceed to
-                                        Checkout</button>
+
+                                    <!-- Checkout Button -->
+                                    <button type="button" id="proceed-btn" class="btn btn-primary w-100 mt-4">Proceed to Checkout</button>
                                 </div>
                             </div>
                         </div>
@@ -371,178 +382,194 @@
     </script>
 
     <style>
-        .w-70 {
-            width: 70%;
-        }
+        /* General Utility Classes */
+.w-70 {
+    width: 70%;
+}
 
-        .w-30 {
-            width: 28%;
-        }
+.w-30 {
+    width: 28%;
+}
 
-        /* Form Checkbox */
-        .form-check-input {
-            accent-color: rgb(13, 226, 24);
-            width: 18px;
-            height: 18px;
-            margin-right: 10px;
-        }
+/* Form Checkbox */
+.form-check-input {
+    accent-color: rgb(13, 226, 24);
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    cursor: pointer;
+}
 
-        /* General Modal Styling */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
+/* General Modal Styling */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
 
-        /* Right Side Modal */
-        .right-modal {
-            justify-content: flex-end;
-            display: flex;
-            align-items: flex-start;
-        }
+/* Right Side Modal */
+.right-modal {
+    justify-content: flex-end;
+    align-items: flex-start;
+}
 
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            width: 900px;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    outline: none; /* Accessibility Improvement */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
 
-        /* Modal Header */
-        .modal-header {
-            text-align: left;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+/* Right-Side Modal Content */
+.right-modal .modal-content {
+    width: 100%;
+    max-width: 400px;
+    height: 100%;
+    position: absolute;
+    right: 0;
+    top: 0;
+    box-shadow: -3px 0 10px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+    padding: 20px;
+}
 
-        /* Modal Body for Addresses and Text */
-        .modal-body {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
+/* Modal Header */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 10px;
+}
 
-        /* Left and Right Sections */
-        .modal-text,
-        .modal-address {
-            width: 48%;
-        }
+/* Modal Body */
+.modal-body {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
 
-        /* Right Side Modal Content */
-        .right-modal .modal-content {
-            width: 400px;
-            height: 100%;
-            position: absolute;
-            right: 0;
-            top: 0;
-            box-shadow: -3px 0 10px rgba(0, 0, 0, 0.2);
-            overflow-y: auto;
-            padding: 20px;
-        }
+/* Left and Right Sections */
+.modal-text,
+.modal-address {
+    width: 48%;
+}
 
-        /* Actions (Buttons) */
-        .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #ddd;
-        }
+/* Scrollbar Styling */
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
 
-        /* Form Controls */
-        .form-control {
-            margin-bottom: 10px;
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-        }
+.modal-body::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 8px;
+}
 
-        .form-check-input {
-            accent-color: rgb(13, 226, 24);
-            width: 18px;
-            height: 18px;
-            margin-right: 10px;
-            cursor: pointer;
-        }
+/* Address Card Styling */
+.address-card {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    font-size: 14px;
+    line-height: 1.6;
+    width: 100%;
+    min-height: 45%; /* Prevents content overflow */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+}
 
-        .address-card {
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            background-color: #f9f9f9;
-            font-size: 14px;
-            line-height: 1.6;
-            width: 100%;
-            height: 45%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
+.address-card:hover {
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
+}
 
-        .address-card.selected {
-            border-color: rgb(13, 226, 24);
-            background-color: #eaffea;
-        }
+.address-card.selected {
+    border-color: rgb(13, 226, 24);
+    background-color: #eaffea;
+}
 
-        .address-card label {
-            flex: 1;
-            cursor: pointer;
-        }
+.address-card label {
+    flex: 1;
+    cursor: pointer;
+}
 
+.address-card h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: bold;
+}
 
-        .address-card h4 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: bold;
-        }
+.address-card p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #555;
+}
 
-        .address-card p {
-            margin: 5px 0;
-            font-size: 14px;
-            color: #555;
-        }
+/* Modal Actions (Buttons) */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+}
 
-        .address-card button {
-            margin-top: 10px;
-            font-size: 12px;
-            padding: 5px 10px;
-            border-radius: 5px;
-        }
+/* Form Controls */
+.form-control {
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
 
-        /* Scrollable Modal Body */
-        .modal-body {
-            max-height: 80vh;
-            overflow-y: auto;
-            padding-right: 10px;
-        }
+/* Responsive Design */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        max-width: 100%;
+        padding: 20px;
+    }
 
-        /* Scrollbar Styling */
-        .modal-body::-webkit-scrollbar {
-            width: 6px;
-        }
+    .modal-body {
+        flex-direction: column;
+    }
 
-        .modal-body::-webkit-scrollbar-thumb {
-            background-color: #ccc;
-            border-radius: 8px;
-        }
+    .modal-text,
+    .modal-address {
+        width: 100%;
+    }
+
+    .right-modal .modal-content {
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+    }
+}
+
     </style>
 
 </x-app-layout>

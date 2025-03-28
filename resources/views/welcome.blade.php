@@ -33,7 +33,7 @@
                         <div class="overlay">
                             <h5 class="category-title">Grains & Cereals</h5>
                             <p class="category-text">Quality grains and cereals for consumption and farming.</p>
-                            <a href="{{ url('/shop?category=1') }}" class="btn btn-light view-btn">View All</a>
+                            <a href="{{ url('/shop?category=204') }}" class="btn btn-light view-btn">View All</a>
                         </div>
                     </div>
                 </div>
@@ -45,7 +45,7 @@
                         <div class="overlay">
                             <h5 class="category-title">Vegetables</h5>
                             <p class="category-text">Fresh and organic vegetables for healthy meals.</p>
-                            <a href="{{ url('/shop?category=2') }}" class="btn btn-light view-btn">View All</a>
+                            <a href="{{ url('/shop?category=205') }}" class="btn btn-light view-btn">View All</a>
                         </div>
                     </div>
                 </div>
@@ -57,7 +57,7 @@
                         <div class="overlay">
                             <h5 class="category-title">Fruits</h5>
                             <p class="category-text">Sweet and nutritious fruits for all seasons.</p>
-                            <a href="{{ url('/shop?category=3') }}" class="btn btn-light view-btn">View All</a>
+                            <a href="{{ url('/shop?category=206') }}" class="btn btn-light view-btn">View All</a>
                         </div>
                     </div>
                 </div>
@@ -69,7 +69,7 @@
                         <div class="overlay">
                             <h5 class="category-title">Herbs & Spices</h5>
                             <p class="category-text">Aromatic herbs and spices for culinary and medicinal use.</p>
-                            <a href="{{ url('/shop?category=4') }}" class="btn btn-light view-btn">View All</a>
+                            <a href="{{ url('/shop?category=207') }}" class="btn btn-light view-btn">View All</a>
                         </div>
                     </div>
                 </div>
