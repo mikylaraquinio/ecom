@@ -22,16 +22,24 @@
                                 </div>
 
                                 @if($user->addresses->count() > 0)
-                                    @php $address = $user->addresses->first(); @endphp
-                                    <div class="card mb-3" id="displayed-address">
-                                        <div class="card-body">
-                                            <strong>{{ $address->full_name }} - {{ $address->mobile_number }}</strong><br>
-                                            {{ $address->floor_unit_number }}, {{ $address->barangay }}, {{ $address->city }},
-                                            {{ $address->province }}<br>
-                                            {{ $address->notes }}
-                                        </div>
-                                    </div>
-                                    <input type="hidden" name="address_id" value="{{ $address->id }}">
+                                                        @php
+                                                            // Check if a selected address exists in session or request input
+                                                            $selectedAddressId = session('selected_address_id') ?? request()->input('address_id');
+                                                            $selectedAddress = $user->addresses->where('id', $selectedAddressId)->first() ?? $user->addresses->first();
+                                                        @endphp
+                                                        <div class="card mb-3" id="displayed-address">
+                                                            <div class="card-body">
+                                                                <div class="card-body">
+                                                                    <strong>{{ $selectedAddress->full_name }} -
+                                                                        {{ $selectedAddress->mobile_number }}</strong><br>
+                                                                    {{ $selectedAddress->floor_unit_number }}, {{ $selectedAddress->barangay }},
+                                                                    {{ $selectedAddress->city }},
+                                                                    {{ $selectedAddress->province }}<br>
+                                                                    {{ $selectedAddress->notes }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <input type="hidden" name="address_id" value="{{ $selectedAddress->id }}">
                                 @else
                                     <button class="btn btn-success" id="add-address-btn">+ Add Address</button>
                                 @endif
@@ -155,28 +163,31 @@
                 @foreach($addresses as $address)
                     <div class="address-card">
                         <input type="radio" name="selected_address" id="address-{{ $address->id }}"
-                            value="{{ $address->id }}" class="form-check-input">
+                            value="{{ $address->id }}" class="form-check-input"
+                            @if(session('selected_address_id') == $address->id) checked @endif>
+
                         <label for="address-{{ $address->id }}">
                             <strong>{{ $address->full_name }} - {{ $address->mobile_number }}</strong><br>
                             {{ $address->floor_unit_number }}, {{ $address->barangay }}, {{ $address->city }},
                             {{ $address->province }}<br>
                             {{ $address->notes }}
                         </label>
+
                         <button class="edit-address-btn" data-id="{{ $address->id }}"
                             data-full_name="{{ $address->full_name }}" data-mobile_number="{{ $address->mobile_number }}"
                             data-notes="{{ $address->notes }}" data-floor_unit_number="{{ $address->floor_unit_number }}"
                             data-province="{{ $address->province }}" data-city="{{ $address->city }}"
-                            data-barangay="{{ $address->barangay }}">Edit
+                            data-barangay="{{ $address->barangay }}">
+                            Edit
                         </button>
                     </div>
                 @endforeach
             </div>
+
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="closeEditAddressBtn">Close</button>
-                <button class="btn btn-primary" id="updateAddressBtn">Update</button>
             </div>
         </div>
-    </div>
     </div>
 
     <script>
@@ -190,7 +201,8 @@
             const cancelAddressBtn = document.getElementById('cancelAddressBtn');
             const saveAddressBtn = document.getElementById('saveAddressBtn');
             const addressIdInput = document.getElementById('addressId');
-            const displayedAddress = document.getElementById('displayed-address');
+            const displayedAddress = document.getElementById('displayed-address');;
+            const addressInputs = document.querySelectorAll('input[name="selected_address"]');
             const proceedBtn = document.getElementById('proceed-btn');
 
             // Prevent "Edit Address" from triggering form submission
@@ -293,25 +305,41 @@
                     .catch(error => console.error('Error:', error));
             });
 
-            // Select Address
             document.querySelectorAll('.form-check-input[name="selected_address"]').forEach(input => {
                 input.addEventListener('change', function () {
                     const selectedAddress = this.closest('.address-card');
-                    const addressData = {
-                        full_name: selectedAddress.querySelector('label').innerText.split('-')[0].trim(),
-                        mobile_number: selectedAddress.querySelector('label').innerText.split('-')[1].trim(),
-                        floor_unit_number: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[0].trim(),
-                        barangay: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[1].trim(),
-                        city: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[2].trim(),
-                        province: selectedAddress.querySelector('label').innerText.split('\n')[1].split(',')[3].trim(),
-                        notes: selectedAddress.querySelector('label').innerText.split('\n')[2]?.trim() || ''
-                    };
 
-                    updateDisplayedAddress(addressData);
+                    // Extracting details safely
+                    const fullName = selectedAddress.querySelector("strong").innerText.trim();
+                    const addressLines = selectedAddress.querySelector("label").innerHTML.split("<br>");
+
+                    // Ensure values exist before accessing them
+                    const floorUnitNumber = addressLines[1]?.trim() || "";
+                    const addressParts = addressLines[2]?.split(",").map(part => part.trim()) || [];
+                    const notes = addressLines[3]?.trim() || "";
+
+                    // Construct a properly formatted address
+                    const formattedAddress = [
+                        floorUnitNumber,
+                        ...addressParts.filter(part => part) // Remove any empty values
+                    ].join(", ");
+
+                    // Update displayed address properly
+                    document.getElementById("displayed-address").innerHTML = `
+                        <div class="card-body">
+                            <strong>${fullName}</strong><br>
+                            ${formattedAddress}<br>
+                            ${notes}
+                        </div>
+                    `;
+
+                    // Update hidden input field with selected address ID
                     document.querySelector('input[name="address_id"]').value = this.value;
+
                     console.log("Address Selected:", this.value);
                 });
             });
+
 
             // Proceed to Checkout
             proceedBtn?.addEventListener('click', function (e) {

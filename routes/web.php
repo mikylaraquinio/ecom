@@ -54,6 +54,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile/update-picture', [ProfileController::class, 'updateProfilePicture'])->name('profile.updatePicture');
 });
 Route::get('/user_profile', [ProfileController::class, 'showProfile'])->middleware(['auth', 'verified'])->name('user_profile');
+Route::patch('/buyer/order/{id}/cancel', [ProfileController::class, 'cancelOrder'])->name('buyer.cancelOrder');
+
 
 
 
@@ -68,6 +70,9 @@ Route::middleware(['auth'])->group(function () {
     });
     Route::post('/update-seller', [SellerController::class, 'storeSeller'])->name('farmers.storeSeller');
 });
+Route::patch('/seller/order/{id}/approve-cancel', [SellerController::class, 'approveCancel'])->name('seller.approveCancel');
+Route::patch('/seller/order/{id}/deny-cancel', [SellerController::class, 'denyCancel'])->name('seller.denyCancel');
+
 
 // Categories
 Route::resource('categories', CategoryController::class);
@@ -100,10 +105,8 @@ Route::post('/checkout/save-address', [CheckoutController::class, 'saveAddress']
 Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
 Route::get('/checkout/getAddress', [CheckoutController::class, 'getAddress'])->name('checkout.getAddress');
 Route::put('/checkout/updateAddress/{id}', [CheckoutController::class, 'updateAddress'])->name('checkout.updateAddress');
+Route::post('/checkout/saveSelectedAddress', [CheckoutController::class, 'saveSelectedAddress'])->name('checkout.saveSelectedAddress');
 Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
-
-
-
 
 /*Orders*/
 Route::get('/seller/orders', [SellerController::class, 'incomingOrders'])->name('seller.orders');
