@@ -2,31 +2,40 @@
     <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
         @forelse($products as $product)
             @php
-                $imageUrl = $product->image 
-                    ? asset('storage/' . $product->image) 
+                $imageUrl = $product->image
+                    ? asset('storage/' . $product->image)
                     : asset('assets/products.jpg'); // Default fallback image
             @endphp
 
-            <div class="col d-flex">
-                <a href="#" data-bs-toggle="modal" data-bs-target="#productModal{{ $product->id }}" class="text-decoration-none w-100">
+            <div class="col d-flex position-relative" style="overflow: visible;">
+                <!-- Top-right Action Icons -->
+                <div class="position-absolute top-0 end-0 p-2 z-3" style="z-index: 10;">
+                    @auth
+                        <button class="btn btn-sm btn-outline-danger border-0 p-1 wishlist-btn"
+                            data-product-id="{{ $product->id }}">
+                            <i class="{{ auth()->user()->wishlist->contains($product->id) ? 'fas' : 'far' }} fa-heart"></i>
+                        </button>
+                    @endauth
 
-                    <!-- Product Card -->
+                    <button class="btn btn-sm btn-outline-secondary border-0 p-1" data-bs-toggle="modal"
+                        data-bs-target="#productModal{{ $product->id }}">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+
+                <!-- Clickable Product Card -->
+                <a href="#" data-bs-toggle="modal" data-bs-target="#productModal{{ $product->id }}"
+                    class="text-decoration-none w-100">
                     <div class="shadow-sm rounded bg-white p-3 text-center product-box d-flex flex-column justify-content-between"
-                        style="cursor: pointer; width: 100%; min-height: 280px; transition: 0.3s; border-radius: 12px;">
+                        style="cursor: pointer; width: 100%; min-height: 280px; transition: 0.3s; border-radius: 12px; position: relative; z-index: 1;">
 
                         <!-- Product Image -->
                         <div class="position-relative">
-                            <img src="{{ $imageUrl }}" alt="{{ $product->name }}"
-                                class="w-100 rounded-top" style="height: 150px; object-fit: cover;">
-
-                            <!-- Wishlist & Quick View Icons -->
-                            <div class="position-absolute top-0 end-0 p-2">
-                                <button class="btn btn-sm btn-outline-danger border-0 p-1"><i class="fas fa-heart"></i></button>
-                                <button class="btn btn-sm btn-outline-secondary border-0 p-1"><i class="fas fa-eye"></i></button>
-                            </div>
+                            <img src="{{ $imageUrl }}" alt="{{ $product->name }}" class="w-100 rounded-top"
+                                style="height: 150px; object-fit: cover;">
                         </div>
 
-                        <!-- Product Details -->
+                        <!-- Product Info -->
                         <h6 class="fw-bolder text-truncate mt-2" style="color: #222; font-size: 14px;">
                             {{ $product->name }}
                         </h6>
@@ -34,9 +43,10 @@
                             ₱{{ number_format($product->price, 2) }}
                         </p>
 
-                        <!-- Action Buttons -->
+                        <!-- Add to Cart -->
                         <div class="d-flex justify-content-between mt-2">
-                            <button class="btn btn-sm btn-outline-success w-100 add-to-cart" data-product-id="{{ $product->id }}">
+                            <button class="btn btn-sm btn-outline-success w-100 add-to-cart"
+                                data-product-id="{{ $product->id }}">
                                 <i class="fas fa-shopping-cart"></i> Add to Cart
                             </button>
                         </div>
@@ -63,7 +73,8 @@
                                 <div class="col-md-7">
                                     <h6 class="fw-bold" style="color: #222;">{{ $product->name }}</h6>
                                     <p style="color: #444;">{{ $product->description ?? 'No description available.' }}</p>
-                                    <p class="fw-bold" style="color: #2d6a4f;">Price: ₱{{ number_format($product->price, 2) }}</p>
+                                    <p class="fw-bold" style="color: #2d6a4f;">Price:
+                                        ₱{{ number_format($product->price, 2) }}</p>
                                     <p style="color: #666;">
                                         Category: {{ $product->category->name ?? 'Uncategorized' }}
                                     </p>
@@ -72,7 +83,8 @@
                         </div>
                         <div class="modal-footer d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-success add-to-cart-modal" data-product-id="{{ $product->id }}">
+                            <button type="button" class="btn btn-success add-to-cart-modal"
+                                data-product-id="{{ $product->id }}">
                                 Add to Cart
                             </button>
                         </div>

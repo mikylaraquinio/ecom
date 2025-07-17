@@ -53,6 +53,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link text-white" href="#wishlist-section" data-toggle="pill">
+                                <i class="fas fa-heart me-2"></i> Wishlist
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link text-white" href="#account-general" data-toggle="pill">
                                 <i class="fas fa-leaf me-2"></i> General Settings
                             </a>
@@ -284,6 +289,37 @@
                         </div>
                     </div>
 
+                    <div class="tab-pane fade" id="wishlist-section">
+                        <h5 class="mt-4">Your Wishlist</h5>
+                        <div class="row">
+                            @forelse ($wishlistItems as $product)
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top" alt="{{ $product->name }}">
+                                        <div class="card-body">
+                                            <h5 class="card-title">{{ $product->name }}</h5>
+                                            <p class="card-text">₱{{ number_format($product->price, 2) }}</p>
+                                            <!-- Add to Cart -->
+                                            <form action="{{ route('cart.add', $product->id) }}" method="POST" class="mb-2 add-to-cart-form" data-id="{{ $product->id }}">
+                                                @csrf
+                                                <button type="submit" class="btn btn-success btn-sm w-100">
+                                                    <i class="fas fa-cart-plus me-1"></i> Add to Cart
+                                                </button>
+                                            </form>
+                                            <!-- Remove from Wishlist -->
+                                            <button class="btn btn-outline-danger btn-sm w-100 toggle-wishlist-btn" data-id="{{ $product->id }}">
+                                                <i class="fas fa-heart-broken me-1"></i> Remove from Wishlist
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="text-muted">No items in your wishlist.</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+
                     <div class="tab-pane fade" id="account-general">
                         <form method="POST" action="{{ route('profile.update') }}">
                             @csrf
@@ -384,6 +420,92 @@
         }
     </script>
 
+    <script>
+        // Handle "Add to Cart" with AJAX
+        document.querySelectorAll('.add-to-cart-form').forEach(form => {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault(); // Prevent normal form submission
+
+                const productId = this.dataset.id;
+                const quantity = 1; // default quantity if not using input field
+
+                fetch(`/cart/add/${productId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ quantity })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Added to Cart!',
+                            text: data.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message,
+                        });
+                    }
+                })
+                .catch(err => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Something went wrong!',
+                    });
+                    console.error(err);
+                });
+            });
+        });
+
+        // Handle "Remove from Wishlist"
+        document.querySelectorAll('.toggle-wishlist-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const productId = this.dataset.id;
+                const button = this;
+
+                fetch(`/wishlist/toggle/${productId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'removed') {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Removed',
+                            text: 'Item removed from wishlist.',
+                            timer: 1200,
+                            showConfirmButton: false
+                        });
+
+                        button.closest('.col-md-4').remove();
+                    }
+                })
+                .catch(err => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Could not remove item from wishlist.',
+                    });
+                    console.error(err);
+                });
+            });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 

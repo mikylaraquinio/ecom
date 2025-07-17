@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\WishlistController;
 use App\Models\Category;
 
 Route::get('/', function () {
@@ -119,6 +120,12 @@ Route::middleware('auth')->group(function () {
 Route::get('/my-orders', [SellerController::class, 'myOrders'])->name('buyer.orders')->middleware('auth');
 Route::patch('/seller/orders/{id}/update', [SellerController::class, 'updateOrderStatus'])->name('seller.updateOrderStatus');
 Route::get('/orders/{id}/confirm', [SellerController::class, 'confirmReceipt'])->name('buyer.confirm-receipt');
+
+
+Route::middleware('auth')->post('/wishlist/toggle/{id}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+Route::post('/wishlist/toggle/{productId}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+Route::post('/cart/add/{productId}', [CartController::class, 'add'])->name('cart.add');
+
 
 
 /* Authentication Routes */

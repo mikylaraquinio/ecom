@@ -160,24 +160,31 @@ class ProfileController extends Controller
     {
         $user = auth()->user();
 
-        // Fetch orders with order items and products
         $ordersToShip = $user->orders()
-            ->whereIn('status', ['pending', 'accepted']) // Fetch both statuses
+            ->whereIn('status', ['pending', 'accepted'])
             ->with('orderItems.product')
             ->get();
 
         $ordersToReceive = $user->orders()
-            ->where('status', 'shipped') // Orders accepted by the seller
+            ->where('status', 'shipped')
             ->with('orderItems.product')
             ->get();
 
         $ordersToReview = $user->orders()
-            ->where('status', 'completed') // Completed orders ready for review
+            ->where('status', 'completed')
             ->with('orderItems.product')
             ->get();
 
-        return view('user_profile', compact('ordersToShip', 'ordersToReceive', 'ordersToReview'));
+        $wishlistItems = $user->wishlist()->get();
+
+        return view('user_profile', compact(
+            'ordersToShip',
+            'ordersToReceive',
+            'ordersToReview',
+            'wishlistItems'
+        ));
     }
+
 
     public function cancelOrder($id)
     {

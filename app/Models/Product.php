@@ -48,4 +48,10 @@ class Product extends Model
         return $this->hasMany(OrderItem::class, 'product_id');
     }
 
+    public function wishlistedBy()
+    {
+        return $this->belongsToMany(User::class, 'wishlists')->withTimestamps();
+    }
+
+
 }
