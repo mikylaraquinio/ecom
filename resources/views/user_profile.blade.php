@@ -65,9 +65,11 @@
 
                         @if(auth()->user()->role !== 'seller')
                             <div class="text-center mt-3">
-                                <a href="{{ route('farmers.sell') }}" class="btn btn-success shadow-sm rounded-pill px-4 d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-tractor me-2"></i> Start Selling
-                                </a>
+                            <a href="#" class="btn btn-success shadow-sm rounded-pill px-4 d-flex align-items-center justify-content-center"
+   data-bs-toggle="modal" data-bs-target="#ModalCreate">
+    <i class="fas fa-tractor me-2"></i> Start Selling
+</a>
+
                             </div>
                         @else
                             <div class="text-center mt-3">
@@ -383,6 +385,48 @@
             }
         }
     </script>
+
+
+<!-- JavaScript for AJAX Form Submission -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("sellerRegistrationForm");
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault(); // Prevent page refresh
+
+        let formData = new FormData(this);
+
+        fetch(this.action, {
+            method: this.method,
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+            }
+        })
+        .then(response => response.json()) 
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                let modal = bootstrap.Modal.getInstance(document.getElementById("ModalCreate"));
+                modal.hide();
+
+                // Replace the button with "My Shop"
+                document.getElementById("shopButtonContainer").innerHTML = `
+                    <div class="text-center mt-3">
+                        <a href="{{ route('myshop') }}" class="btn text-white shadow-sm rounded-pill px-4 d-flex align-items-center justify-content-center" style="background-color: #8B5E3C;">
+                            <i class="fas fa-basket me-2"></i> My Shop
+                        </a>
+                    </div>
+                `;
+            } else {
+                alert("Registration failed! Please try again.");
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    });
+});
+</script>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>

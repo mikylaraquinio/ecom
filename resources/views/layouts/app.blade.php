@@ -22,17 +22,26 @@
 
         <!-- Scripts -->
     </head>
-    <body class="font-sans antialiased">
+    <body class="font-sans antialiased ">
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
             @include('layouts.navigation')
 
             <!-- Page Content -->
-            <main>
+            <main style="padding-top: 80px;">
                 {{ $slot }}
             </main>
 
-            <footer class="footer text-center text-white mt-5 p-3">
-                <p>&copy; 2025 All Rights Reserved - <a href="#" class="text-white" target="_blank">BUSINFO-T3</a></p>
+            <footer class="footer text-white">
+                <div class="container py-4 d-flex flex-column flex-md-row justify-content-between align-items-center">
+                    <div class="mb-2 mb-md-0">
+                        <span>&copy; 2025 <strong>FarmSmart</strong>. All Rights Reserved.</span>
+                    </div>
+                    <div>
+                        <a href="#" target="_blank" class="text-white text-decoration-none me-3">BUSINFO-T3</a>
+                        <a href="#" target="_blank" class="text-white text-decoration-none me-3">Privacy Policy</a>
+                        <a href="#" target="_blank" class="text-white text-decoration-none">Contact Us</a>
+                    </div>
+                </div>
             </footer>
         </div>
     </body>

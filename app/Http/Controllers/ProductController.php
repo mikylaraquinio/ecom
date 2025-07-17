@@ -166,31 +166,44 @@ class ProductController extends Controller
 
 
     public function update(Request $request, $id)
-    {
-        $product = Product::findOrFail($id);
+{
+    $product = Product::findOrFail($id);
 
-        $product->name = $request->name;
-        $product->description = $request->description;
-        $product->price = $request->price;
-        $product->stock = $request->stock;
-        $product->category_id = $request->category;
+    // Validate the request
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'required|string',
+        'price' => 'required|numeric|min:0',
+        'stock' => 'required|integer|min:0',
+        'category' => 'required|exists:categories,id', // Ensure category exists
+        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+    ]);
 
-        // Handle Image Upload
-        if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($product->image && Storage::exists('public/' . $product->image)) {
-                Storage::delete('public/' . $product->image);
-            }
+    // Assign values
+    $product->name = $request->name;
+    $product->description = $request->description;
+    $product->price = $request->price;
+    $product->stock = $request->stock;
+    $product->category_id = $request->category; // 🛠️ Fix this!
 
-            // Store new image
-            $path = $request->file('image')->store('products', 'public');
-            $product->image = $path;
+    // Handle Image Upload (if new image is uploaded)
+    if ($request->hasFile('image')) {
+        // Delete old image if exists
+        if ($product->image && Storage::exists('public/' . $product->image)) {
+            Storage::delete('public/' . $product->image);
         }
 
-        $product->save();
-
-        return redirect()->back()->with('success', 'Product updated successfully!');
+        // Store new image
+        $path = $request->file('image')->store('products', 'public');
+        $product->image = $path;
     }
+
+    // Save updates
+    $product->save();
+
+    return redirect()->back()->with('success', 'Product updated successfully!');
+}
+
 
     public function destroy($id)
     {

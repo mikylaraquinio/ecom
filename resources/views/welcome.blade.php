@@ -5,22 +5,22 @@
         </h2>
     </x-slot>
 
-    <section id="banner">
-        <div class="banner">
-            <div class="container">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h3 class="l-title">Harvest awaits at the Cooperative</h3>
-                        <p>Discover an extensive collection of agricultural products, from bestsellers to unique finds,
-                            curated to enhance your farming experience and inspire growth.</p>
-                    </div>
-                    <div class="col-md-6 d-flex justify-content-center">
-                        <img src="{{ asset('assets/farmer1.jpg') }}" class="img-fluid small-img">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    <div class="container">
+        <form action="{{ url('/search') }}" method="GET" class="d-flex justify-content-center align-items-center flex-wrap gap-2">
+            <input
+                type="text"
+                name="query"
+                class="form-control"
+                placeholder="🔍 Search fresh produce, categories, or farmers..."
+                style="max-width: 500px; border: 2px solid #a2c96f; border-radius: 10px; padding: 10px;"
+                required
+            >
+            <button type="submit" class="btn btn-success px-4" style="background-color: #71b127; border-radius: 10px;">
+                Search
+            </button>
+        </form>
+    </div>
+    
 <!-- Featured Categories Section -->
     <section id="featured-categories" class="py-5">
         <div class="container text-center">

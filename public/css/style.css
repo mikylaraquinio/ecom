@@ -69,13 +69,35 @@ main {
 
 /* Footer */
 .footer {
-    background: #285642;
-    padding: 10px 0;
+    background-color: #285642;
     width: 100%;
-    text-align: center;
-    margin-top: auto; /* Pushes footer to bottom */
-    color: white;
+    font-size: 0.95rem;
+    position: relative;
+    z-index: 1000;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
 }
+
+.footer a:hover {
+    text-decoration: underline;
+    color: #d4f4a1;
+}
+
+@media (max-width: 768px) {
+    .footer {
+        text-align: center;
+    }
+
+    .footer .container {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .footer a {
+        display: inline-block;
+        margin: 0 6px;
+    }
+}
+
 
 /*Banner*/
 #banner{
@@ -181,15 +203,13 @@ main {
 }
 
 .login-box {
-    border-radius: 10px;
-    text-align: center;
-    max-width: 350px;
+    border-radius: 12px;
+    background: white;
+    padding: 30px 25px;
     width: 100%;
-    background: #fff; /* Optional: Ensures visibility */
-    padding: 20px; /* Optional: Adds spacing inside the box */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Optional: Adds a subtle shadow */
+    max-width: 400px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
-
 
 .logo {
     font-size: 1.5rem;
@@ -198,8 +218,7 @@ main {
 }
 
 .input-group {
-    margin-bottom: 1rem;
-    text-align: left;
+    margin-bottom: 1.25rem;
 }
 
 .input-group label {
@@ -209,10 +228,11 @@ main {
 }
 
 .input-group input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+    height: 45px;
+    font-size: 15px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding-left: 15px;
 }
 
 .forgot-password {
@@ -221,8 +241,9 @@ main {
 }
 
 .login-btn {
-    background-color: #fbbc04;
+    background: linear-gradient(to right, #71b127, #9feb47a3);
     color: white;
+    font-weight: bold;
     border: none;
     padding: 0.75rem;
     width: 100%;
@@ -662,4 +683,46 @@ input[type="checkbox"] {
         padding: 6px 15px;
         font-size: 14px;
     }
+}
+
+.farm-bg {
+    background: url('/images/farm-bg.jpg') no-repeat center center;
+    background-size: cover;
+    background-color: #f0f7ec;
+}
+
+.farm-style {
+    background-color: #ffffffd9;
+    border: 2px solid #c8e6c9;
+    border-radius: 16px;
+    padding: 30px 25px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.farm-btn {
+    background-color: #71b127;
+    border: none;
+    padding: 12px;
+    width: 100%;
+    border-radius: 10px;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: background 0.3s ease;
+}
+
+.farm-btn:hover {
+    background-color: #5a9216;
+}
+
+.farm-style input {
+    border-radius: 8px;
+    border: 1px solid #c1d7b0;
+    padding: 10px;
+}
+
+.farm-style input:focus {
+    border-color: #71b127;
+    box-shadow: 0 0 0 3px rgba(113, 177, 39, 0.2);
+    outline: none;
 }
