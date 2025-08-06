@@ -239,40 +239,129 @@
                                 @if($ordersToReview->isEmpty())
                                     <p>No orders to review.</p>
                                 @else
-                                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
                                         @foreach($ordersToReview as $order)
                                             @foreach($order->orderItems as $orderItem)
                                                 @php
                                                     $product = $orderItem->product;
+                                                    $seller = $product->seller ?? null;
                                                     $imageUrl = $product && $product->image
                                                         ? asset('storage/' . $product->image)
                                                         : asset('assets/products.jpg');
+                                                    $hasReviewed = $orderItem->review;
                                                 @endphp
 
                                                 @if($product)
                                                     <div class="col">
                                                         <div class="card shadow-sm h-100">
+                                                            <!-- Shop Header -->
+                                                            <div class="card-header bg-light px-2 py-1 border-bottom">
+                                                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                                                    <!-- Seller Name -->
+                                                                    <strong class="me-auto">{{ $seller->farm_name ?? 'Unknown Shop' }}</strong>
+
+                                                                    <!-- Buttons & Badge -->
+                                                                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                                        <a class="btn btn-xs btn-outline-success py-0 px-1"
+                                                                        style="font-size: 0.75rem; pointer-events: none; opacity: 0.6;" 
+                                                                        title="Coming soon">Chat</a>
+
+                                                                        <a class="btn btn-xs btn-outline-primary py-0 px-1"
+                                                                        style="font-size: 0.75rem; pointer-events: none; opacity: 0.6;" 
+                                                                        title="Coming soon">Visit Shop</a>
+
+                                                                        <span class="badge bg-success" style="font-size: 0.7rem;">Completed</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <!-- Product Content -->
                                                             <div class="row g-0">
                                                                 <div class="col-4">
                                                                     <img src="{{ $imageUrl }}"
-                                                                        class="img-fluid rounded-start p-2 object-fit-cover"
+                                                                        class="img-fluid rounded-start p-2"
                                                                         alt="{{ $product->name }}"
                                                                         style="width: 100%; height: 100px; object-fit: cover;">
                                                                 </div>
                                                                 <div class="col-8">
                                                                     <div class="card-body p-2">
-                                                                        <h6 class="card-title text-truncate">
-                                                                            {{ $product->name }}
-                                                                        </h6>
-                                                                        <p class="small mb-1"><strong>Price:</strong>
-                                                                            ${{ number_format($product->price, 2) }}</p>
-                                                                        <p class="small mb-1"><strong>Qty:</strong>
-                                                                            {{ $orderItem->quantity }}</p>
-                                                                        <p class="small mb-2"><strong>Stock:</strong>
-                                                                            {{ $product->stock }}</p>
-                                                                            <span class="badge bg-success">Completed</span></p>
+                                                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                                                            <h6 class="card-title text-truncate mb-0">{{ $product->name }}</h6>
+                                                                        </div>
+                                                                        <p class="small mb-1"><strong>Price:</strong> ${{ number_format($product->price, 2) }}</p>
+                                                                        <p class="small mb-1"><strong>Qty:</strong> {{ $orderItem->quantity }}</p>
+                                                                        <p class="small mb-2"><strong>Stock:</strong> {{ $product->stock }}</p>
+
+                                                                        @if($hasReviewed)
+                                                                            <span class="badge bg-secondary">Reviewed</span>
+                                                                        @else
+                                                                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#rateModal-{{ $orderItem->id }}">
+                                                                                Rate
+                                                                            </button>
+                                                                        @endif
                                                                     </div>
                                                                 </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Review Modal -->
+                                                    <div class="modal fade" id="rateModal-{{ $orderItem->id }}" tabindex="-1" aria-labelledby="rateModalLabel-{{ $orderItem->id }}" aria-hidden="true">
+                                                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                                                            <div class="modal-content">
+                                                            <form action="{{ route('reviews.store') }}" method="POST" enctype="multipart/form-data">
+                                                                @csrf
+                                                                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                                                <input type="hidden" name="order_item_id" value="{{ $orderItem->id }}">
+
+                                                                <div class="modal-header">
+                                                                <h5 class="modal-title" id="rateModalLabel-{{ $orderItem->id }}">Rate Product</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                </div>
+
+                                                                <div class="modal-body">
+                                                                <p class="mb-2">{{ $product->name }}</p>
+
+                                                               <div class="mb-3">
+                                                                    <label class="form-label d-block mb-2">Product Quality</label>
+
+                                                                    <div class="star-rating d-flex align-items-center gap-3">
+                                                                        <div class="stars d-flex align-items-center" data-order-id="{{ $orderItem->id }}">
+                                                                            @for ($i = 1; $i <= 5; $i++)
+                                                                                <input type="radio" name="rating" id="star{{ $orderItem->id }}-{{ $i }}" value="{{ $i }}" />
+                                                                                <label for="star{{ $orderItem->id }}-{{ $i }}" data-value="{{ $i }}">★</label>
+                                                                            @endfor
+                                                                        </div>
+                                                                        <span class="rating-label text-muted small" id="rating-label-{{ $orderItem->id }}">Choose rating</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="mb-3">
+                                                                    <label for="comment" class="form-label">Write a Review</label>
+                                                                    <textarea class="form-control" name="review" rows="3" placeholder="Share your thoughts..." required></textarea>
+                                                                </div>
+
+                                                                <div class="mb-3">
+                                                                    <label for="photo" class="form-label">Add Photo (optional)</label>
+                                                                    <input type="file" class="form-control" name="photo" accept="image/*">
+                                                                </div>
+
+                                                                <div class="mb-3">
+                                                                    <label for="video" class="form-label">Add Video (optional)</label>
+                                                                    <input type="file" class="form-control" name="video" accept="video/*">
+                                                                </div>
+
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input" type="checkbox" name="show_username" value="1" id="showUsername-{{ $orderItem->id }}">
+                                                                    <label class="form-check-label" for="showUsername-{{ $orderItem->id }}">
+                                                                    Show username on your review
+                                                                    </label>
+                                                                </div>
+                                                                </div>
+
+                                                                <div class="modal-footer">
+                                                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <button type="submit" class="btn btn-primary">Submit Review</button>
+                                                                </div>
+                                                            </form>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -282,6 +371,8 @@
                                                             Product information not available
                                                         </div>
                                                     </div>
+
+
                                                 @endif
                                             @endforeach
                                         @endforeach
@@ -401,6 +492,35 @@
             </main>
         </div>
     </div>
+
+    <style>
+    .stars {
+        display: flex;
+        direction: ltr;
+    }
+
+    .stars label {
+        font-size: 2rem;
+        color: #ccc;
+        cursor: pointer;
+        transition: color 0.2s;
+        margin-right: 5px;
+    }
+
+    .stars input[type="radio"] {
+        display: none;
+    }
+
+    .stars input[type="radio"]:checked ~ label {
+        color: #ccc; /* Don't highlight here; JS will handle it */
+    }
+
+    .stars label:hover,
+    .stars label:hover ~ label {
+        color: #ffc107;
+    }
+    </style>
+
 
     <script>
         function uploadProfilePicture(event) {
@@ -549,6 +669,45 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
     </script>
+
+    <script>
+    document.querySelectorAll('.stars').forEach(starGroup => {
+        const orderId = starGroup.getAttribute('data-order-id');
+        const label = document.getElementById(`rating-label-${orderId}`);
+        const stars = starGroup.querySelectorAll('label');
+        const radios = starGroup.querySelectorAll('input[type="radio"]');
+        const labels = ["Terrible", "Poor", "Average", "Good", "Amazing"];
+
+        // Highlight stars on hover
+        stars.forEach((star, idx) => {
+            const value = parseInt(star.getAttribute('data-value'));
+
+            star.addEventListener('mouseenter', () => {
+                stars.forEach((s, i) => {
+                    s.style.color = (i < value) ? '#ffc107' : '#ccc';
+                });
+                label.textContent = labels[value - 1];
+            });
+
+            star.addEventListener('mouseleave', () => {
+                const checked = [...radios].find(r => r.checked);
+                const val = checked ? parseInt(checked.value) : 0;
+
+                stars.forEach((s, i) => {
+                    s.style.color = (i < val) ? '#ffc107' : '#ccc';
+                });
+
+                label.textContent = val ? labels[val - 1] : "Choose rating";
+            });
+
+            star.addEventListener('click', () => {
+                radios[value - 1].checked = true;
+            });
+        });
+    });
+    </script>
+
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>

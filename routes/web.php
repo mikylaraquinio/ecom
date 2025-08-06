@@ -8,6 +8,7 @@ use App\Http\Controllers\SellerController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\ReviewController;
 use App\Models\Category;
 
 Route::get('/', function () {
@@ -125,6 +126,11 @@ Route::get('/orders/{id}/confirm', [SellerController::class, 'confirmReceipt'])-
 Route::middleware('auth')->post('/wishlist/toggle/{id}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
 Route::post('/wishlist/toggle/{productId}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
 Route::post('/cart/add/{productId}', [CartController::class, 'add'])->name('cart.add');
+
+
+Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+
+
 
 
 
