@@ -53,5 +53,11 @@ class Product extends Model
         return $this->belongsToMany(User::class, 'wishlists')->withTimestamps();
     }
 
+    // In Product.php
+    public function seller()
+    {
+        return $this->belongsTo(Seller::class, 'user_id'); // or 'seller_id'
+    }
+
 
 }
