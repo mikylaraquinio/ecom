@@ -20,39 +20,7 @@
     </head>
     <body class="font-sans text-gray-900 antialiased">
     <div class="content-wrapper">
-        <!-- Header & Navbar -->
-        <header class="header fixed-top">
-            <div class="header-inner">
-                <div class="container">
-                    @if (Route::has('login')) 
-                        <nav class="navbar navbar-expand-lg navbar-dark">
-                            <a class="navbar-brand" href="#">FarmSmart</a>
-                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                                <span class="navbar-toggler-icon"></span>
-                            </button>
-                            <div class="collapse navbar-collapse" id="navbarNav">
-                                @auth
-                                    <ul class="navbar-nav ms-auto">
-                                        <li class="nav-item"><a class="nav-link active" href="{{ url('/welcome') }}">Home</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="#">Categories</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="#">Cart</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="{{ url('/profile') }}">Profile</a></li>
-                                    </ul>
-                                @else
-                                    <ul class="navbar-nav ms-auto">
-                                        <li class="nav-item"><a class="nav-link active" href="{{ url('/welcome') }}">Home</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="{{ route('login') }}">Log in</a></li>
-                                        @if (Route::has('register'))
-                                            <li class="nav-item"><a class="nav-link" href="{{ route('register') }}">Register</a></li>
-                                        @endif
-                                    </ul>
-                                @endauth
-                            </div>
-                        </nav>
-                    @endif
-                </div>
-            </div>
-        </header>
+            @include('layouts.navigation')
 
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100 dark:bg-gray-900">
             {{ $slot }}

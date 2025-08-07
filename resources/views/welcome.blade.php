@@ -20,6 +20,47 @@
             </button>
         </form>
     </div>
+
+    <!-- Quick Access Cards (Square & Consistent) -->
+<div class="container mt-4">
+    <div class="d-flex overflow-auto gap-3 pb-2" style="scroll-snap-type: x mandatory;">
+        <!-- FarmLive -->
+        <div style="width: 100px; height: 100px; scroll-snap-align: start;">
+            <div class="d-flex flex-column align-items-center justify-content-center h-100 border rounded shadow-sm bg-white text-center p-2">
+                <img src="{{ asset('assets/FLive.png') }}" alt="FarmLive" style="width: 36px; height: 36px;">
+                <div class="mt-2 small fw-semibold">FarmLive</div>
+            </div>
+        </div>
+
+        <!-- FarMart -->
+        <div style="width: 100px; height: 100px; scroll-snap-align: start;">
+            <div class="d-flex flex-column align-items-center justify-content-center h-100 border rounded shadow-sm bg-white text-center p-2">
+                <img src="{{ asset('assets/FLive.png') }}" alt="FarMart" style="width: 36px; height: 36px;">
+                <div class="mt-2 small fw-semibold">FarMart</div>
+            </div>
+        </div>
+
+        <!-- FarmCommunity -->
+        <div style="width: 100px; height: 100px; scroll-snap-align: start;">
+            <div class="d-flex flex-column align-items-center justify-content-center h-100 border rounded shadow-sm bg-white text-center p-2">
+                <img src="{{ asset('assets/FLive.png') }}" alt="FarmLive" style="width: 36px; height: 36px;">
+                <div class="mt-2 small fw-semibold">Farm Community</div>
+            </div>
+        </div>
+
+        <!-- FarmPrograms -->
+        <div style="width: 100px; height: 100px; scroll-snap-align: start;">
+            <div class="d-flex flex-column align-items-center justify-content-center h-100 border rounded shadow-sm bg-white text-center p-2">
+                <img src="{{ asset('assets/FLive.png') }}" alt="FarMart" style="width: 36px; height: 36px;">
+                <div class="mt-2 small fw-semibold">Farm Programs</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
     
 <!-- Featured Categories Section -->
     <section id="featured-categories" class="py-5">

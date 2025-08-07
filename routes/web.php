@@ -9,17 +9,20 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\WishlistController;
 use App\Models\Category;
+use App\Http\Controllers\Auth\RegisteredUserController;
 
+Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+Route::post('/register', [RegisteredUserController::class, 'store']);
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Ensure that "home.blade.php" is correctly referenced
 Route::get('/welcome', function () {
     return view('welcome'); // ✅ Correct
 })->middleware(['auth', 'verified'])->name('welcome');
 
 // Shop Page
+
 Route::get('/shop', [ProductController::class, 'index'])->middleware(['auth', 'verified'])->name('shop');
 Route::get('/myshop', [SellerController::class, 'index'])->name('myshop');
 Route::put('/shop/{shop}', [SellerController::class, 'update'])->name('shop.update');
