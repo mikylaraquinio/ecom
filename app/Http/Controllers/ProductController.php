@@ -13,76 +13,76 @@ use Illuminate\Support\Facades\Log;
 class ProductController extends Controller
 {
     public function index(Request $request)
-{
-    $query = Product::query();
+    {
+        $query = Product::query();
 
-    // ✅ Search Filter
-    if ($request->filled('search')) {
-        $search = trim(strtolower($request->search));
-        $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
-    }
+        // ✅ Search Filter
+        if ($request->filled('search')) {
+            $search = trim(strtolower($request->search));
+            $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+        }
 
-    // ✅ Category Filtering (ID & Name)
-    if ($request->filled('category')) {
-        $categoryInput = $request->category;
+        // ✅ Category Filtering (ID & Name)
+        if ($request->filled('category')) {
+            $categoryInput = $request->category;
 
-        // Check if the category input is a valid ID or Name
-        $category = Category::where('id', $categoryInput)
-            ->orWhere('name', $categoryInput)
-            ->first();
+            // Check if the category input is a valid ID or Name
+            $category = Category::where('id', $categoryInput)
+                ->orWhere('name', $categoryInput)
+                ->first();
 
-        if ($category) {
-            if ($category->parent_id === null) {
-                // If it's a main category, include subcategories
-                $subCategoryIds = Category::where('parent_id', $category->id)->pluck('id')->toArray();
-                $subCategoryIds[] = $category->id;
-                $query->whereIn('category_id', $subCategoryIds);
-            } else {
-                // If it's a subcategory, filter by its ID
-                $query->where('category_id', $category->id);
+            if ($category) {
+                if ($category->parent_id === null) {
+                    // If it's a main category, include subcategories
+                    $subCategoryIds = Category::where('parent_id', $category->id)->pluck('id')->toArray();
+                    $subCategoryIds[] = $category->id;
+                    $query->whereIn('category_id', $subCategoryIds);
+                } else {
+                    // If it's a subcategory, filter by its ID
+                    $query->where('category_id', $category->id);
+                }
             }
         }
-    }
 
-    // ✅ Price Filtering
-    if ($request->filled('min_price') && is_numeric($request->min_price)) {
-        $query->where('price', '>=', $request->min_price);
-    }
-    if ($request->filled('max_price') && is_numeric($request->max_price)) {
-        $query->where('price', '<=', $request->max_price);
-    }
-
-    // ✅ Stock Availability - Hide Out of Stock Products
-    $query->where('stock', '>', 0); // 🔥 This line hides products with stock = 0
-
-    // ✅ Sorting Logic
-    if ($request->filled('sort_by')) {
-        switch ($request->sort_by) {
-            case 'low_to_high':
-                $query->orderBy('price', 'asc');
-                break;
-            case 'high_to_low':
-                $query->orderBy('price', 'desc');
-                break;
-            case 'newest':
-                $query->orderBy('created_at', 'desc');
-                break;
+        // ✅ Price Filtering
+        if ($request->filled('min_price') && is_numeric($request->min_price)) {
+            $query->where('price', '>=', $request->min_price);
         }
+        if ($request->filled('max_price') && is_numeric($request->max_price)) {
+            $query->where('price', '<=', $request->max_price);
+        }
+
+        // ✅ Stock Availability - Hide Out of Stock Products
+        $query->where('stock', '>', 0); // 🔥 This line hides products with stock = 0
+
+        // ✅ Sorting Logic
+        if ($request->filled('sort_by')) {
+            switch ($request->sort_by) {
+                case 'low_to_high':
+                    $query->orderBy('price', 'asc');
+                    break;
+                case 'high_to_low':
+                    $query->orderBy('price', 'desc');
+                    break;
+                case 'newest':
+                    $query->orderBy('created_at', 'desc');
+                    break;
+            }
+        }
+
+        // ✅ Fetch Products
+        $products = $query->get();
+
+        // ✅ Fetch Categories in Hierarchical Structure
+        $categories = Category::whereNull('parent_id')->with('subcategories')->get();
+
+        // ✅ AJAX Support for Dynamic Filtering
+        if ($request->ajax()) {
+            return view('partials.product-list', compact('products'))->render();
+        }
+
+        return view('shop', compact('products', 'categories'));
     }
-
-    // ✅ Fetch Products
-    $products = $query->get();
-
-    // ✅ Fetch Categories in Hierarchical Structure
-    $categories = Category::whereNull('parent_id')->with('subcategories')->get();
-
-    // ✅ AJAX Support for Dynamic Filtering
-    if ($request->ajax()) {
-        return view('partials.product-list', compact('products'))->render();
-    }
-
-    return view('shop', compact('products', 'categories'));
-}
 
 
     public function autocomplete(Request $request)
@@ -139,6 +139,8 @@ class ProductController extends Controller
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
+            'unit' => 'required|string|in:kg,piece,bundle,sack', // or adjust options
+            'min_order_qty' => 'nullable|integer|min:1',
             'category' => 'required|exists:categories,id',
         ]);
 
@@ -155,6 +157,8 @@ class ProductController extends Controller
         $product->description = $request->description;
         $product->price = $request->price;
         $product->stock = $request->stock;
+        $product->unit = $request->unit;
+        $product->min_order_qty = $request->min_order_qty ?? 1;
         $product->image = $imagePath; // Store in the 'image' column
         $product->image_path = asset('storage/' . $imagePath); // Store full path in 'image_path'
         $product->category_id = $request->category;

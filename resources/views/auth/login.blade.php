@@ -187,7 +187,7 @@
 
                 <div class="input-group">
                     <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="you@example.com" value="{{ old('email') }}" required autofocus>
+                    <input type="email" id="email" name="email" placeholder="email" value="{{ old('email') }}" required autofocus>
                     <x-input-error :messages="$errors->get('email')" class="mt-1" />
                 </div>
 

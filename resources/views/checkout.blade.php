@@ -72,18 +72,18 @@
                                 <div class="card-body">
                                     <h5 class="mb-3 text-center">Payment Method</h5>
                                     
-                                    <!-- Payment Options -->
+                                    <!-- Payment Options 
                                     <div class="d-flex flex-column gap-2">
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="payment_method" id="credit_card"
                                                 value="credit_card" checked required>
                                             <label class="form-check-label ms-2" for="credit_card">Credit Card</label>
-                                        </div>
+                                        </div>-->
 
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="payment_method" id="paypal"
                                                 value="paypal">
-                                            <label class="form-check-label ms-2" for="paypal">PayPal</label>
+                                            <label class="form-check-label ms-2" for="paypal">GCash</label>
                                         </div>
 
                                         <div class="form-check">

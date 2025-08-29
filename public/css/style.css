@@ -1,11 +1,9 @@
-html, body {
-    height: 100%;
-    margin: 0;
-    font-family: 'Poppins', sans-serif;
-    display: flex;
-    flex-direction: column;
-    padding-top: 45px;
-    
+html { height: 100%; }
+body {
+  min-height: 100%;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  padding-top: 7px; /* or remove if using a sticky header */
 }
 
 .min-h-screen {
@@ -263,13 +261,13 @@ main {
 
 .category-img {
     width: 100%;
-    height: 250px;
+    height: 140px;
     object-fit: cover;
     transition: transform 0.3s ease-in-out;
 }
 
 .category-card:hover .category-img {
-    transform: scale(1.1);
+    transform: scale(1.06);
 }
 
 .overlay {
@@ -287,7 +285,7 @@ main {
     text-align: center;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
-    padding: 20px;
+    padding: 10px;
 }
 
 .category-card:hover .overlay {
@@ -295,22 +293,22 @@ main {
 }
 
 .category-title {
-    font-size: 24px;
+    font-size: 16px;
     font-weight: bold;
     margin-bottom: 10px;
 }
 
 .category-text {
-    font-size: 14px;
-    margin-bottom: 15px;
+    font-size: 12px;
+    margin-bottom: 8px;
 }
 
 .view-btn {
     background-color: white;
     color: black;
     font-weight: bold;
-    border-radius: 20px;
-    padding: 8px 20px;
+    border-radius: 999px;
+    padding: 6px 12px;
 }
 .sidebar {
     min-height: 100vh;
@@ -432,19 +430,28 @@ input[type="checkbox"] {
 /* Submit Button */
 .reg-btn {
     width: 100%;
-    background-color: #4f46e5;
-    color: white;
-    padding: 12px;
-    font-size: 16px;
+    background-color: #e53935; /* Red color */
+    color: #fff;
+    padding: 14px 0;
+    font-size: 1rem;
     font-weight: 600;
+    border: none;
     border-radius: 8px;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: background 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .reg-btn:hover {
-    background-color: #4338ca;
+    background-color: #d32f2f;
+    transform: translateY(-1px);
 }
+
+.reg-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 
 .loading-overlay {
     position: fixed;
@@ -541,7 +548,7 @@ input[type="checkbox"] {
         text-align: center;
     }
     .category-img {
-        height: 200px;
+        height: 120px;
     }
 }
 

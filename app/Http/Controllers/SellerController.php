@@ -69,7 +69,9 @@ class SellerController extends Controller
             $query->whereHas('product', function ($subQuery) {
                 $subQuery->where('user_id', auth()->id());
             });
-        })->get();
+        })->orderBy('created_at', 'desc') // ✅ Add this
+    ->with('orderItems.product', 'buyer', 'shippingAddress') // Optional: eager load to reduce N+1
+    ->get();
 
         $user = auth()->user();
         $mainCategories = Category::whereNull('parent_id')->get(); // Add this
@@ -109,10 +111,15 @@ class SellerController extends Controller
                     return redirect()->back()->with('error', "Not enough stock for {$product->name}.");
                 }
             }
+            $order->delivered_at = now(); // ✅ Set delivered date
         }
 
-        // Update order status
-        $order->update(['status' => $newStatus]);
+        if ($newStatus === 'shipped') {
+            $order->shipped_at = now(); // ✅ Set shipped date
+        }
+
+        $order->status = $newStatus;
+        $order->save();
 
         return redirect()->route('myshop')->with('success', 'Order status updated successfully.');
     }
@@ -135,8 +142,11 @@ class SellerController extends Controller
         $orders = [];
         if ($user->role === 'seller') {
             $orders = Order::whereHas('orderItems.product', function ($query) use ($user) {
-                $query->where('user_id', $user->id); // FIXED: Changed 'items' to 'orderItems'
-            })->with('orderItems.product')->orderBy('created_at', 'desc')->get(); // FIXED: Changed 'items' to 'orderItems'
+                $query->where('user_id', $user->id); 
+            })->with('orderItems.product')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10); 
+            
         }
 
         $products = $user->products;

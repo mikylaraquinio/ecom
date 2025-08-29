@@ -11,6 +11,7 @@ use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
 use App\Models\Category;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\NotificationController;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -124,6 +125,9 @@ Route::middleware('auth')->group(function () {
 Route::get('/my-orders', [SellerController::class, 'myOrders'])->name('buyer.orders')->middleware('auth');
 Route::patch('/seller/orders/{id}/update', [SellerController::class, 'updateOrderStatus'])->name('seller.updateOrderStatus');
 Route::get('/orders/{id}/confirm', [SellerController::class, 'confirmReceipt'])->name('buyer.confirm-receipt');
+Route::patch('/orders/{id}/confirm-receipt', [SellerController::class, 'confirmReceipt'])
+    ->name('buyer.confirmReceipt')
+    ->middleware('auth');
 
 
 Route::middleware('auth')->post('/wishlist/toggle/{id}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
@@ -132,6 +136,14 @@ Route::post('/cart/add/{productId}', [CartController::class, 'add'])->name('cart
 
 
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+
+/*notifications */
+
+Route::middleware('auth')->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
+});
 
 
 

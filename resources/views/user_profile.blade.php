@@ -8,8 +8,8 @@
                         <!-- Profile Picture with Edit Icon -->
                         <label for="profilePictureInput" class="position-relative d-inline-block">
                             <img src="{{ auth()->user()->profile_picture
-    ? asset('storage/' . auth()->user()->profile_picture)
-    : asset('assets/default.png') }}" alt="Profile Picture" class="rounded-circle mb-2"
+                                ? asset('storage/' . auth()->user()->profile_picture)
+                                : asset('assets/default.png') }}" alt="Profile Picture" class="rounded-circle mb-2"
                                 width="80" height="80"
                                 style="border: 3px solid #fff; object-fit: cover; aspect-ratio: 1/1;">
 
@@ -88,7 +88,7 @@
             </nav>
 
             <!-- Main Content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 profile-main">
                 <div class="tab-content">
                     <div class="tab-pane fade show active" id="user-dashboard">
                         <h5>Your Orders</h5>
@@ -107,280 +107,298 @@
                         <div class="tab-content mt-2">
                             <!-- To Ship -->
                             <div class="tab-pane fade show active" id="to-ship">
-                                @if($ordersToShip->isEmpty())
-                                    <p>No orders to ship.</p>
-                                @else
-                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-                                        @foreach($ordersToShip as $order)
-                                            @foreach($order->orderItems as $orderItem)
-                                                @php
-                                                    $product = $orderItem->product;
-                                                    $imageUrl = $product && $product->image
-                                                        ? asset('storage/' . $product->image)
-                                                        : asset('assets/products.jpg');
-                                                @endphp
+                            @if($ordersToShip->isEmpty())
+                                <p>No orders to ship.</p>
+                            @else
+                                <ul class="list-group">
+                                    @foreach($ordersToShip as $order)
+                                        @foreach($order->orderItems as $orderItem)
+                                            @php
+                                                $product = $orderItem->product;
+                                                $imageUrl = $product && $product->image
+                                                    ? asset('storage/' . $product->image)
+                                                    : asset('assets/products.jpg');
+                                                $quantity = $orderItem->quantity;
+                                                $total = $product->price * $quantity;
+                                            @endphp
 
-                                                @if($product)
-                                                    <div class="col">
-                                                        <div class="card shadow-sm h-100">
-                                                            <div class="row g-0">
-                                                                <div class="col-4">
-                                                                    <img src="{{ $imageUrl }}"
-                                                                        class="img-fluid rounded-start p-2 object-fit-cover"
-                                                                        alt="{{ $product->name }}"
-                                                                        style="width: 100%; height: 100px; object-fit: cover;">
-                                                                </div>
-                                                                <div class="col-8">
-                                                                    <div class="card-body p-2">
-                                                                        <h6 class="card-title text-truncate">
-                                                                            {{ $product->name }}
-                                                                        </h6>
-                                                                        <p class="small mb-1"><strong>Price:</strong>
-                                                                            ${{ number_format($product->price, 2) }}</p>
-                                                                        <p class="small mb-1"><strong>Qty:</strong>
-                                                                            {{ $orderItem->quantity }}</p>
-                                                                        <p class="small mb-2"><strong>Stock:</strong>
-                                                                            {{ $product->stock }}</p>
+                                            @if($product)
+                                                <li class="list-group-item">
+                                                    <div class="d-flex justify-content-between">
+                                                        <!-- Product Image and Info -->
+                                                        <div class="d-flex">
+                                                            <img src="{{ $imageUrl }}" alt="{{ $product->name }}"
+                                                                class="me-3 rounded"
+                                                                style="width: 80px; height: 80px; object-fit: cover;">
 
-                                                                        <!-- Order Status Badge -->
-                                                                        <span class="badge 
-                                                                    {{ $order->status === 'pending' ? 'bg-warning' : 'bg-success' }}">
-                                                                            {{ $order->status === 'pending' ? 'Pending' : 'Ready to Ship' }}
-                                                                        </span>
+                                                            <div>
+                                                                <h6 class="mb-1">{{ $product->name }}</h6>
+                                                                <p class="mb-0 small text-muted">₱{{ number_format($product->price, 2) }} × {{ $quantity }}</p>
+                                                                <p class="mb-0 small fw-bold text-dark">Total: ₱{{ number_format($total, 2) }}</p>
 
-                                                                        <!-- Cancel Order Button (Only for Pending or Accepted) -->
-                                                                        @if($order->status === 'pending' || $order->status === 'accepted')
-                                                                            <form action="{{ route('buyer.cancelOrder', $order->id) }}"
-                                                                                method="POST" style="display:inline;">
-                                                                                @csrf
-                                                                                @method('PATCH')
-                                                                                <input type="hidden" name="status" value="canceled">
-                                                                                <button type="submit" class="btn btn-danger btn-sm mt-2">
-                                                                                    Cancel
-                                                                                </button>
-                                                                            </form>
-                                                                        @endif
-                                                                    </div>
-                                                                </div>
+                                                                <!-- Order Dates -->
+                                                                <p class="mb-0 small text-muted">
+                                                                    <strong>Ordered:</strong> {{ $order->created_at->format('M d, Y') }}<br>
+                                                                    <strong>Shipped:</strong> 
+                                                                    {{ $order->shipped_at ? $order->shipped_at->format('M d, Y') : '—' }}<br>
+                                                                    <strong>Delivered:</strong> 
+                                                                    {{ $order->delivered_at ? $order->delivered_at->format('M d, Y') : '—' }}
+                                                                </p>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                @else
-                                                    <div class="col">
-                                                        <div class="alert alert-danger small p-2 text-center">
-                                                            Product information not available
+
+                                                        <!-- Order Status -->
+                                                        <div class="text-end">
+                                                            <span class="badge 
+                                                                {{ $order->status === 'pending' ? 'bg-warning text-dark' : 'bg-success' }}">
+                                                                {{ $order->status === 'pending' ? 'Pending' : 'Ready to Ship' }}
+                                                            </span>
                                                         </div>
                                                     </div>
-                                                @endif
-                                            @endforeach
-                                        @endforeach
-                                    </div>
-                                @endif
-                            </div>
-                            <!-- To Receive -->
-                            <div class="tab-pane fade" id="to-receive">
-                                @if($ordersToReceive->isEmpty())
-                                    <p>No orders to receive.</p>
-                                @else
-                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-                                        @foreach($ordersToReceive as $order)
-                                            @foreach($order->orderItems as $orderItem)
-                                                @php
-                                                    $product = $orderItem->product;
-                                                    $imageUrl = $product && $product->image
-                                                        ? asset('storage/' . $product->image)
-                                                        : asset('assets/products.jpg');
-                                                @endphp
 
-                                                @if($product)
-                                                    <div class="col">
-                                                        <div class="card shadow-sm h-100">
-                                                            <div class="row g-0">
-                                                                <div class="col-4">
-                                                                    <img src="{{ $imageUrl }}"
-                                                                        class="img-fluid rounded-start p-2 object-fit-cover"
-                                                                        alt="{{ $product->name }}"
-                                                                        style="width: 100%; height: 100px; object-fit: cover;">
-                                                                </div>
-                                                                <div class="col-8">
-                                                                    <div class="card-body p-2">
-                                                                        <h6 class="card-title text-truncate">
-                                                                            {{ $product->name }}
-                                                                        </h6>
-                                                                        <p class="small mb-1"><strong>Price:</strong>
-                                                                            ${{ number_format($product->price, 2) }}</p>
-                                                                        <p class="small mb-1"><strong>Qty:</strong>
-                                                                            {{ $orderItem->quantity }}</p>
-                                                                        <p class="small mb-2"><strong>Stock:</strong>
-                                                                            {{ $product->stock }}</p>
-                                                                        <span class="badge bg-info">
-                                                                            Shipped(To Receive)
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
+                                                    <!-- Cancel Button Bottom Right -->
+                                                    @if($order->status === 'pending' || $order->status === 'accepted')
+                                                        <div class="d-flex justify-content-end mt-2">
+                                                            <form action="{{ route('buyer.cancelOrder', $order->id) }}"
+                                                                method="POST"
+                                                                onsubmit="return confirm('Are you sure you want to cancel your order?')">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <input type="hidden" name="status" value="canceled">
+                                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                                    Cancel Order
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    @endif
+                                                </li>
+                                            @else
+                                                <li class="list-group-item text-danger text-center small">
+                                                    Product information not available
+                                                </li>
+                                            @endif
+                                        @endforeach
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </div>
+                        
+                        <!-- To Receive -->
+                        <div class="tab-pane fade" id="to-receive">
+                            @if($ordersToReceive->isEmpty())
+                                <p>No orders to receive.</p>
+                            @else
+                                <ul class="list-group">
+                                    @foreach($ordersToReceive as $order)
+                                        @foreach($order->orderItems as $orderItem)
+                                            @php
+                                                $product = $orderItem->product;
+                                                $imageUrl = $product && $product->image
+                                                    ? asset('storage/' . $product->image)
+                                                    : asset('assets/products.jpg');
+                                                $quantity = $orderItem->quantity;
+                                                $total = $product->price * $quantity;
+                                            @endphp
+
+                                            @if($product)
+                                                <li class="list-group-item">
+                                                    <div class="d-flex justify-content-between">
+                                                        <!-- Product Image and Info -->
+                                                        <div class="d-flex">
+                                                            <img src="{{ $imageUrl }}" alt="{{ $product->name }}"
+                                                                class="me-3 rounded"
+                                                                style="width: 80px; height: 80px; object-fit: cover;">
+
+                                                            <div>
+                                                                <h6 class="mb-1">{{ $product->name }}</h6>
+                                                                <p class="mb-0 small text-muted">₱{{ number_format($product->price, 2) }} × {{ $quantity }}</p>
+                                                                <p class="mb-0 small fw-bold text-dark">Total: ₱{{ number_format($total, 2) }}</p>
+
+                                                                <!-- Order Dates -->
+                                                                <p class="mb-0 small text-muted">
+                                                                    <strong>Ordered:</strong> {{ $order->created_at->format('M d, Y') }}<br>
+                                                                    <strong>Shipped:</strong> {{ $order->shipped_at ? \Carbon\Carbon::parse($order->shipped_at)->format('M d, Y') : '—' }}
+                                                                    <strong>Delivered:</strong> {{ $order->delivered_at ? $order->delivered_at->format('M d, Y') : '—' }}
+                                                                </p>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                @else
-                                                    <div class="col">
-                                                        <div class="alert alert-danger small p-2 text-center">
-                                                            Product information not available
+
+                                                        <!-- Status -->
+                                                        <div class="text-end">
+                                                            <span class="badge bg-info">Shipped</span>
                                                         </div>
                                                     </div>
-                                                @endif
-                                            @endforeach
+
+                                                    <!-- Mark as Received Button -->
+                                                    @if($order->status === 'shipped')
+                                                        <div class="d-flex justify-content-end mt-2">
+                                                            <form action="{{ route('buyer.confirmReceipt', $order->id) }}"
+                                                                method="POST"
+                                                                onsubmit="return confirm('Confirm that you have received this order?')">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <button type="submit" class="btn btn-success btn-sm">
+                                                                    Mark as Received
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    @endif
+                                                </li>
+                                            @else
+                                                <li class="list-group-item text-danger text-center small">
+                                                    Product information not available
+                                                </li>
+                                            @endif
                                         @endforeach
-                                    </div>
-                                @endif
-                            </div>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </div>
+
 
                             <!-- To Review -->
-                            <div class="tab-pane fade" id="to-review">
-                                @if($ordersToReview->isEmpty())
-                                    <p>No orders to review.</p>
-                                @else
-                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-                                        @foreach($ordersToReview as $order)
-                                            @foreach($order->orderItems as $orderItem)
-                                                @php
-                                                    $product = $orderItem->product;
-                                                    $seller = $product->seller ?? null;
-                                                    $imageUrl = $product && $product->image
-                                                        ? asset('storage/' . $product->image)
-                                                        : asset('assets/products.jpg');
-                                                    $hasReviewed = $orderItem->review;
-                                                @endphp
+<div class="tab-pane fade" id="to-review">
+    @if($ordersToReview->isEmpty())
+        <p>No orders to review.</p>
+    @else
+        <ul class="list-group">
+            @foreach($ordersToReview as $order)
+                @foreach($order->orderItems as $orderItem)
+                    @php
+                        $product = $orderItem->product;
+                        $seller = $product->seller ?? null;
+                        $imageUrl = $product && $product->image
+                            ? asset('storage/' . $product->image)
+                            : asset('assets/products.jpg');
+                        $quantity = $orderItem->quantity;
+                        $total = $product->price * $quantity;
+                        $hasReviewed = $orderItem->review;
+                    @endphp
 
-                                                @if($product)
-                                                    <div class="col">
-                                                        <div class="card shadow-sm h-100">
-                                                            <!-- Shop Header -->
-                                                            <div class="card-header bg-light px-2 py-1 border-bottom">
-                                                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
-                                                                    <!-- Seller Name -->
-                                                                    <strong class="me-auto">{{ $seller->farm_name ?? 'Unknown Shop' }}</strong>
+                    @if($product)
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
+        <a class="btn btn-sm btn-outline-success disabled" tabindex="-1" aria-disabled="true">Chat</a>
+        <a class="btn btn-sm btn-outline-primary disabled" tabindex="-1" aria-disabled="true">Visit Shop</a>
+    </div>
+                            <div class="d-flex justify-content-between">
+                                
+                                <!-- Product Image and Info -->
+                                <div class="d-flex">
+                                    <img src="{{ $imageUrl }}" alt="{{ $product->name }}"
+                                         class="me-3 rounded"
+                                         style="width: 80px; height: 80px; object-fit: cover;">
 
-                                                                    <!-- Buttons & Badge -->
-                                                                    <div class="d-flex align-items-center gap-1 flex-wrap">
-                                                                        <a class="btn btn-xs btn-outline-success py-0 px-1"
-                                                                        style="font-size: 0.75rem; pointer-events: none; opacity: 0.6;" 
-                                                                        title="Coming soon">Chat</a>
+                                    <div>
+                                        <h6 class="mb-1">{{ $product->name }}</h6>
+                                        <p class="mb-0 small text-muted">₱{{ number_format($product->price, 2) }} × {{ $quantity }}</p>
+                                        <p class="mb-0 small fw-bold text-dark">Total: ₱{{ number_format($total, 2) }}</p>
+                                        
+                                        <!-- Order Dates -->
+                                        <p class="mb-0 small text-muted">
+                                            <strong>Ordered:</strong> {{ $order->created_at->format('M d, Y') }}<br>
+                                            <strong>Shipped:</strong>
+                                            {{ $order->shipped_at ? \Carbon\Carbon::parse($order->shipped_at)->format('M d, Y') : '—' }}<br>
 
-                                                                        <a class="btn btn-xs btn-outline-primary py-0 px-1"
-                                                                        style="font-size: 0.75rem; pointer-events: none; opacity: 0.6;" 
-                                                                        title="Coming soon">Visit Shop</a>
+                                            <strong>Delivered:</strong>
+                                            {{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->format('M d, Y') : '—' }}
 
-                                                                        <span class="badge bg-success" style="font-size: 0.7rem;">Completed</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <!-- Product Content -->
-                                                            <div class="row g-0">
-                                                                <div class="col-4">
-                                                                    <img src="{{ $imageUrl }}"
-                                                                        class="img-fluid rounded-start p-2"
-                                                                        alt="{{ $product->name }}"
-                                                                        style="width: 100%; height: 100px; object-fit: cover;">
-                                                                </div>
-                                                                <div class="col-8">
-                                                                    <div class="card-body p-2">
-                                                                        <div class="d-flex justify-content-between align-items-start mb-1">
-                                                                            <h6 class="card-title text-truncate mb-0">{{ $product->name }}</h6>
-                                                                        </div>
-                                                                        <p class="small mb-1"><strong>Price:</strong> ${{ number_format($product->price, 2) }}</p>
-                                                                        <p class="small mb-1"><strong>Qty:</strong> {{ $orderItem->quantity }}</p>
-                                                                        <p class="small mb-2"><strong>Stock:</strong> {{ $product->stock }}</p>
-
-                                                                        @if($hasReviewed)
-                                                                            <span class="badge bg-secondary">Reviewed</span>
-                                                                        @else
-                                                                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#rateModal-{{ $orderItem->id }}">
-                                                                                Rate
-                                                                            </button>
-                                                                        @endif
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <!-- Review Modal -->
-                                                    <div class="modal fade" id="rateModal-{{ $orderItem->id }}" tabindex="-1" aria-labelledby="rateModalLabel-{{ $orderItem->id }}" aria-hidden="true">
-                                                        <div class="modal-dialog modal-lg modal-dialog-centered">
-                                                            <div class="modal-content">
-                                                            <form action="{{ route('reviews.store') }}" method="POST" enctype="multipart/form-data">
-                                                                @csrf
-                                                                <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                                                <input type="hidden" name="order_item_id" value="{{ $orderItem->id }}">
-
-                                                                <div class="modal-header">
-                                                                <h5 class="modal-title" id="rateModalLabel-{{ $orderItem->id }}">Rate Product</h5>
-                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                </div>
-
-                                                                <div class="modal-body">
-                                                                <p class="mb-2">{{ $product->name }}</p>
-
-                                                               <div class="mb-3">
-                                                                    <label class="form-label d-block mb-2">Product Quality</label>
-
-                                                                    <div class="star-rating d-flex align-items-center gap-3">
-                                                                        <div class="stars d-flex align-items-center" data-order-id="{{ $orderItem->id }}">
-                                                                            @for ($i = 1; $i <= 5; $i++)
-                                                                                <input type="radio" name="rating" id="star{{ $orderItem->id }}-{{ $i }}" value="{{ $i }}" />
-                                                                                <label for="star{{ $orderItem->id }}-{{ $i }}" data-value="{{ $i }}">★</label>
-                                                                            @endfor
-                                                                        </div>
-                                                                        <span class="rating-label text-muted small" id="rating-label-{{ $orderItem->id }}">Choose rating</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="mb-3">
-                                                                    <label for="comment" class="form-label">Write a Review</label>
-                                                                    <textarea class="form-control" name="review" rows="3" placeholder="Share your thoughts..." required></textarea>
-                                                                </div>
-
-                                                                <div class="mb-3">
-                                                                    <label for="photo" class="form-label">Add Photo (optional)</label>
-                                                                    <input type="file" class="form-control" name="photo" accept="image/*">
-                                                                </div>
-
-                                                                <div class="mb-3">
-                                                                    <label for="video" class="form-label">Add Video (optional)</label>
-                                                                    <input type="file" class="form-control" name="video" accept="video/*">
-                                                                </div>
-
-                                                                <div class="form-check">
-                                                                    <input class="form-check-input" type="checkbox" name="show_username" value="1" id="showUsername-{{ $orderItem->id }}">
-                                                                    <label class="form-check-label" for="showUsername-{{ $orderItem->id }}">
-                                                                    Show username on your review
-                                                                    </label>
-                                                                </div>
-                                                                </div>
-
-                                                                <div class="modal-footer">
-                                                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                                <button type="submit" class="btn btn-primary">Submit Review</button>
-                                                                </div>
-                                                            </form>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    <div class="col">
-                                                        <div class="alert alert-danger small p-2 text-center">
-                                                            Product information not available
-                                                        </div>
-                                                    </div>
-
-
-                                                @endif
-                                            @endforeach
-                                        @endforeach
+                                        </p>
                                     </div>
+                                </div>
+
+                                <!-- Status -->
+                                <div class="text-end">
+                                    <span class="badge bg-success">Completed</span>
+                                </div>
+                            </div>
+
+                            <!-- Review Button -->
+                            <div class="d-flex justify-content-end mt-2">
+                                @if($hasReviewed)
+                                    <span class="badge bg-secondary">Reviewed</span>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#rateModal-{{ $orderItem->id }}">
+                                        Rate
+                                    </button>
                                 @endif
                             </div>
+                        </li>
+
+                        <!-- Review Modal -->
+                        <div class="modal fade" id="rateModal-{{ $orderItem->id }}" tabindex="-1" aria-labelledby="rateModalLabel-{{ $orderItem->id }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-centered">
+                                <div class="modal-content">
+                                    <form action="{{ route('reviews.store') }}" method="POST" enctype="multipart/form-data">
+                                        @csrf
+                                        <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                        <input type="hidden" name="order_item_id" value="{{ $orderItem->id }}">
+
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="rateModalLabel-{{ $orderItem->id }}">Rate Product</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            <p class="mb-2">{{ $product->name }}</p>
+
+                                            <div class="mb-3">
+                                                <label class="form-label d-block mb-2">Product Quality</label>
+                                                <div class="star-rating d-flex align-items-center gap-3">
+                                                    <div class="stars d-flex align-items-center" data-order-id="{{ $orderItem->id }}">
+                                                        @for ($i = 1; $i <= 5; $i++)
+                                                            <input type="radio" name="rating" id="star{{ $orderItem->id }}-{{ $i }}" value="{{ $i }}" />
+                                                            <label for="star{{ $orderItem->id }}-{{ $i }}" data-value="{{ $i }}">★</label>
+                                                        @endfor
+                                                    </div>
+                                                    <span class="rating-label text-muted small" id="rating-label-{{ $orderItem->id }}">Choose rating</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="comment" class="form-label">Write a Review</label>
+                                                <textarea class="form-control" name="review" rows="3" placeholder="Share your thoughts..." required></textarea>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="photo" class="form-label">Add Photo (optional)</label>
+                                                <input type="file" class="form-control" name="photo" accept="image/*">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="video" class="form-label">Add Video (optional)</label>
+                                                <input type="file" class="form-control" name="video" accept="video/*">
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="show_username" value="1" id="showUsername-{{ $orderItem->id }}">
+                                                <label class="form-check-label" for="showUsername-{{ $orderItem->id }}">
+                                                    Show username on your review
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">Submit Review</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    @else
+                        <li class="list-group-item text-danger text-center small">
+                            Product information not available
+                        </li>
+                    @endif
+                @endforeach
+            @endforeach
+        </ul>
+    @endif
+</div>
+
 
                     <div class="tab-pane fade" id="wishlist-section">
                         <h5 class="mt-4">Your Wishlist</h5>
@@ -707,10 +725,134 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     </script>
 
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const checkbox = document.getElementById("terms");
+    const registerBtn = document.getElementById("registerButton");
+
+    if (checkbox && registerBtn) {
+        registerBtn.disabled = !checkbox.checked;
+
+        checkbox.addEventListener("change", function () {
+            registerBtn.disabled = !this.checked;
+
+            if (this.checked) {
+                registerBtn.classList.remove("btn-secondary");
+                registerBtn.classList.add("btn-danger"); // or your preferred red class
+            } else {
+                registerBtn.classList.remove("btn-danger");
+                registerBtn.classList.add("btn-secondary");
+            }
+        });
+    }
+});
+</script>
+
+
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
     @include('farmers.modal.sell')
+
+    <style>
+/* ---------- Layout & spacing (fix top whitespace) ---------- */
+
+/* Remove the global body offset that created the big gap */
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Jetstream header space: hide empty header band under the navbar */
+header.bg-white.shadow { 
+    display: none !important; 
+}
+
+/* Container/main spacing */
+.container-fluid { padding-top: 0 !important; }
+.profile-main { padding-top: 12px !important; padding-bottom: 24px; }
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+    min-height: calc(100vh - 0px);
+    background-color: #598725;
+    color: #fff;
+    padding: 16px 12px;
+}
+.sidebar .nav-link { color: #fff; }
+.sidebar .nav-link.active,
+.sidebar .nav-link:hover { opacity: 0.95; }
+
+/* Make sidebar stack above content on small screens */
+@media (max-width: 991.98px) {
+  .sidebar {
+    min-height: auto;
+    margin-bottom: 16px;
+    border-radius: 8px;
+  }
+}
+
+/* ---------- Cards / common ---------- */
+.card {
+    background-clip: padding-box;
+    box-shadow: 0 1px 4px rgba(24, 28, 33, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+}
+.btn { cursor: pointer; padding: 10px 15px; border-radius: 5px; font-size: 16px; }
+
+/* ---------- Stars (rating) ---------- */
+.stars { display: flex; direction: ltr; }
+.stars label {
+    font-size: 2rem;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+    margin-right: 5px;
+}
+.stars input[type="radio"] { display: none; }
+.stars label:hover, .stars label:hover ~ label { color: #ffc107; }
+
+/* ---------- Modal styling ---------- */
+.modal-content { border-radius: 12px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+.modal-header { background-color: #f3f4f6; padding: 16px; border-bottom: 1px solid #ddd; }
+.modal-title { font-size: 18px; font-weight: 600; color: #333; }
+.modal-body { padding: 20px; }
+
+/* Inputs */
+label { font-size: 14px; font-weight: 500; color: #444; }
+input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+input:focus, select:focus, textarea:focus {
+    border-color: #6366f1;
+    outline: none;
+    box-shadow: 0 0 5px rgba(99,102,241,0.3);
+}
+
+/* ---------- Wishlist / grid responsiveness ---------- */
+@media (max-width: 768px) {
+  .btn { padding: 8px 12px; font-size: 14px; }
+  .card { padding: 10px; }
+}
+
+/* Keep dropdowns usable if present on this page */
+.dropdown-menu { position: absolute !important; z-index: 1050 !important; left: auto !important; right: 0 !important; }
+
+/* Make images nice and consistent */
+img.rounded { object-fit: cover; }
+
+/* Ensure sticky content doesn't create extra top gap on small screens */
+.position-sticky { top: 0; }
+@media (max-width: 991.98px) { .position-sticky { position: static !important; } }
+</style>
+
 </x-app-layout>

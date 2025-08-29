@@ -95,7 +95,7 @@
                                                 <td class="text-center">
                                                     @if($order->status == 'pending')
                                                         <div class="d-flex justify-content-center gap-2">
-                                                            <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
+                                                            <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to accept this order?')">
                                                                 @csrf
                                                                 @method('PATCH')
                                                                 <input type="hidden" name="status" value="accepted">
@@ -151,6 +151,9 @@
                                         @endforeach
                                     </tbody>
                                 </table>
+                                <div class="d-flex justify-content-center">
+                                    {{ $orders->links('pagination::bootstrap-5') }}
+                                </div>
                             @else
                                 <p class="text-center text-muted">No orders available.</p>
                             @endif
@@ -165,151 +168,150 @@
 
                         <!-- My Products Section -->
                         <div class="pt-2">
-    <h5 class="fw-bold mb-2">My Products</h5>
-    @php
-        $products = \App\Models\Product::where('user_id', auth()->id())->get();
-    @endphp
+                            <h5 class="fw-bold mb-2">My Products</h5>
+                            @php
+                                $products = \App\Models\Product::where('user_id', auth()->id())->get();
+                            @endphp
 
-    @if($products->isNotEmpty())
-        <div class="row g-2 overflow-auto" style="max-height: 500px;">
-            @foreach($products as $product)
-                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
-                    <div class="product-card border rounded bg-white p-1">
-                        <img src="{{ asset('storage/' . $product->image) }}" class="w-100 rounded" style="height: 150px; object-fit: cover;">
-                        <div class="p-1">
-                            <h6 class="fw-bold text-truncate m-0" title="{{ $product->name }}">{{ $product->name }}</h6>
-                            <p class="text-danger fw-bold mb-1">₱{{ number_format($product->price, 2) }}</p>
-                            <p class="text-muted small mb-1">Stock: {{ $product->stock }}</p>
-                            
-                            <button class="btn btn-sm btn-info mt-1" data-bs-toggle="modal" data-bs-target="#viewProductModal{{ $product->id }}">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                            
-                            <button class="btn btn-sm btn-primary mt-1" data-bs-toggle="modal" data-bs-target="#editProductModal{{ $product->id }}">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                            
-                            <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger mt-1"
-                                    onclick="return confirm('Are you sure you want to delete this product?')">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+                            @if($products->isNotEmpty())
+                                <div class="row g-2 overflow-auto" style="max-height: 500px;">
+                                    @foreach($products as $product)
+                                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                                            <div class="product-card border rounded bg-white p-1">
+                                                <img src="{{ asset('storage/' . $product->image) }}" class="w-100 rounded" style="height: 150px; object-fit: cover;">
+                                                <div class="p-1">
+                                                    <h6 class="fw-bold text-truncate m-0" title="{{ $product->name }}">{{ $product->name }}</h6>
+                                                    <p class="text-danger fw-bold mb-1">₱{{ number_format($product->price, 2) }}</p>
+                                                    <p class="text-muted small mb-1">Stock: {{ $product->stock }}</p>
+                                                    
+                                                    <button class="btn btn-sm btn-info mt-1" data-bs-toggle="modal" data-bs-target="#viewProductModal{{ $product->id }}">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </button>
+                                                    
+                                                    <button class="btn btn-sm btn-primary mt-1" data-bs-toggle="modal" data-bs-target="#editProductModal{{ $product->id }}">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </button>
+                                                    
+                                                    <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-danger mt-1"
+                                                            onclick="return confirm('Are you sure you want to delete this product?')">
+                                                            <i class="fas fa-trash"></i> Delete
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
            
 
-                <!-- View Product Modal -->
-                <div class="modal fade" id="viewProductModal{{ $product->id }}" tabindex="-1" aria-labelledby="viewProductModalLabel{{ $product->id }}" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title fw-bold" id="viewProductModalLabel{{ $product->id }}" style="color: #222;">
-                                    {{ $product->name }}
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-md-5">
-                                        <img class="img-fluid rounded w-100" src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}">
+                        <!-- View Product Modal -->
+                        <div class="modal fade" id="viewProductModal{{ $product->id }}" tabindex="-1" aria-labelledby="viewProductModalLabel{{ $product->id }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title fw-bold" id="viewProductModalLabel{{ $product->id }}" style="color: #222;">
+                                            {{ $product->name }}
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <div class="col-md-7">
-                                        <h6 class="fw-bold" style="color: #222;">{{ $product->name }}</h6>
-                                        <p style="color: #444;">{{ $product->description ?? 'No description available.' }}</p>
-                                        <p class="fw-bold" style="color: #2d6a4f;">Price: ₱{{ number_format($product->price, 2) }}</p>
-                                        <p style="color: #666;">Stock: {{ $product->stock }}</p>
-                                        <p style="color: #666;">Category: {{ $product->category->name ?? 'Uncategorized' }}</p>
+                                    <div class="modal-body">
+                                        <div class="row">
+                                            <div class="col-md-5">
+                                                <img class="img-fluid rounded w-100" src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}">
+                                            </div>
+                                            <div class="col-md-7">
+                                                <h6 class="fw-bold" style="color: #222;">{{ $product->name }}</h6>
+                                                <p style="color: #444;">{{ $product->description ?? 'No description available.' }}</p>
+                                                <p class="fw-bold" style="color: #2d6a4f;">Price: ₱{{ number_format($product->price, 2) }}</p>
+                                                <p style="color: #666;">Stock: {{ $product->stock }}</p>
+                                                <p style="color: #666;">Category: {{ $product->category->name ?? 'Uncategorized' }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer d-flex justify-content-end gap-2">
+                                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>
                             </div>
-                            <div class="modal-footer d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
-                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Edit Product Modal -->
-                <div class="modal fade" id="editProductModal{{ $product->id }}" tabindex="-1" role="dialog">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Edit Product</h5>
-                                <button type="button" class="close" data-bs-dismiss="modal">
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <form method="POST" action="{{ route('products.update', $product->id) }}" enctype="multipart/form-data">
-                                    @csrf
-                                    @method('PUT')
+                        <!-- Edit Product Modal -->
+                        <div class="modal fade" id="editProductModal{{ $product->id }}" tabindex="-1" role="dialog">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Edit Product</h5>
+                                        <button type="button" class="close" data-bs-dismiss="modal">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form method="POST" action="{{ route('products.update', $product->id) }}" enctype="multipart/form-data">
+                                            @csrf
+                                            @method('PUT')
 
-                                    <div class="form-group">
-                                        <label>Product Image</label>
-                                        @if($product->image)
-                                            <div class="mb-2">
-                                                <img src="{{ asset('storage/' . $product->image) }}" alt="Product Image" width="100">
+                                            <div class="form-group">
+                                                <label>Product Image</label>
+                                                @if($product->image)
+                                                    <div class="mb-2">
+                                                        <img src="{{ asset('storage/' . $product->image) }}" alt="Product Image" width="100">
+                                                    </div>
+                                                @endif
+                                                <input type="file" class="form-control" name="image" accept="image/*">
+                                                <small>Leave empty to keep existing image</small>
                                             </div>
-                                        @endif
-                                        <input type="file" class="form-control" name="image" accept="image/*">
-                                        <small>Leave empty to keep existing image</small>
-                                    </div>
 
-                                    <div class="form-group">
-                                        <label>Product Name</label>
-                                        <input type="text" class="form-control" name="name" value="{{ $product->name }}" required>
-                                    </div>
+                                            <div class="form-group">
+                                                <label>Product Name</label>
+                                                <input type="text" class="form-control" name="name" value="{{ $product->name }}" required>
+                                            </div>
 
-                                    <div class="form-group">
-                                        <label>Description</label>
-                                        <textarea class="form-control" name="description" required>{{ $product->description }}</textarea>
-                                    </div>
+                                            <div class="form-group">
+                                                <label>Description</label>
+                                                <textarea class="form-control" name="description" required>{{ $product->description }}</textarea>
+                                            </div>
 
-                                    <div class="form-group">
-                                        <label>Price</label>
-                                        <input type="number" class="form-control" name="price" step="0.01" value="{{ $product->price }}" required>
-                                    </div>
+                                            <div class="form-group">
+                                                <label>Price</label>
+                                                <input type="number" class="form-control" name="price" step="0.01" value="{{ $product->price }}" required>
+                                            </div>
 
-                                    <div class="form-group">
-                                        <label>Stock Quantity</label>
-                                        <input type="number" class="form-control" name="stock" value="{{ $product->stock }}" required min="0">
-                                    </div>
+                                            <div class="form-group">
+                                                <label>Stock Quantity</label>
+                                                <input type="number" class="form-control" name="stock" value="{{ $product->stock }}" required min="0">
+                                            </div>
 
-                                    <!-- ✅ Category Dropdown Fix -->
-                                    <div class="form-group">
-                                        <label>Category</label>
-                                        <select class="form-control" name="category" required>
-                                            <option value="">Select Category</option>
-                                            @foreach($mainCategories as $category)
-                                                <option value="{{ $category->id }}" {{ $product->category_id == $category->id ? 'selected' : '' }}>
-                                                    {{ $category->name }}
-                                                </option>
-                                                @foreach ($category->subcategories as $subCategory)
-                                                    <option value="{{ $subCategory->id }}" {{ $product->category_id == $subCategory->id ? 'selected' : '' }}>
-                                                        &nbsp;&nbsp; ├─ {{ $subCategory->name }}
-                                                    </option>
-                                                @endforeach
-                                            @endforeach
-                                        </select>
-                                    </div>
+                                            <!-- ✅ Category Dropdown Fix -->
+                                            <div class="form-group">
+                                                <label>Category</label>
+                                                <select class="form-control" name="category" required>
+                                                    <option value="">Select Category</option>
+                                                    @foreach($mainCategories as $category)
+                                                        <option value="{{ $category->id }}" {{ $product->category_id == $category->id ? 'selected' : '' }}>
+                                                            {{ $category->name }}
+                                                        </option>
+                                                        @foreach ($category->subcategories as $subCategory)
+                                                            <option value="{{ $subCategory->id }}" {{ $product->category_id == $subCategory->id ? 'selected' : '' }}>
+                                                                &nbsp;&nbsp; ├─ {{ $subCategory->name }}
+                                                            </option>
+                                                        @endforeach
+                                                    @endforeach
+                                                </select>
+                                            </div>
 
-                                    <button type="submit" class="btn btn-success mt-2">Update Product</button>
-                                </form>
+                                            <button type="submit" class="btn btn-success mt-2">Update Product</button>
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        @endforeach
                     </div>
-                </div>
-
-            @endforeach
-        </div>
-    @else
-        <p class="text-center text-muted">No products available.</p>
-    @endif
-</div>
+                @else
+                    <p class="text-center text-muted">No products available.</p>
+                @endif
+            </div>
 
                     </div>
 
@@ -350,8 +352,23 @@
                                                     <input type="number" class="form-control" name="price" step="0.01" required>
                                                 </div>
                                                 <div class="col-md-6 mb-3">
+                                                    <label class="form-label fw-bold">Unit</label>
+                                                    <select class="form-control" name="unit" required>
+                                                        <option value="">Select Unit</option>
+                                                        <option value="kg">Kilogram (kg)</option>
+                                                        <option value="piece">Piece</option>
+                                                        <option value="bundle">Bundle</option>
+                                                        <option value="sack">Sack</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
                                                     <label class="form-label fw-bold">Stock Quantity</label>
                                                     <input type="number" class="form-control" name="stock" required min="0">
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label fw-bold">Minimum Order Quantity</label>
+                                                    <input type="number" class="form-control" name="min_order_qty" min="1">
                                                 </div>
                                             </div>
 

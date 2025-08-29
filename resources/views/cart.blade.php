@@ -44,7 +44,10 @@
                                                 <img src="{{ asset('storage/' . $cartItem->product->image) }}" alt="{{ $cartItem->product->name }}" width="50">
                                                 {{ $cartItem->product->name }}
                                             </td>
-                                            <td>₱{{ number_format($cartItem->product->price, 2) }}</td>
+                                            <td>₱{{ number_format($cartItem->product->price, 2) }}
+                                                <small class="text-muted">/{{ $cartItem->product->unit }}</small>
+                                            </td>
+                                            
                                             <td>
                                                 <div class="input-group">
                                                     <button type="button" class="btn btn-outline-secondary btn-sm decrement-btn" data-id="{{ $cartItem->id }}">-</button>
@@ -102,7 +105,7 @@
                                         <img src="{{ asset('storage/' . $cartItem->product->image) }}" alt="{{ $cartItem->product->name }}"
                                             class="img-fluid mb-3" style="max-height: 200px;">
                                         <h5>{{ $cartItem->product->name }}</h5>
-                                        <p>Price: ₱{{ number_format($cartItem->product->price, 2) }}</p>
+                                        <p>Price: ₱{{ number_format($cartItem->product->price, 2) }} <small class="text-muted">/{{ $cartItem->product->unit }}</small></p>
                                         <p>{{ $cartItem->product->description }}</p>
                                     </div>
 

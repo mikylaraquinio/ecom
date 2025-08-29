@@ -24,30 +24,34 @@
                 </div>
 
                 <!-- Clickable Product Card -->
-                <a href="#" data-bs-toggle="modal" data-bs-target="#productModal{{ $product->id }}"
-                    class="text-decoration-none w-100">
-                    <div class="shadow-sm rounded bg-white p-3 text-center product-box d-flex flex-column justify-content-between"
-                        style="cursor: pointer; width: 100%; min-height: 280px; transition: 0.3s; border-radius: 12px; position: relative; z-index: 1;">
+                <a href="#" data-bs-toggle="modal" data-bs-target="#productModal{{ $product->id }}" class="text-decoration-none w-100">
+                    <div class="shadow-sm rounded bg-white product-box p-0 overflow-hidden d-flex flex-column" style="cursor: pointer; transition: 0.3s; border-radius: 12px; position: relative; z-index: 1;">
 
                         <!-- Product Image -->
-                        <div class="position-relative">
-                            <img src="{{ $imageUrl }}" alt="{{ $product->name }}" class="w-100 rounded-top"
-                                style="height: 150px; object-fit: cover;">
+                        <div class="position-relative overflow-hidden" style="height: 180px;">
+                            <img src="{{ $imageUrl }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover">
+                            <span class="badge bg-success position-absolute top-0 start-0 m-2 shadow-sm">New</span>
                         </div>
 
-                        <!-- Product Info -->
-                        <h6 class="fw-bolder text-truncate mt-2" style="color: #222; font-size: 14px;">
-                            {{ $product->name }}
-                        </h6>
-                        <p class="mb-0 fw-bold" style="color: #2d6a4f; font-size: 14px;">
-                            ₱{{ number_format($product->price, 2) }}
-                        </p>
+                        <!-- Product Content -->
+                        <div class="p-2 px-3 d-flex flex-column flex-grow-1">
+                            <h6 class="fw-semibold text-truncate mb-1" style="font-size: 14px; color: #222;">
+                                {{ $product->name }}
+                            </h6>
 
-                        <!-- Add to Cart -->
-                        <div class="d-flex justify-content-between mt-2">
-                            <button class="btn btn-sm btn-outline-success w-100 add-to-cart"
+                            <div class="text-danger fw-bold mb-1" style="font-size: 15px;">
+                                ₱{{ number_format($product->price, 2) }}
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center text-muted mb-2" style="font-size: 12px;">
+                                <span><i class="fas fa-star text-warning"></i> 4.8</span>
+                                <span>Sold 234</span>
+                            </div>
+
+                            <!-- Add to Cart -->
+                            <button class="btn btn-sm btn-outline-success w-100 mt-auto add-to-cart"
                                 data-product-id="{{ $product->id }}">
-                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                                <i class="fas fa-cart-plus me-1"></i> Add to Cart
                             </button>
                         </div>
                     </div>
@@ -75,6 +79,12 @@
                                     <p style="color: #444;">{{ $product->description ?? 'No description available.' }}</p>
                                     <p class="fw-bold" style="color: #2d6a4f;">Price:
                                         ₱{{ number_format($product->price, 2) }}</p>
+                                    <p class="mb-1">
+                                        <strong>Unit:</strong> {{ ucfirst($product->unit ?? 'N/A') }}
+                                    </p>
+                                    <p class="mb-1">
+                                        <strong>Min Order:</strong> {{ $product->min_order_qty ?? 1 }} {{ $product->unit ?? 'unit(s)' }}
+                                    </p>
                                     <p style="color: #666;">
                                         Category: {{ $product->category->name ?? 'Uncategorized' }}
                                     </p>
@@ -99,16 +109,37 @@
 
 <style>
     .product-box {
-        border: 2px solid #A7D7A8;
-        min-height: 280px;
-        transition: 0.3s ease-in-out;
+        border: 1px solid #e1e1e1;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease-in-out;
+        min-height: 100%;
     }
 
     .product-box:hover {
-        background-color: #D4EDDA;
-        border-color: #2D6A4F;
-        transform: scale(1.05);
-        box-shadow: 0px 4px 10px rgba(45, 106, 79, 0.4);
+        transform: translateY(-5px);
+        box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.1);
+        border-color: #aaa;
+    }
+
+    .product-box img {
+        object-fit: cover;
+    }
+
+    .btn-outline-success {
+        font-size: 13px;
+        padding: 6px 12px;
+    }
+
+    .wishlist-btn:hover i,
+    .btn-outline-secondary:hover i {
+        color: #e3342f;
+    }
+
+    .badge.bg-success {
+        background-color: #28a745 !important;
+        font-size: 10px;
+        padding: 4px 6px;
+        border-radius: 4px;
     }
 
     .product-box h6 {
