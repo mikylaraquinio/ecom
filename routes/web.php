@@ -138,7 +138,6 @@ Route::post('/cart/add/{productId}', [CartController::class, 'add'])->name('cart
 
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
 
-<<<<<<< HEAD
 /*notifications */
 
 Route::middleware('auth')->group(function () {
@@ -146,7 +145,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
 });
-=======
 Route::get('/chat/{receiverId?}', [ChatController::class, 'index'])->name('chat');
 Route::post('/chat/{receiverId}', [ChatController::class, 'store'])->name('chat.send');
 
@@ -154,7 +152,6 @@ Route::post('/chat/{receiverId}', [ChatController::class, 'store'])->name('chat.
 
 
 
->>>>>>> allen
 
 
 
