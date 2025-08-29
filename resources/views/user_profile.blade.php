@@ -275,6 +275,7 @@
                         $hasReviewed = $orderItem->review;
                     @endphp
 
+<<<<<<< HEAD
                     @if($product)
                         <li class="list-group-item">
                             <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
@@ -299,6 +300,30 @@
                                             <strong>Ordered:</strong> {{ $order->created_at->format('M d, Y') }}<br>
                                             <strong>Shipped:</strong>
                                             {{ $order->shipped_at ? \Carbon\Carbon::parse($order->shipped_at)->format('M d, Y') : '—' }}<br>
+=======
+                                                @if($product)
+                                                    <div class="col">
+                                                        <div class="card shadow-sm h-100">
+                                                            <!-- Shop Header -->
+                                                            <div class="card-header bg-light px-2 py-1 border-bottom">
+                                                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                                                    <!-- Seller Name -->
+                                                                    <strong class="me-auto">
+                                                                        {{ $product->seller->farm_name ?? $product->seller->name ?? 'Unknown Shop' }}
+                                                                    </strong>
+
+                                                                    <!-- Buttons & Badge -->
+                                                                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                                        @if ($product->seller && $product->seller->id !== auth()->id())
+                                                                            <a href="{{ route('chat', $product->seller->id) }}"  
+                                                                            class="btn btn-xs btn-outline-success py-0 px-1"
+                                                                            style="font-size: 0.75rem;"
+                                                                            title="Chat with seller">
+                                                                            Chat
+                                                                            </a>
+                                                                        @endif
+
+>>>>>>> allen
 
                                             <strong>Delivered:</strong>
                                             {{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->format('M d, Y') : '—' }}

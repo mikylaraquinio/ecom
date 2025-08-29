@@ -33,7 +33,9 @@
                                             $subtotal = $cartItem->product->price * $cartItem->quantity;
                                             $total += $subtotal;
                                         @endphp
-                                        <tr id="cart-item-{{ $cartItem->id }}" data-id="{{ $cartItem->id }}">
+                                        <tr id="cart-item-{{ $cartItem->id }}" 
+                                            data-id="{{ $cartItem->id }}" 
+                                            data-seller-id="{{ $cartItem->product->user_id }}"> 
                                             <td>
                                                 <input type="checkbox" name="selected_items[]" value="{{ $cartItem->id }}"
                                                     class="product-checkbox" data-price="{{ $cartItem->product->price }}"
@@ -70,8 +72,27 @@
                 <!-- Cart Sidebar -->
                 <div class="col-md-4">
                     <div class="card shadow-sm p-4 position-sticky" style="top: 20px; min-height: 250px;">
-                        <h5 class="text-muted">Total</h5>
-                        <h3 class="fw-bold text-success">₱<span id="total-price">{{ number_format($total, 2) }}</span></h3>
+                        <h5 class="text-muted">Summary</h5>
+
+                        <!-- Subtotal -->
+                        <div class="d-flex justify-content-between">
+                            <span>Subtotal:</span>
+                            <span>₱<span id="subtotal-price">{{ number_format($total, 2) }}</span></span>
+                        </div>
+
+                        <!-- Fixed Shipping Fee -->
+                        <div class="d-flex justify-content-between">
+                            <span>Shipping Fee:</span>
+                            <span>₱<span id="shipping-fee">50.00</span></span>
+                        </div>
+
+                        <hr>
+
+                        <!-- Total -->
+                        <h5 class="d-flex justify-content-between">
+                            <span>Total:</span>
+                            <span class="fw-bold text-success">₱<span id="total-price">{{ number_format($total + 50, 2) }}</span></span>
+                        </h5>
 
                         <!-- Selected Products -->
                         <div id="selected-products" class="mt-3 border rounded p-2 bg-light text-start" 
@@ -166,25 +187,41 @@
         }
 
         function updateTotal() {
-            let total = 0;
+            let subtotal = 0;
             let hasCheckedItems = false;
             const selectedProductsContainer = document.getElementById("selected-products");
             selectedProductsContainer.innerHTML = "";
+
+            // Track unique sellers
+            let sellers = new Set();
 
             document.querySelectorAll(".product-checkbox:checked").forEach(cb => {
                 const row = cb.closest("tr");
                 const price = parseFloat(cb.dataset.price);
                 const quantity = parseInt(row.querySelector(".quantity-input").value);
-                total += price * quantity;
+                subtotal += price * quantity;
                 hasCheckedItems = true;
 
+                // Collect seller IDs
+                const sellerId = row.dataset.sellerId;
+                sellers.add(sellerId);
+
+                // Show product in summary
                 const productName = row.querySelector("td:nth-child(2)").innerText.trim();
                 const productItem = document.createElement("div");
                 productItem.textContent = `${productName} × ${quantity}`;
                 selectedProductsContainer.appendChild(productItem);
             });
 
+            // Shipping fee: ₱50 per seller
+            let shipping = hasCheckedItems ? sellers.size * 50 : 0;
+            let total = subtotal + shipping;
+
+            // Update UI
+            document.getElementById("subtotal-price").textContent = subtotal.toFixed(2);
+            document.getElementById("shipping-fee").textContent = shipping.toFixed(2);
             totalPriceEl.textContent = total.toFixed(2);
+
             deleteSelectedBtn.disabled = !hasCheckedItems;
             checkoutBtn.disabled = !hasCheckedItems;
         }

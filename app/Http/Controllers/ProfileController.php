@@ -162,20 +162,22 @@ class ProfileController extends Controller
 
         $ordersToShip = $user->orders()
             ->whereIn('status', ['pending', 'accepted'])
-            ->with('orderItems.product')
+            ->with('orderItems.product.seller') // include seller
             ->get();
 
         $ordersToReceive = $user->orders()
             ->where('status', 'shipped')
-            ->with('orderItems.product')
+            ->with('orderItems.product.seller') // include seller
             ->get();
 
         $ordersToReview = $user->orders()
             ->where('status', 'completed')
-            ->with('orderItems.product')
+            ->with('orderItems.product.seller') // include seller
             ->get();
 
-        $wishlistItems = $user->wishlist()->get();
+        $wishlistItems = $user->wishlist()
+            ->with('seller') // in case wishlist shows seller too
+            ->get();
 
         return view('user_profile', compact(
             'ordersToShip',

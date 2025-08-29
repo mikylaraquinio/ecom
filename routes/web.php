@@ -9,6 +9,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ChatController;
 use App\Models\Category;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\NotificationController;
@@ -137,6 +138,7 @@ Route::post('/cart/add/{productId}', [CartController::class, 'add'])->name('cart
 
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
 
+<<<<<<< HEAD
 /*notifications */
 
 Route::middleware('auth')->group(function () {
@@ -144,6 +146,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
 });
+=======
+Route::get('/chat/{receiverId?}', [ChatController::class, 'index'])->name('chat');
+Route::post('/chat/{receiverId}', [ChatController::class, 'store'])->name('chat.send');
+
+
+
+
+
+>>>>>>> allen
 
 
 
