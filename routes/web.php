@@ -9,6 +9,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ChatController;
 use App\Models\Category;
 use App\Http\Controllers\Auth\RegisteredUserController;
 
@@ -132,6 +133,14 @@ Route::post('/cart/add/{productId}', [CartController::class, 'add'])->name('cart
 
 
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+
+Route::get('/chat/{receiverId?}', [ChatController::class, 'index'])->name('chat');
+Route::post('/chat/{receiverId}', [ChatController::class, 'store'])->name('chat.send');
+
+
+
+
+
 
 
 

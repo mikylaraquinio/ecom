@@ -258,13 +258,21 @@
                                                             <div class="card-header bg-light px-2 py-1 border-bottom">
                                                                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
                                                                     <!-- Seller Name -->
-                                                                    <strong class="me-auto">{{ $seller->farm_name ?? 'Unknown Shop' }}</strong>
+                                                                    <strong class="me-auto">
+                                                                        {{ $product->seller->farm_name ?? $product->seller->name ?? 'Unknown Shop' }}
+                                                                    </strong>
 
                                                                     <!-- Buttons & Badge -->
                                                                     <div class="d-flex align-items-center gap-1 flex-wrap">
-                                                                        <a class="btn btn-xs btn-outline-success py-0 px-1"
-                                                                        style="font-size: 0.75rem; pointer-events: none; opacity: 0.6;" 
-                                                                        title="Coming soon">Chat</a>
+                                                                        @if ($product->seller && $product->seller->id !== auth()->id())
+                                                                            <a href="{{ route('chat', $product->seller->id) }}"  
+                                                                            class="btn btn-xs btn-outline-success py-0 px-1"
+                                                                            style="font-size: 0.75rem;"
+                                                                            title="Chat with seller">
+                                                                            Chat
+                                                                            </a>
+                                                                        @endif
+
 
                                                                         <a class="btn btn-xs btn-outline-primary py-0 px-1"
                                                                         style="font-size: 0.75rem; pointer-events: none; opacity: 0.6;" 

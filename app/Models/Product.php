@@ -56,8 +56,7 @@ class Product extends Model
     // In Product.php
     public function seller()
     {
-        return $this->belongsTo(Seller::class, 'user_id'); // or 'seller_id'
+        return $this->belongsTo(User::class, 'user_id');
     }
-
 
 }
