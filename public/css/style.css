@@ -64,6 +64,22 @@ main {
     right: 0 !important; /* Aligns to the right */
 }
 
+/* Navbar tweaks */
+.header .navbar { min-height: 56px; }
+
+/* Use Bootstrap's default toggler icon color; the filter can make it invisible */
+.navbar-toggler-icon { filter: none; }
+
+/* Mobile friendliness for dropdowns (notification list can be narrow on phones) */
+@media (max-width: 576px) {
+  #notifDropdown + .dropdown-menu {
+    width: calc(100vw - 1rem);
+    max-width: none;
+    margin-right: .5rem;
+  }
+}
+
+
 
 /* Footer */
 .footer {
@@ -95,6 +111,42 @@ main {
         margin: 0 6px;
     }
 }
+
+/*Search bar*/
+/* The wrapper owns the border & rounding so nothing overflows */
+.search-group{
+  border: 2px solid #a2c96f;
+  border-radius: 12px;
+  overflow: hidden;              /* key to stop the button from spilling out */
+}
+
+/* Input and button have no borders; they fill the rounded wrapper */
+.search-group .form-control{
+  border: 0;
+  padding: .65rem .85rem;
+  box-shadow: none;
+}
+.search-group .form-control:focus{
+  box-shadow: 0 0 0 .2rem rgba(113,177,39,.15);
+  border: 0;
+}
+
+.search-group .btn.btn-success{
+  background-color: #71b127;
+  border: 0;
+  padding: .55rem .9rem;
+}
+
+/* Keep it on one line */
+.search-form .input-group{ flex-wrap: nowrap; }
+
+/* Very small phones: tighten padding so it still fits */
+@media (max-width: 360px){
+  .search-group .form-control{ padding: .55rem .7rem; }
+  .search-group .btn.btn-success{ padding: .45rem .6rem; }
+}
+
+
 
 
 /*Banner*/

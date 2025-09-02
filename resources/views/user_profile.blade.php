@@ -275,32 +275,6 @@
                         $hasReviewed = $orderItem->review;
                     @endphp
 
-<<<<<<< HEAD
-                    @if($product)
-                        <li class="list-group-item">
-                            <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
-        <a class="btn btn-sm btn-outline-success disabled" tabindex="-1" aria-disabled="true">Chat</a>
-        <a class="btn btn-sm btn-outline-primary disabled" tabindex="-1" aria-disabled="true">Visit Shop</a>
-    </div>
-                            <div class="d-flex justify-content-between">
-                                
-                                <!-- Product Image and Info -->
-                                <div class="d-flex">
-                                    <img src="{{ $imageUrl }}" alt="{{ $product->name }}"
-                                         class="me-3 rounded"
-                                         style="width: 80px; height: 80px; object-fit: cover;">
-
-                                    <div>
-                                        <h6 class="mb-1">{{ $product->name }}</h6>
-                                        <p class="mb-0 small text-muted">₱{{ number_format($product->price, 2) }} × {{ $quantity }}</p>
-                                        <p class="mb-0 small fw-bold text-dark">Total: ₱{{ number_format($total, 2) }}</p>
-                                        
-                                        <!-- Order Dates -->
-                                        <p class="mb-0 small text-muted">
-                                            <strong>Ordered:</strong> {{ $order->created_at->format('M d, Y') }}<br>
-                                            <strong>Shipped:</strong>
-                                            {{ $order->shipped_at ? \Carbon\Carbon::parse($order->shipped_at)->format('M d, Y') : '—' }}<br>
-=======
                                                 @if($product)
                                                     <div class="col">
                                                         <div class="card shadow-sm h-100">
@@ -323,7 +297,6 @@
                                                                             </a>
                                                                         @endif
 
->>>>>>> allen
 
                                             <strong>Delivered:</strong>
                                             {{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->format('M d, Y') : '—' }}

@@ -60,4 +60,9 @@ class Product extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function reviews()
+    {
+        return $this->hasMany(Review::class); // assumes reviews table has product_id
+    }
+
 }

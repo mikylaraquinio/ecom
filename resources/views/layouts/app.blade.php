@@ -31,7 +31,7 @@
                 {{ $slot }}
             </main>
 
-            <!-- <footer class="footer text-white">
+            <footer class="footer text-white">
                 <div class="container py-4 d-flex flex-column flex-md-row justify-content-between align-items-center">
                     <div class="mb-2 mb-md-0">
                         <span>&copy; 2025 <strong>FarmSmart</strong>. All Rights Reserved.</span>
@@ -42,7 +42,6 @@
                         <a href="#" target="_blank" class="text-white text-decoration-none">Contact Us</a>
                     </div>
                 </div>
-            </footer>-->
         </div>
     </body>
 </html>

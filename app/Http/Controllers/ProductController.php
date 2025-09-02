@@ -52,6 +52,10 @@ class ProductController extends Controller
             $query->where('price', '<=', $request->max_price);
         }
 
+        if ($request->filled('seller')) {
+            $query->where('user_id', (int) $request->seller);
+        }
+
         // ✅ Stock Availability - Hide Out of Stock Products
         $query->where('stock', '>', 0); // 🔥 This line hides products with stock = 0
 
@@ -222,6 +226,28 @@ class ProductController extends Controller
         return redirect()->back()->with('success', 'Product deleted successfully!');
     }
 
-    
+    public function show(Product $product)
+{
+    $product->load(['category.parent', 'user', 'reviews']);
+
+    $seller    = $product->user;
+    $mainImage = $product->image ? asset('storage/'.$product->image) : asset('assets/products.jpg');
+    $gallery   = [$mainImage];
+
+    $ratingsCount = $product->reviews()->count();
+    $avgRating    = round((float) $product->reviews()->avg('rating'), 1);
+
+    $storeStats = [
+        'ratings_count'   => $ratingsCount,
+        'products_count'  => $seller ? $seller->products()->count() : 0,
+        'response_rate'   => $seller->response_rate ?? null,
+        'response_time'   => $seller->response_time ?? null,
+        'member_since'    => $seller?->created_at,
+        'followers_count' => $seller->followers_count ?? null,
+    ];
+
+    return view('productview', compact('product','seller','mainImage','gallery','storeStats','avgRating'));
+}
+
 
 }

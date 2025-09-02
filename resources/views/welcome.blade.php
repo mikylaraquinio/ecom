@@ -5,9 +5,29 @@
         </h2>
     </x-slot>
 
+    <div class="container mt-3 mt-md-4">
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+                <form action="{{ url('/search') }}" method="GET" class="search-form">
+                    <div class="input-group search-group">
+                        <input
+                            type="text"
+                            name="query"
+                            class="form-control"
+                            placeholder="🔍 Search fresh produce, categories, or farmers..."
+                            aria-label="Search"
+                            required
+                        >
+                        <button type="submit" class="btn btn-success" aria-label="Search">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+    </div>
+    </div>
 
-    {{-- Two-column quick filters --}}
-    <section class="container mt-4">
+     <section class="container mt-4">
         <div class="row g-3">
             <div class="col-6">
             <button type="button"
@@ -30,7 +50,7 @@
         <!-- Active-filter chip -->
         <div class="d-flex align-items-center gap-2 mt-2" id="activeFilter" style="display:none;">
             <span class="badge bg-success" id="activeFilterLabel"></span>
-            <button class="btn btn-link p-0 ms-2" id="clearFilter">Clear</button>
+            <!-- <button class="btn btn-link p-0 ms-2" id="clearFilter">Clear</button>-->
         </div>
     </section>
 
@@ -38,22 +58,6 @@
     /* tiny highlight when a filter is active */
     .group-filter.active { outline: 3px solid #71b127; outline-offset: 2px; }
     </style>
-
-    <div class="container mt-3 mt-md-4">
-        <form action="{{ url('/search') }}" method="GET" class="d-flex justify-content-center align-items-center flex-wrap gap-2">
-            <input
-                type="text"
-                name="query"
-                class="form-control"
-                placeholder="🔍 Search fresh produce, categories, or farmers..."
-                style="max-width: 500px; border: 2px solid #a2c96f; border-radius: 10px; padding: 10px;"
-                required
-            >
-            <button type="submit" class="btn btn-success px-4" style="background-color: #71b127; border-radius: 10px;">
-                Search
-            </button>
-        </form>
-    </div>
 
 
     <!-- Featured Categories Section 
@@ -125,16 +129,91 @@
         </div>
     </section>
     
-    <section id="start_now py-5"
-        style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url(/assets/products.jpg) no-repeat right center;">
-        <div class="container text-white py-5">
-            <div class="row py-5">
-                <div class="col-lg-6">
-                    <h1 class="font-weight-bold py-5" style="color: black;">Discover new products, shop our bestsellers today!</h1>
-                </div>
+    {{-- Livestock Events / Ads Slider --}}
+<section id="livestock-events" class="py-5">
+  <div class="container px-4 px-lg-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="p-title mb-0">Livestock Events & Ads</h2>
+    </div>
+
+    <div id="livestockEventsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+      {{-- Indicators --}}
+      <div class="carousel-indicators">
+        <button type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+        <button type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+        <button type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+      </div>
+
+      {{-- Slides --}}
+      <div class="carousel-inner rounded-3 shadow-sm">
+        {{-- Slide 1 --}}
+        <div class="carousel-item active">
+          <a href="#" class="d-block position-relative">
+            <img src="{{ asset('assets/events/livestock-fair.jpg') }}" class="d-block w-100 event-poster" alt="Provincial Livestock Fair poster">
+            <div class="carousel-caption text-start">
+              <h5 class="mb-1 fw-bold">Provincial Livestock Fair</h5>
+              <p class="mb-0 small">Dagupan • Oct 12–14</p>
             </div>
+          </a>
         </div>
-    </section>
+
+        {{-- Slide 2 --}}
+        <div class="carousel-item">
+          <a href="#" class="d-block position-relative">
+            <img src="{{ asset('assets/events/vet-outreach.jpg') }}" class="d-block w-100 event-poster" alt="Free veterinary outreach poster">
+            <div class="carousel-caption text-start">
+              <h5 class="mb-1 fw-bold">Free Vet Outreach</h5>
+              <p class="mb-0 small">Urdaneta • Sept 28</p>
+            </div>
+          </a>
+        </div>
+
+        {{-- Slide 3 --}}
+        <div class="carousel-item">
+          <a href="#" class="d-block position-relative">
+            <img src="{{ asset('assets/events/auction-day.jpg') }}" class="d-block w-100 event-poster" alt="Cattle auction day poster">
+            <div class="carousel-caption text-start">
+              <h5 class="mb-1 fw-bold">Cattle Auction Day</h5>
+              <p class="mb-0 small">Mangaldan • Oct 20</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      {{-- Controls --}}
+      <button class="carousel-control-prev" type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+      </button>
+      <button class="carousel-control-next" type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+      </button>
+    </div>
+  </div>
+
+  {{-- Local styles (you can move to style.css if you prefer) --}}
+  <style>
+    .event-poster {
+      height: 360px;
+      object-fit: cover;
+    }
+    .carousel-caption {
+      left: 0; right: 0; bottom: 0;
+      text-shadow: 0 1px 3px rgba(0,0,0,.6);
+      background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
+      padding: 24px 16px 12px;
+      border-bottom-left-radius: .6rem;
+      border-bottom-right-radius: .6rem;
+    }
+    @media (max-width: 576px) {
+      .event-poster { height: 220px; }
+      .carousel-caption h5 { font-size: 1rem; }
+      .carousel-caption p { font-size: .75rem; }
+    }
+  </style>
+</section>
+
 
 
 

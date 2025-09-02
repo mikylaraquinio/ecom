@@ -103,12 +103,6 @@
 
                     </div>
                 </div>
-                
-                <div class="col-md-2 text-end">
-                    <a href="{{ route('chat') }}" class="btn btn-success w-100">
-                        💬 Chat
-                    </a>
-                </div>
             </div>
         </div>
     </section>
