@@ -4,20 +4,10 @@
 
         @if($cartItems->count() > 0)
             @php
-                // Initial totals (all checked by default)
-                $subtotal = 0;
-                $shops = [];
-                foreach ($cartItems as $ci) {
-                    $subtotal += ($ci->product->price * $ci->quantity);
-                    $shops[$ci->product->user_id] = true;
-                }
-                $shipping = count($shops) * 50; // ₱50 per shop
-                $grandTotal = $subtotal + $shipping;
-
                 // Choose selected/default address
                 $selectedAddressId = session('selected_address_id') ?? request()->input('address_id');
                 $selectedAddress = $user->addresses->where('id', $selectedAddressId)->first()
-                                   ?? $user->addresses->first();
+                    ?? $user->addresses->first();
             @endphp
 
             <form action="{{ route('checkout.process') }}" method="POST" id="checkoutForm">
@@ -39,22 +29,14 @@
                                     @endphp
                                     <div class="list-group-item py-3">
                                         <div class="d-flex align-items-center gap-3">
-                                            <input
-                                                class="form-check-input mt-0 item-check"
-                                                type="checkbox"
-                                                name="selected_items[]"
-                                                value="{{ $cartItem->id }}"
-                                                checked
+                                            <input class="form-check-input mt-0 item-check" type="checkbox"
+                                                name="selected_items[]" value="{{ $cartItem->id }}" checked
                                                 data-price="{{ $cartItem->product->price }}"
                                                 data-qty="{{ $cartItem->quantity }}"
-                                                data-seller="{{ $cartItem->product->user_id }}"
-                                            >
-                                            <img
-                                                src="{{ asset('storage/' . $cartItem->product->image) }}"
-                                                alt="{{ $cartItem->product->name }}"
-                                                class="rounded border"
-                                                style="width:76px;height:76px;object-fit:cover;"
-                                            >
+                                                data-seller="{{ $cartItem->product->user_id }}">
+                                            <img src="{{ asset('storage/' . $cartItem->product->image) }}"
+                                                alt="{{ $cartItem->product->name }}" class="rounded border"
+                                                style="width:76px;height:76px;object-fit:cover;">
                                             <div class="flex-grow-1">
                                                 <div class="fw-semibold">{{ $cartItem->product->name }}</div>
                                                 @if($sellerName)
@@ -99,7 +81,8 @@
                                 <div class="card-body">
                                     @if($user->addresses->count() > 0 && $selectedAddress)
                                         <div class="d-flex gap-3 align-items-start" id="displayed-address">
-                                            <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
+                                            <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center"
+                                                style="width:42px;height:42px;">
                                                 <i class="bi bi-geo-alt-fill"></i>
                                             </div>
                                             <div class="flex-grow-1 small">
@@ -119,7 +102,8 @@
                                         </div>
                                         <input type="hidden" name="address_id" value="{{ $selectedAddress->id }}">
                                     @else
-                                        <button type="button" class="btn btn-success w-100" id="add-address-btn">+ Add Address</button>
+                                        <button type="button" class="btn btn-success w-100" id="add-address-btn">+ Add
+                                            Address</button>
                                     @endif
                                 </div>
                             </div>
@@ -131,42 +115,50 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="pm_gcash" value="gcash" required>
+                                        <input class="form-check-input" type="radio" name="payment_method" id="pm_gcash"
+                                            value="gcash" required>
                                         <label class="form-check-label" for="pm_gcash">GCash</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="pm_cod" value="cod">
+                                        <input class="form-check-input" type="radio" name="payment_method" id="pm_cod"
+                                            value="cod">
                                         <label class="form-check-label" for="pm_cod">Cash on Delivery</label>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Summary -->
-                            <div class="card shadow-sm border-0">
-                                <div class="card-header bg-white py-3">
-                                    <h5 class="mb-0 fw-semibold">Order Summary</h5>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Subtotal</span>
+                                    <span>₱<span id="sum-subtotal">{{ number_format($subtotal, 2) }}</span></span>
                                 </div>
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span class="text-muted">Subtotal</span>
-                                        <span>₱<span id="sum-subtotal">{{ number_format($subtotal, 2) }}</span></span>
-                                    </div>
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span class="text-muted">Shipping (₱50 × <span id="sum-shops">{{ count($shops) }}</span>)</span>
-                                        <span>₱<span id="sum-shipping">{{ number_format($shipping, 2) }}</span></span>
-                                    </div>
-                                    <hr>
-                                    <div class="d-flex justify-content-between fs-5 fw-bold">
-                                        <span>Total</span>
-                                        <span class="text-success">₱<span id="sum-total">{{ number_format($grandTotal, 2) }}</span></span>
-                                    </div>
 
-                                    <button type="button" id="proceed-btn" class="btn btn-success w-100 mt-3">
-                                        Place Order
-                                    </button>
+                                {{-- Per-seller shipping breakdown --}}
+                                @foreach($shippingBySeller as $info)
+                                    <div class="d-flex justify-content-between mb-2 small">
+                                        <span class="text-muted">Shipping from {{ $info['seller']->name }}</span>
+                                        <span>₱{{ number_format($info['shippingFee'], 2) }}</span>
+                                    </div>
+                                @endforeach
+
+                                {{-- Total Shipping --}}
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Total Shipping</span>
+                                    <span>₱<span id="sum-shipping">{{ number_format($totalShipping, 2) }}</span></span>
                                 </div>
+
+                                <hr>
+                                <div class="d-flex justify-content-between fs-5 fw-bold">
+                                    <span>Total</span>
+                                    <span class="text-success">₱<span
+                                            id="sum-total">{{ number_format($grandTotal, 2) }}</span></span>
+                                </div>
+
+                                <button type="button" id="proceed-btn" class="btn btn-success w-100 mt-3">
+                                    Place Order
+                                </button>
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -238,29 +230,21 @@
             <div class="modal-body">
                 @foreach($addresses as $address)
                     <div class="address-card">
-                        <input
-                            type="radio"
-                            name="selected_address"
-                            id="address-{{ $address->id }}"
-                            value="{{ $address->id }}"
-                            class="form-check-input me-2"
-                            @if(session('selected_address_id') == $address->id) checked @endif
-                        >
+                        <input type="radio" name="selected_address" id="address-{{ $address->id }}"
+                            value="{{ $address->id }}" class="form-check-input me-2"
+                            @if(session('selected_address_id') == $address->id) checked @endif>
                         <label for="address-{{ $address->id }}" class="ms-1">
                             <strong>{{ $address->full_name }} - {{ $address->mobile_number }}</strong><br>
-                            {{ $address->floor_unit_number }}, {{ $address->barangay }}, {{ $address->city }}, {{ $address->province }}<br>
+                            {{ $address->floor_unit_number }}, {{ $address->barangay }}, {{ $address->city }},
+                            {{ $address->province }}<br>
                             {{ $address->notes }}
                         </label>
 
-                        <button class="edit-address-btn btn btn-link p-0 small" type="button"
-                                data-id="{{ $address->id }}"
-                                data-full_name="{{ $address->full_name }}"
-                                data-mobile_number="{{ $address->mobile_number }}"
-                                data-notes="{{ $address->notes }}"
-                                data-floor_unit_number="{{ $address->floor_unit_number }}"
-                                data-province="{{ $address->province }}"
-                                data-city="{{ $address->city }}"
-                                data-barangay="{{ $address->barangay }}">
+                        <button class="edit-address-btn btn btn-link p-0 small" type="button" data-id="{{ $address->id }}"
+                            data-full_name="{{ $address->full_name }}" data-mobile_number="{{ $address->mobile_number }}"
+                            data-notes="{{ $address->notes }}" data-floor_unit_number="{{ $address->floor_unit_number }}"
+                            data-province="{{ $address->province }}" data-city="{{ $address->city }}"
+                            data-barangay="{{ $address->barangay }}">
                             Edit
                         </button>
                     </div>
@@ -300,17 +284,17 @@
                 itemChecks.forEach(cb => {
                     if (!cb.checked) return;
                     const price = parseFloat(cb.dataset.price || '0');
-                    const qty   = parseInt(cb.dataset.qty || '1', 10);
+                    const qty = parseInt(cb.dataset.qty || '1', 10);
                     const seller = cb.dataset.seller;
                     subtotal += price * qty;
                     shopSet.add(seller);
                 });
-                const shipping = shopSet.size * 50;
-                const total = subtotal + shipping;
+
+                // For now, you already render per-seller shipping in Blade, so just recalc totals
+                const totalShipping = parseFloat(sumShipping?.textContent || '0'); // leave server-side value
+                const total = subtotal + totalShipping;
 
                 sumSubtotal.textContent = subtotal.toFixed(2);
-                sumShops.textContent = shopSet.size;
-                sumShipping.textContent = shipping.toFixed(2);
                 sumTotal.textContent = total.toFixed(2);
             }
 
@@ -368,13 +352,13 @@
             document.querySelectorAll('input[name="selected_address"]').forEach(r => {
                 r.addEventListener('change', function () {
                     const card = this.closest('.address-card');
-                    const lbl  = card.querySelector('label');
+                    const lbl = card.querySelector('label');
 
                     // Simple parse of the label to show on right card
                     const lines = lbl.innerHTML.split('<br>');
                     const header = lines[0] ?? '';
                     const address1 = lines[1] ?? '';
-                    const notes    = lines[2] ?? '';
+                    const notes = lines[2] ?? '';
 
                     document.querySelector('input[name="address_id"]').value = this.value;
 
@@ -423,17 +407,17 @@
                     },
                     body: JSON.stringify(payload)
                 })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success) {
-                        alert('Address saved successfully!');
-                        addressModal.style.display = 'none';
-                        location.reload();
-                    } else {
-                        alert(res.error || 'Something went wrong.');
-                    }
-                })
-                .catch(err => console.error(err));
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            alert('Address saved successfully!');
+                            addressModal.style.display = 'none';
+                            location.reload();
+                        } else {
+                            alert(res.error || 'Something went wrong.');
+                        }
+                    })
+                    .catch(err => console.error(err));
             });
 
             // Place Order
@@ -461,18 +445,18 @@
                         payment_method: pm.value
                     })
                 })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success && data.redirect_url) {
-                        window.location.href = data.redirect_url;
-                    } else {
-                        alert(data.error || 'Something went wrong.');
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Something went wrong.');
-                });
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            alert(data.error || 'Something went wrong.');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Something went wrong.');
+                    });
             });
 
             // Helpers
@@ -483,39 +467,109 @@
     </script>
 
     <style>
-        .checkout-page .card { border-radius: 12px; }
-        .checkout-page .card-header { border-bottom: 1px solid #eee; }
-        .checkout-page .list-group-item { border-color: #f1f1f1; }
-        .checkout-page .form-check-input { width: 18px; height: 18px; }
+        .checkout-page .card {
+            border-radius: 12px;
+        }
+
+        .checkout-page .card-header {
+            border-bottom: 1px solid #eee;
+        }
+
+        .checkout-page .list-group-item {
+            border-color: #f1f1f1;
+        }
+
+        .checkout-page .form-check-input {
+            width: 18px;
+            height: 18px;
+        }
 
         /* Custom modal (swap to Bootstrap modal if preferred) */
         .modal {
-            position: fixed; inset: 0; background: rgba(0,0,0,.45);
-            display: flex; justify-content: center; align-items: center; z-index: 1055;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .45);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1055;
         }
+
         .modal-content {
-            background: #fff; width: 92%; max-width: 900px; border-radius: 12px;
-            padding: 20px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+            background: #fff;
+            width: 92%;
+            max-width: 900px;
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
         }
-        .right-modal { justify-content: flex-end; align-items: stretch; }
+
+        .right-modal {
+            justify-content: flex-end;
+            align-items: stretch;
+        }
+
         .right-modal .modal-content {
-            max-width: 420px; height: 100%; border-radius: 0; box-shadow: -6px 0 24px rgba(0,0,0,.18);
+            max-width: 420px;
+            height: 100%;
+            border-radius: 0;
+            box-shadow: -6px 0 24px rgba(0, 0, 0, .18);
         }
-        .modal-body { display: flex; flex-wrap: wrap; gap: 16px; }
-        .modal-text, .modal-address { width: 48%; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #eee; padding-top: 12px; }
+
+        .modal-body {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .modal-text,
+        .modal-address {
+            width: 48%;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid #eee;
+            padding-top: 12px;
+        }
 
         .address-card {
-            display: flex; align-items: flex-start; gap: 10px;
-            border: 1px solid #e9ecef; border-radius: 10px; background: #fafafa; padding: 12px; margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            background: #fafafa;
+            padding: 12px;
+            margin-bottom: 10px;
         }
-        .address-card:hover { background: #f6fff6; border-color: #cce5cc; }
-        .address-card label { flex: 1; cursor: pointer; }
+
+        .address-card:hover {
+            background: #f6fff6;
+            border-color: #cce5cc;
+        }
+
+        .address-card label {
+            flex: 1;
+            cursor: pointer;
+        }
+
         @media (max-width: 992px) {
-            .right-modal .modal-content { max-width: 100%; }
+            .right-modal .modal-content {
+                max-width: 100%;
+            }
         }
+
         @media (max-width: 768px) {
-            .modal-text, .modal-address { width: 100%; }
+
+            .modal-text,
+            .modal-address {
+                width: 100%;
+            }
         }
     </style>
 </x-app-layout>
