@@ -27,7 +27,6 @@ class ChatController extends Controller
         $receiver = null;
 
         if ($receiverId) {
-            // 🚫 Prevent chatting with yourself
             if ((int) $receiverId === $userId) {
                 return redirect()->route('chat')
                     ->with('error', 'You cannot chat with yourself.');

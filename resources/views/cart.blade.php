@@ -27,7 +27,9 @@
               $shopName = $seller->username ?? $seller->name ?? 'Seller';
             @endphp
 
-            <div class="card mb-3 shop-block" data-seller-id="{{ $sellerId }}">
+            <div class="card mb-3 shop-block"
+              data-seller-id="{{ $sellerId }}"
+              data-shop-shipping="{{ $shopShipping[$sellerId] ?? 0 }}">
               <div class="card-header bg-white d-flex align-items-center gap-2">
                 <input type="checkbox" class="form-check-input shop-checkbox" data-seller="{{ $sellerId }}">
                 <div class="fw-semibold">{{ $shopName }}</div>
@@ -92,10 +94,6 @@
                   </div>
                 @endforeach
               </div>
-
-              <div class="card-footer bg-white small text-muted d-flex align-items-center">
-                <i class="fas fa-truck me-2"></i> Shipping: ₱50 per shop (auto-added in total)
-              </div>
             </div>
           @endforeach
         </div>
@@ -112,7 +110,6 @@
           <button type="button" class="btn btn-outline-danger btn-sm" id="delete-selected-bottom" disabled>Remove</button>
 
           <div class="ms-auto text-end">
-            <div class="small text-muted">Shipping included (₱50 per shop)</div>
             <div class="h5 m-0">Total: ₱<span id="total-price">0.00</span></div>
           </div>
 
@@ -204,7 +201,14 @@
           sellers.add(row.dataset.sellerId);
         });
 
-        const shipping = selectedCount ? sellers.size * 50 : 0;
+        let shipping = 0;
+        if (selectedCount) {
+          sellers.forEach(sellerId => {
+            const block = document.querySelector(`.shop-block[data-seller-id="${sellerId}"]`);
+            const fee = parseFloat(block?.dataset.shopShipping || '0');
+            shipping += isNaN(fee) ? 0 : fee;
+          });
+        }
         const total = subtotal + shipping;
 
         $("#total-price").textContent = total.toFixed(2);
