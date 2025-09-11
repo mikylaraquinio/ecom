@@ -277,6 +277,12 @@
                                                 <input type="number" class="form-control" name="price" step="0.01" value="{{ $product->price }}" required>
                                             </div>
 
+                                            <!-- ✅ Weight Field -->
+                                            <div class="form-group">
+                                                <label>Weight (kg)</label>
+                                                <input type="number" class="form-control" name="weight" step="0.01" value="{{ $product->weight }}" required>
+                                            </div>
+
                                             <div class="form-group">
                                                 <label>Stock Quantity</label>
                                                 <input type="number" class="form-control" name="stock" value="{{ $product->stock }}" required min="0">
@@ -369,6 +375,13 @@
                                                 <div class="col-md-6 mb-3">
                                                     <label class="form-label fw-bold">Minimum Order Quantity</label>
                                                     <input type="number" class="form-control" name="min_order_qty" min="1">
+                                                </div>
+
+                                                <!-- ✅ New Weight Field -->
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label fw-bold">Weight (kg)</label>
+                                                    <input type="number" class="form-control" name="weight" step="0.01" min="0.01" required>
+                                                    <small class="text-muted">Enter the weight per unit of this product (e.g., 1 piece of mango = 0.25kg).</small>
                                                 </div>
                                             </div>
 

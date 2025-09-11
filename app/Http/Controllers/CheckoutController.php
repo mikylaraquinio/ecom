@@ -33,31 +33,79 @@ class CheckoutController extends Controller
         $user = Auth::user();
 
         if (!$user) {
-            return redirect()->route('login'); // Redirect to login if the user is not authenticated
+            return redirect()->route('login');
         }
 
-        // Retrieve selected items from the session
         $selectedItems = session('selected_items', []);
 
         if (empty($selectedItems)) {
             return redirect()->route('shop')->with('error', 'No items selected for checkout.');
         }
 
-        // Retrieve only the cart items that were selected
         $cartItems = Cart::where('user_id', $user->id)
             ->whereIn('id', $selectedItems)
+            ->with('product.user')
             ->get();
 
         if ($cartItems->isEmpty()) {
             return redirect()->route('shop')->with('error', 'Your cart is empty.');
         }
 
-        // Retrieve saved addresses for the user
-        $addresses = $user->addresses; // Assuming you have the relationship defined in your User model
+        // ✅ Subtotal
+        $subtotal = $cartItems->sum(
+            fn($item) =>
+            $item->product ? $item->product->price * $item->quantity : 0
+        );
 
-        // Pass the filtered cart items, user, and addresses to the view
-        return view('checkout', compact('cartItems', 'user', 'addresses'));
+        // ✅ Shipping by seller
+        $shippingBySeller = [];
+        foreach ($cartItems as $item) {
+            if (!$item->product || !$item->product->user)
+                continue;
+
+            $sellerId = $item->product->user->id;
+            $buyerTown = $user->town ?? 'default_town';
+            $sellerTown = $item->product->user->town ?? 'default_town';
+
+            if (!isset($shippingBySeller[$sellerId])) {
+                $shippingBySeller[$sellerId] = [
+                    'seller' => $item->product->user,
+                    'weight' => 0,
+                    'shippingFee' => 0,
+                ];
+            }
+
+            $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * $item->quantity;
+        }
+
+        // ✅ Calculate shipping fees
+        $totalShipping = 0;
+        foreach ($shippingBySeller as $sid => $info) {
+            $fee = \App\Helpers\ShippingHelper::calculate(
+                $user->town,
+                $info['seller']->town,
+                $info['weight']
+            );
+            $shippingBySeller[$sid]['shippingFee'] = $fee;
+            $totalShipping += $fee;
+        }
+
+        // ✅ Grand total
+        $grandTotal = $subtotal + $totalShipping;
+
+        $addresses = $user->addresses;
+
+        return view('checkout', compact(
+            'cartItems',
+            'user',
+            'addresses',
+            'subtotal',
+            'totalShipping',
+            'grandTotal',
+            'shippingBySeller'
+        ));
     }
+
 
 
     // Save New Address
@@ -127,44 +175,69 @@ class CheckoutController extends Controller
     public function process(Request $request)
     {
         try {
-            // Validate the request
             $request->validate([
                 'address_id' => 'required|exists:addresses,id',
                 'selected_items' => 'required|array',
                 'payment_method' => 'required|string'
             ]);
 
-            // Initialize total amount
-            $totalAmount = 0;
+            $user = auth()->user();
+            $selectedItems = $request->selected_items;
 
-            // Calculate the total amount based on selected items
-            foreach ($request->selected_items as $itemId) {
-                $cartItem = Cart::find($itemId);
-                if ($cartItem) {
-                    $totalAmount += $cartItem->quantity * $cartItem->product->price;
-                }
+            $cartItems = Cart::where('user_id', $user->id)
+                ->whereIn('id', $selectedItems)
+                ->with('product.user')
+                ->get();
+
+            if ($cartItems->isEmpty()) {
+                return response()->json(['success' => false, 'message' => 'No valid items found.']);
             }
 
-            // Create the order with total amount
+            // ✅ Subtotal
+            $subtotal = $cartItems->sum(
+                fn($item) =>
+                $item->product ? $item->product->price * $item->quantity : 0
+            );
+
+            // ✅ Shipping
+            $shippingBySeller = [];
+            foreach ($cartItems as $item) {
+                $sellerId = $item->product->user->id;
+                $buyerTown = $user->town ?? 'default_town';
+                $sellerTown = $item->product->user->town ?? 'default_town';
+
+                if (!isset($shippingBySeller[$sellerId])) {
+                    $shippingBySeller[$sellerId] = ['weight' => 0];
+                }
+
+                $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * $item->quantity;
+                $shippingBySeller[$sellerId]['fee'] = \App\Helpers\ShippingHelper::calculate(
+                    $buyerTown,
+                    $sellerTown,
+                    $shippingBySeller[$sellerId]['weight']
+                );
+            }
+
+            $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
+            $grandTotal = $subtotal + $totalShipping;
+
+            // ✅ Create Order
             $order = Order::create([
-                'user_id' => auth()->id(),
+                'user_id' => $user->id,
                 'address_id' => $request->address_id,
                 'payment_method' => $request->payment_method,
                 'status' => 'pending',
-                'total_amount' => $totalAmount, // ✅ Add this field
+                'total_amount' => $grandTotal,
+                'shipping_fee' => $totalShipping, // 🆕 keep separate if you have column
             ]);
 
-            // Attach selected items to the order
-            foreach ($request->selected_items as $itemId) {
-                $cartItem = Cart::find($itemId);
-                if ($cartItem) {
-                    $order->orderItems()->create([
-                        'product_id' => $cartItem->product_id,
-                        'quantity' => $cartItem->quantity,
-                        'price' => $cartItem->product->price
-                    ]);
-                    $cartItem->delete(); // Remove from cart
-                }
+            foreach ($cartItems as $cartItem) {
+                $order->orderItems()->create([
+                    'product_id' => $cartItem->product_id,
+                    'quantity' => $cartItem->quantity,
+                    'price' => $cartItem->product->price
+                ]);
+                $cartItem->delete();
             }
 
             return response()->json([
@@ -180,6 +253,7 @@ class CheckoutController extends Controller
             ], 500);
         }
     }
+
     public function saveSelectedAddress(Request $request)
     {
         $request->validate([

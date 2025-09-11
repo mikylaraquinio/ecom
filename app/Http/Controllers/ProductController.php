@@ -143,7 +143,8 @@ class ProductController extends Controller
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
-            'unit' => 'required|string|in:kg,piece,bundle,sack', // or adjust options
+            'unit' => 'required|string|in:kg,piece,bundle,sack',
+            'weight' => 'required|numeric|min:0.01', // ✅ added
             'min_order_qty' => 'nullable|integer|min:1',
             'category' => 'required|exists:categories,id',
         ]);
@@ -162,11 +163,12 @@ class ProductController extends Controller
         $product->price = $request->price;
         $product->stock = $request->stock;
         $product->unit = $request->unit;
+        $product->weight = $request->weight; // ✅ save weight
         $product->min_order_qty = $request->min_order_qty ?? 1;
-        $product->image = $imagePath; // Store in the 'image' column
-        $product->image_path = asset('storage/' . $imagePath); // Store full path in 'image_path'
+        $product->image = $imagePath;
+        $product->image_path = asset('storage/' . $imagePath);
         $product->category_id = $request->category;
-        $product->user_id = auth()->id(); // Make sure user is logged in
+        $product->user_id = auth()->id();
         $product->save();
 
         return redirect()->back()->with('success', 'Product added successfully.');
@@ -174,43 +176,46 @@ class ProductController extends Controller
 
 
     public function update(Request $request, $id)
-{
-    $product = Product::findOrFail($id);
+    {
+        $product = Product::findOrFail($id);
 
-    // Validate the request
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'description' => 'required|string',
-        'price' => 'required|numeric|min:0',
-        'stock' => 'required|integer|min:0',
-        'category' => 'required|exists:categories,id', // Ensure category exists
-        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-    ]);
+        // Validate the request
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'weight' => 'required|numeric|min:0.01', // ✅ added weight validation
+            'category' => 'required|exists:categories,id',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
 
-    // Assign values
-    $product->name = $request->name;
-    $product->description = $request->description;
-    $product->price = $request->price;
-    $product->stock = $request->stock;
-    $product->category_id = $request->category; // 🛠️ Fix this!
+        // Assign values
+        $product->name = $request->name;
+        $product->description = $request->description;
+        $product->price = $request->price;
+        $product->stock = $request->stock;
+        $product->weight = $request->weight; // ✅ save updated weight
+        $product->category_id = $request->category;
 
-    // Handle Image Upload (if new image is uploaded)
-    if ($request->hasFile('image')) {
-        // Delete old image if exists
-        if ($product->image && Storage::exists('public/' . $product->image)) {
-            Storage::delete('public/' . $product->image);
+        // Handle Image Upload (if new image is uploaded)
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($product->image && Storage::exists('public/' . $product->image)) {
+                Storage::delete('public/' . $product->image);
+            }
+
+            // Store new image
+            $path = $request->file('image')->store('products', 'public');
+            $product->image = $path;
         }
 
-        // Store new image
-        $path = $request->file('image')->store('products', 'public');
-        $product->image = $path;
+        // Save updates
+        $product->save();
+
+        return redirect()->back()->with('success', 'Product updated successfully!');
     }
 
-    // Save updates
-    $product->save();
-
-    return redirect()->back()->with('success', 'Product updated successfully!');
-}
 
 
     public function destroy($id)
@@ -227,27 +232,27 @@ class ProductController extends Controller
     }
 
     public function show(Product $product)
-{
-    $product->load(['category.parent', 'user', 'reviews']);
+    {
+        $product->load(['category.parent', 'user', 'reviews']);
 
-    $seller    = $product->user;
-    $mainImage = $product->image ? asset('storage/'.$product->image) : asset('assets/products.jpg');
-    $gallery   = [$mainImage];
+        $seller = $product->user;
+        $mainImage = $product->image ? asset('storage/' . $product->image) : asset('assets/products.jpg');
+        $gallery = [$mainImage];
 
-    $ratingsCount = $product->reviews()->count();
-    $avgRating    = round((float) $product->reviews()->avg('rating'), 1);
+        $ratingsCount = $product->reviews()->count();
+        $avgRating = round((float) $product->reviews()->avg('rating'), 1);
 
-    $storeStats = [
-        'ratings_count'   => $ratingsCount,
-        'products_count'  => $seller ? $seller->products()->count() : 0,
-        'response_rate'   => $seller->response_rate ?? null,
-        'response_time'   => $seller->response_time ?? null,
-        'member_since'    => $seller?->created_at,
-        'followers_count' => $seller->followers_count ?? null,
-    ];
+        $storeStats = [
+            'ratings_count' => $ratingsCount,
+            'products_count' => $seller ? $seller->products()->count() : 0,
+            'response_rate' => $seller->response_rate ?? null,
+            'response_time' => $seller->response_time ?? null,
+            'member_since' => $seller?->created_at,
+            'followers_count' => $seller->followers_count ?? null,
+        ];
 
-    return view('productview', compact('product','seller','mainImage','gallery','storeStats','avgRating'));
-}
+        return view('productview', compact('product', 'seller', 'mainImage', 'gallery', 'storeStats', 'avgRating'));
+    }
 
 
 }

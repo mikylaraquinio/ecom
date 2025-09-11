@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Helpers\ShippingHelper;
 
 class CartController extends Controller
 {
@@ -20,11 +21,53 @@ class CartController extends Controller
         }
 
         $cartItems = Cart::where('user_id', $user->id)
-            ->with('product')
+            ->with('product.user') // load seller so we can compute shipping
             ->get();
 
-        return view('cart', compact('cartItems'));
+        // ✅ Group by seller for shipping
+        $shippingBySeller = [];
+        foreach ($cartItems as $item) {
+            if (!$item->product || !$item->product->user)
+                continue;
+
+            $sellerId = $item->product->user->id;
+            $buyerTown = $user->town ?? 'default_town';
+            $sellerTown = $item->product->user->town ?? 'default_town';
+
+            if (!isset($shippingBySeller[$sellerId])) {
+                $shippingBySeller[$sellerId] = [
+                    'seller' => $item->product->user,
+                    'buyerTown' => $buyerTown,
+                    'sellerTown' => $sellerTown,
+                    'weight' => 0,
+                    'shippingFee' => 0,
+                ];
+            }
+
+            $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * $item->quantity;
+        }
+
+        // ✅ calculate fees
+        $totalShipping = 0;
+        foreach ($shippingBySeller as $sid => $info) {
+            $fee = \App\Helpers\ShippingHelper::calculate(
+                $info['buyerTown'],
+                $info['sellerTown'],
+                $info['weight']
+            );
+            $shippingBySeller[$sid]['shippingFee'] = $fee;
+            $totalShipping += $fee;
+        }
+
+        // ✅ subtotal of products
+        $totalPrice = $cartItems->sum(fn($item) => $item->product ? $item->product->price * $item->quantity : 0);
+
+        // ✅ grand total
+        $grandTotal = $totalPrice + $totalShipping;
+
+        return view('cart', compact('cartItems', 'shippingBySeller', 'totalPrice', 'totalShipping', 'grandTotal'));
     }
+
 
     public function add(Request $request, $id)
     {
@@ -121,6 +164,52 @@ class CartController extends Controller
         }
     }
 
+    public function shipping(Request $request)
+    {
+        $user = Auth::user();
+        $items = $request->input('items', []); // selected cart items
+
+        $perSeller = [];
+        foreach ($items as $item) {
+            $cartItem = Cart::with('product.user')->where('user_id', $user->id)->find($item['id']);
+            if (!$cartItem || !$cartItem->product)
+                continue;
+
+            $qty = (int) $item['qty'];
+            $product = $cartItem->product;
+            $sellerId = $product->user_id;
+
+            $buyerTown = $user->town ?? 'default';
+            $sellerTown = $product->user->town ?? 'default';
+
+            if (!isset($perSeller[$sellerId])) {
+                $perSeller[$sellerId] = [
+                    'weight' => 0,
+                    'fee' => 0,
+                ];
+            }
+
+            // accumulate weight
+            $perSeller[$sellerId]['weight'] += ($product->weight ?? 0) * $qty;
+
+            // calculate fee for this seller’s total weight
+            $perSeller[$sellerId]['fee'] = \App\Helpers\ShippingHelper::calculate(
+                $buyerTown,
+                $sellerTown,
+                $perSeller[$sellerId]['weight']
+            );
+        }
+
+        $totalFee = array_sum(array_column($perSeller, 'fee'));
+
+        return response()->json([
+            'totalShipping' => $totalFee,
+            'perSeller' => $perSeller, // 👈 match frontend
+        ]);
+    }
+
+
+
     public function checkoutSelected(Request $request)
     {
         $selectedItems = $request->input('selected_items', []);
@@ -152,7 +241,7 @@ class CartController extends Controller
 
         $cartItems = Cart::where('user_id', $user->id)
             ->whereIn('id', $selectedItems)
-            ->with('product')
+            ->with('product.user')
             ->get();
 
         if ($cartItems->isEmpty()) {
@@ -160,6 +249,7 @@ class CartController extends Controller
         }
 
         $totalPrice = 0;
+        $totalWeightPerSeller = [];
         $orderItems = [];
 
         foreach ($cartItems as $cartItem) {
@@ -171,24 +261,49 @@ class CartController extends Controller
 
             $totalPrice += $product->price * $cartItem->quantity;
 
+            $sellerId = $product->user->id;
+            $buyerTown = $user->town ?? 'default_town';
+            $sellerTown = $product->user->town ?? 'default_town';
+
+            if (!isset($totalWeightPerSeller[$sellerId])) {
+                $totalWeightPerSeller[$sellerId] = [
+                    'buyerTown' => $buyerTown,
+                    'sellerTown' => $sellerTown,
+                    'weight' => 0,
+                ];
+            }
+            $totalWeightPerSeller[$sellerId]['weight'] += ($product->weight ?? 0) * $cartItem->quantity;
+
             $orderItems[] = [
                 'product_id' => $product->id,
                 'quantity' => $cartItem->quantity,
                 'price' => $product->price,
             ];
 
-            // Reduce stock quantity
             $product->stock -= $cartItem->quantity;
             $product->save();
         }
+
+        // ✅ calculate shipping
+        $shippingFee = 0;
+        foreach ($totalWeightPerSeller as $info) {
+            $shippingFee += \App\Helpers\ShippingHelper::calculate(
+                $info['buyerTown'],
+                $info['sellerTown'],
+                $info['weight']
+            );
+        }
+
+        $grandTotal = $totalPrice + $shippingFee;
 
         $order = Order::create([
             'user_id' => $user->id,
             'name' => $request->name,
             'address' => $request->address,
             'payment_method' => $request->payment_method,
-            'total_price' => $totalPrice,
-            'status' => 'pending'
+            'total_price' => $grandTotal,
+            'shipping_fee' => $shippingFee,
+            'status' => 'pending',
         ]);
 
         foreach ($orderItems as $item) {
@@ -196,7 +311,7 @@ class CartController extends Controller
                 'order_id' => $order->id,
                 'product_id' => $item['product_id'],
                 'quantity' => $item['quantity'],
-                'price' => $item['price']
+                'price' => $item['price'],
             ]);
         }
 
@@ -204,7 +319,6 @@ class CartController extends Controller
 
         return redirect()->route('shop')->with('success', 'Your order has been placed successfully!');
     }
-
 
     public function showUserProfile()
     {
