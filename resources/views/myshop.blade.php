@@ -425,29 +425,67 @@
                                             <h4 class="fw-bold mb-3">Analytics Dashboard</h4>
                                             <div class="row">
                                                 <div class="col-md-3">
-                                                    <div class="card shadow-sm border-0 p-3 bg-success text-white">
-                                                        <h6>Total Sales</h6>
-                                                        <h4>₱50,000.00</h4>
-                                                    </div>
+                                                <div class="card shadow-sm border-0 p-3 bg-success text-white">
+                                                    <h6>Total Sales (Completed)</h6>
+                                                    <h4>₱{{ number_format($completedSales, 2) }}</h4>
+
+                                                    <h6>Pending Sales</h6>
+                                                    <h4>₱{{ number_format($pendingSales, 2) }}</h4>
+
+                                                    <h6>All Sales (Completed + Pending)</h6>
+                                                    <h4>₱{{ number_format($totalSales, 2) }}</h4>
                                                 </div>
+                                            </div>
                                                 <div class="col-md-3">
                                                     <div class="card shadow-sm border-0 p-3 bg-primary text-white">
                                                         <h6>Total Orders</h6>
-                                                        <h4>150</h4>
+                                                        <h4>{{ $totalOrders }}</h4>
+                                                        <small>Completed: {{ $completedOrders }} | Pending: {{ $pendingOrders }}</small>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-3">
+                                                <div class="col-md-6">
                                                     <div class="card shadow-sm border-0 p-3 bg-warning text-dark">
-                                                        <h6>Top Selling Product</h6>
-                                                        <h4>Organic Tomatoes</h4>
+                                                        <h6>Top Selling Products</h6>
+                                                        
+                                                        {{-- Most Sold Product --}}
+                                                        <h4>
+                                                            @if($mostSoldProduct)
+                                                                🏆 {{ $mostSoldProduct['product']->name }}  
+                                                                <small class="text-muted">({{ $mostSoldProduct['total_quantity'] }} sold)</small>
+                                                            @else
+                                                                No sales yet
+                                                            @endif
+                                                        </h4>
+
+                                                        {{-- Top 5 List --}}
+                                                        <ul class="list-group list-group-flush mt-3">
+                                                            @forelse($topProducts as $p)
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                    {{ $p['product']->name }}
+                                                                    <span class="badge bg-success rounded-pill">{{ $p['total_quantity'] }}</span>
+                                                                </li>
+                                                            @empty
+                                                                <li class="list-group-item">No products sold yet</li>
+                                                            @endforelse
+                                                        </ul>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-3">
-                                                    <div class="card shadow-sm border-0 p-3 bg-danger text-white">
-                                                        <h6>Low Stock Alerts</h6>
-                                                        <h4>5 Items</h4>
+
+
+                                                @if($lowStockProducts->count() > 0)
+                                                    <div class="mt-3">
+                                                        <h6>⚠️ Low Stock Products</h6>
+                                                        <ul class="list-group">
+                                                            @foreach($lowStockProducts as $prod)
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                    {{ $prod->name }}
+                                                                    <span class="badge bg-danger rounded-pill">{{ $prod->stock }} left</span>
+                                                                </li>
+                                                            @endforeach
+                                                        </ul>
                                                     </div>
-                                                </div>
+                                                @endif
+
                                             </div>
 
                                             <div class="mt-4">
@@ -465,29 +503,47 @@
                             </div>
                         </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
-            datasets: [{
-                label: 'Sales Revenue',
-                data: [5000, 7000, 8000, 6000, 9000, 11000, 15000],
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
-    });
-</script>
+        const ctx = document.getElementById('salesChart').getContext('2d');
 
+        // Laravel data -> JS
+        const revenueTrends = @json($revenueTrends);
+
+        const labels = Object.keys(revenueTrends).map(month => {
+            const months = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            return months[month - 1]; // convert 1 → "January"
+        });
+
+        const data = Object.values(revenueTrends);
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue (₱)',
+                    data: data,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    </script>
     <!-- Ensure jQuery & Bootstrap are Loaded -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
@@ -527,6 +583,9 @@
         });
     });
 </script>
+
+
+
 
 <!-- FontAwesome Icons -->
 <script src="https://kit.fontawesome.com/YOUR_KIT_CODE.js" crossorigin="anonymous"></script>

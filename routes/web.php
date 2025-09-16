@@ -158,5 +158,7 @@ Route::post('/chat/{receiverId}', [ChatController::class, 'store'])->name('chat.
 
 
 
+
+
 /* Authentication Routes */
 require __DIR__ . '/auth.php';

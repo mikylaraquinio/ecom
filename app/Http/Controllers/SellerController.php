@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\Seller;
+use Illuminate\Support\Facades\DB;
 
 class SellerController extends Controller
 {
@@ -70,8 +71,8 @@ class SellerController extends Controller
                 $subQuery->where('user_id', auth()->id());
             });
         })->orderBy('created_at', 'desc') // ✅ Add this
-    ->with('orderItems.product', 'buyer', 'shippingAddress') // Optional: eager load to reduce N+1
-    ->get();
+            ->with('orderItems.product', 'buyer', 'shippingAddress') // Optional: eager load to reduce N+1
+            ->get();
 
         $user = auth()->user();
         $mainCategories = Category::whereNull('parent_id')->get(); // Add this
@@ -142,17 +143,105 @@ class SellerController extends Controller
         $orders = [];
         if ($user->role === 'seller') {
             $orders = Order::whereHas('orderItems.product', function ($query) use ($user) {
-                $query->where('user_id', $user->id); 
+                $query->where('user_id', $user->id);
             })->with('orderItems.product')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10); 
-            
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
         }
 
         $products = $user->products;
 
-        return view('myshop', compact('user', 'products', 'mainCategories', 'orders'));
+        // ✅ Completed Sales (actual revenue)
+        $completedSales = Order::whereHas('orderItems.product', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->where('status', 'completed')
+            ->sum('total_amount');
+
+        // ✅ Pending Sales (potential revenue)
+        $pendingSales = Order::whereHas('orderItems.product', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->where('status', 'pending')
+            ->sum('total_amount');
+
+        // ✅ Combine into total (optional)
+        $totalSales = $completedSales + $pendingSales;
+
+        // ✅ Total Orders (all statuses)
+        $totalOrders = Order::whereHas('orderItems.product', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->count();
+
+        // ✅ Completed Orders only
+        $completedOrders = Order::whereHas('orderItems.product', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->where('status', 'completed')->count();
+
+        // ✅ Pending Orders only
+        $pendingOrders = Order::whereHas('orderItems.product', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->where('status', 'pending')->count();
+
+        // Get all seller's completed order items grouped by product
+        $topProducts = Order::whereHas('orderItems.product', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+            ->where('status', 'completed')
+            ->with('orderItems.product')
+            ->get()
+            ->flatMap->orderItems
+            ->groupBy('product_id')
+            ->map(function ($items) {
+                return [
+                    'product' => $items->first()->product,
+                    'total_quantity' => $items->sum('quantity'),
+                ];
+            })
+            ->sortByDesc('total_quantity')
+            ->take(5); // ✅ Top 5
+
+        // Pick the first as the "Most Sold"
+        $mostSoldProduct = $topProducts->first();
+
+        $lowStockCount = $user->products()
+            ->where('stock', '<=', 5)
+            ->count();
+
+        $lowStockProducts = $user->products()
+            ->where('stock', '<=', 5)
+            ->get();
+
+
+        $revenueTrends = Order::whereHas('orderItems.product', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+            ->where('status', 'completed') // only count completed orders
+            ->select(
+                DB::raw('MONTH(created_at) as month'),
+                DB::raw('SUM(total_amount) as total')
+            )
+            ->groupBy(DB::raw('MONTH(created_at)'))
+            ->pluck('total', 'month');
+
+
+        return view('myshop', compact(
+            'user',
+            'products',
+            'mainCategories',
+            'orders',
+            'completedSales',
+            'pendingSales',
+            'totalSales',
+            'totalOrders',
+            'completedOrders',
+            'pendingOrders',
+            'topProducts',
+            'mostSoldProduct',
+            'lowStockCount',
+            'lowStockProducts',
+            'revenueTrends'
+        ));
     }
+
 
     public function confirmReceipt($id)
     {
