@@ -63,6 +63,11 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/user_profile', [ProfileController::class, 'showProfile'])->middleware(['auth', 'verified'])->name('user_profile');
 Route::patch('/buyer/order/{id}/cancel', [ProfileController::class, 'cancelOrder'])->name('buyer.cancelOrder');
 
+Route::patch('/orders/{id}/confirm-receipt', [ProfileController::class, 'confirmReceipt'])
+    ->name('buyer.confirmReceipt')
+    ->middleware('auth');
+
+
 
 
 
@@ -127,10 +132,6 @@ Route::middleware('auth')->group(function () {
 Route::get('/my-orders', [SellerController::class, 'myOrders'])->name('buyer.orders')->middleware('auth');
 Route::patch('/seller/orders/{id}/update', [SellerController::class, 'updateOrderStatus'])->name('seller.updateOrderStatus');
 Route::get('/orders/{id}/confirm', [SellerController::class, 'confirmReceipt'])->name('buyer.confirm-receipt');
-Route::patch('/orders/{id}/confirm-receipt', [SellerController::class, 'confirmReceipt'])
-    ->name('buyer.confirmReceipt')
-    ->middleware('auth');
-
 
 Route::middleware('auth')->post('/wishlist/toggle/{id}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
 Route::post('/wishlist/toggle/{productId}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');

@@ -56,13 +56,31 @@ class SellerController extends Controller
     {
         $user = auth()->user();
 
-        $orders = Order::where('user_id', $user->id)
-            ->with('orderItems.product') // FIXED: Changed 'items' to 'orderItems'
-            ->orderBy('created_at', 'desc')
+        $ordersToShip = $user->orders()
+            ->whereIn('status', ['pending', 'accepted'])
+            ->with('orderItems.product.seller')
             ->get();
 
-        return view('buyer.orders', compact('orders'));
+        $ordersToReceive = $user->orders()
+            ->where('status', 'shipped')
+            ->with('orderItems.product.seller')
+            ->get();
+
+        $ordersToReview = $user->orders()
+            ->where('status', 'completed')
+            ->with('orderItems.product.seller')
+            ->get();
+
+        $wishlistItems = $user->wishlist()->with('seller')->get();
+
+        return view('user_profile', compact(
+            'ordersToShip',
+            'ordersToReceive',
+            'ordersToReview',
+            'wishlistItems'
+        ));
     }
+
 
     public function incomingOrders()
     {
@@ -242,14 +260,23 @@ class SellerController extends Controller
         ));
     }
 
-
     public function confirmReceipt($id)
     {
-        $order = Order::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
-        $order->update(['status' => 'received']);
+        $order = Order::findOrFail($id);
 
-        return redirect()->route('buyer.orders')->with('success', 'Order received successfully!');
+        // Make sure only the buyer who owns the order can confirm
+        if ($order->user_id !== auth()->id()) {
+            return redirect()->back()->with('error', 'Unauthorized action.');
+        }
+
+        // Mark as completed (same as seller side)
+        $order->status = 'completed';
+        $order->delivered_at = now();
+        $order->save();
+
+        return redirect()->route('user_profile')->with('success', 'Order marked as completed.');
     }
+
     public function approveCancel($id)
     {
         $order = Order::findOrFail($id);
