@@ -113,51 +113,70 @@
                                 <div class="card-header bg-white py-3">
                                     <h5 class="mb-0 fw-semibold">Payment Method</h5>
                                 </div>
-                                <div class="card-body">
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="pm_gcash"
-                                            value="gcash" required>
-                                        <label class="form-check-label" for="pm_gcash">GCash</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="pm_cod"
-                                            value="cod">
-                                        <label class="form-check-label" for="pm_cod">Cash on Delivery</label>
-                                    </div>
+                                <div class="card-body payment-methods">
+                                    <label class="form-check d-flex align-items-center justify-content-between mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input class="form-check-input" type="radio" name="payment_method" id="pm_gcash" value="gcash" required>
+                                            <span>GCash</span>
+                                        </div>
+                                    </label>
+                                    <label class="form-check d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input class="form-check-input" type="radio" name="payment_method" id="pm_cod" value="cod">
+                                            <span>Cash on Delivery</span>
+                                        </div>
+                                    </label>
                                 </div>
                             </div>
 
                             <!-- Summary -->
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted">Subtotal</span>
-                                    <span>₱<span id="sum-subtotal">{{ number_format($subtotal, 2) }}</span></span>
+                            <div class="card shadow-sm border-0 mb-3">
+                                <div class="card-header bg-white py-3">
+                                    <h5 class="mb-0 fw-semibold">Payment Details</h5>
                                 </div>
 
-                                {{-- Per-seller shipping breakdown --}}
-                                @foreach($shippingBySeller as $info)
-                                    <div class="d-flex justify-content-between mb-2 small">
-                                        <span class="text-muted">Shipping from {{ $info['seller']->name }}</span>
-                                        <span>₱{{ number_format($info['shippingFee'], 2) }}</span>
-                                    </div>
-                                @endforeach
+                                <div class="card-body">
 
-                                {{-- Total Shipping --}}
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted">Total Shipping</span>
-                                    <span>₱<span id="sum-shipping">{{ number_format($totalShipping, 2) }}</span></span>
+                                    <div class="d-flex justify-content-between mb-2">
+                                    <div class="text-start">Sub Total:</div>
+                                    <div class="text-end">₱<span id="sum-subtotal">{{ number_format($subtotal, 2) }}</span></div>
                                 </div>
 
-                                <hr>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <div class="text-start">Shipping Subtotal:</div>
+                                    <div class="text-end">₱<span id="sum-shipping">{{ number_format($totalShipping, 2) }}</span></div>
+                                </div>
+
+                                <div class="d-flex justify-content-between mb-2">
+                                    <div class="text-start">Shipping Discount Subtotal:</div>
+                                    <div class="text-end">- ₱<span id="sum-shipping-discount">{{ number_format($shippingDiscount ?? 0, 2) }}</span></div>
+                                </div>
+
+                                <hr class="my-3">
+
                                 <div class="d-flex justify-content-between fs-5 fw-bold">
-                                    <span>Total</span>
-                                    <span class="text-success">₱<span
-                                            id="sum-total">{{ number_format($grandTotal, 2) }}</span></span>
+                                    <div class="text-start">Total Payment</div>
+                                    <div class="text-end text-success">
+                                        ₱<span id="sum-total">{{ number_format(($subtotal + $totalShipping) - ($shippingDiscount ?? 0), 2) }}</span>
+                                    </div>
                                 </div>
 
-                                <button type="button" id="proceed-btn" class="btn btn-success w-100 mt-3">
-                                    Place Order
-                                </button>
+                                    {{-- Optional: keep per-seller shipping breakdown, shown smaller below --}}
+                                    @if(!empty($shippingBySeller))
+                                        <div class="mt-3">
+                                            @foreach($shippingBySeller as $info)
+                                                <div class="d-flex justify-content-between mb-1 small text-muted">
+                                                    <span>Shipping from {{ $info['seller']->name }}</span>
+                                                    <span>₱{{ number_format($info['shippingFee'], 2) }}</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    <button type="button" id="proceed-btn" class="btn btn-success w-100 mt-3">
+                                        Place Order
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -275,24 +294,23 @@
             const itemChecks = document.querySelectorAll('.item-check');
             const sumSubtotal = document.getElementById('sum-subtotal');
             const sumShipping = document.getElementById('sum-shipping');
-            const sumShops = document.getElementById('sum-shops');
+            const sumShippingDiscount = document.getElementById('sum-shipping-discount'); // NEW
             const sumTotal = document.getElementById('sum-total');
 
             function recalcSummary() {
                 let subtotal = 0;
-                const shopSet = new Set();
                 itemChecks.forEach(cb => {
                     if (!cb.checked) return;
                     const price = parseFloat(cb.dataset.price || '0');
                     const qty = parseInt(cb.dataset.qty || '1', 10);
-                    const seller = cb.dataset.seller;
                     subtotal += price * qty;
-                    shopSet.add(seller);
                 });
 
-                // For now, you already render per-seller shipping in Blade, so just recalc totals
-                const totalShipping = parseFloat(sumShipping?.textContent || '0'); // leave server-side value
-                const total = subtotal + totalShipping;
+                // Keep server-rendered shipping/discount values but recompute grand total on selection change
+                const shipping = parseFloat((sumShipping?.textContent || '0').replace(/,/g, '')) || 0;
+                const shippingDiscount = parseFloat((sumShippingDiscount?.textContent || '0').replace(/,/g, '')) || 0;
+
+                const total = subtotal + shipping - shippingDiscount;
 
                 sumSubtotal.textContent = subtotal.toFixed(2);
                 sumTotal.textContent = total.toFixed(2);
@@ -469,6 +487,15 @@
     <style>
         .checkout-page .card {
             border-radius: 12px;
+            display: block;  
+            align-items: unset !important;
+            text-align: left; 
+        }
+        .checkout-page .card-body > .d-flex {
+        width: 100%;                 /* rows span full width */
+        }
+        .checkout-page .card-body .text-end {
+        text-align: right !important;
         }
 
         .checkout-page .card-header {
@@ -478,10 +505,19 @@
         .checkout-page .list-group-item {
             border-color: #f1f1f1;
         }
-
+        /* Payment methods alignment */
+        .payment-methods .form-check {
+            width: 100%;
+            cursor: pointer;
+        }
+        .payment-methods span {
+            flex: 1;
+            text-align: left;        /* label text left-aligned */
+        }
         .checkout-page .form-check-input {
             width: 18px;
             height: 18px;
+            margin: 0;
         }
 
         /* Custom modal (swap to Bootstrap modal if preferred) */
