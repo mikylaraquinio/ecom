@@ -1,6 +1,6 @@
 <x-app-layout>
   <div class="container mt-5">
-    <h2 class="mb-4">Shopping Cart</h2>
+    <h2 class="mb-4">Your Cart</h2>
 
     @if($cartItems->count() > 0)
       {{-- Shopee-like cart layout --}}
@@ -127,7 +127,7 @@
 
 
             <button class="btn btn-success ms-2 proceed-to-checkout" id="checkout-btn" disabled>
-              Checkout (<span id="selected-count">0</span>)
+              Place Order (<span id="selected-count">0</span>)
             </button>
           </div>
         </div>

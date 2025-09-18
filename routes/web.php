@@ -146,8 +146,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
 });
-Route::get('/chat/{receiverId?}', [ChatController::class, 'index'])->name('chat');
-Route::post('/chat/{receiverId}', [ChatController::class, 'store'])->name('chat.send');
+
+/* Chat */
+    Route::get('/chat/{receiverId?}', [ChatController::class, 'index'])->name('chat');   // optional (kept for safety)
+    Route::post('/chat/send/{receiverId}', [ChatController::class, 'store'])->name('chat.send');
+
+    // NEW: lightweight data endpoints for the widget (JSON)
+    Route::get('/chat/data/conversations', [ChatController::class, 'conversations'])->name('chat.conversations');
+    Route::get('/chat/data/messages/{receiverId}', [ChatController::class, 'messages'])->name('chat.messages');
 
 
 

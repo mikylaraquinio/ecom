@@ -126,6 +126,12 @@
                 </div>
             </div>
         </div>
+        
+        {{-- Description --}}
+        <div class="mt-4 p-3 border rounded bg-white">
+            <h5 class="fw-semibold mb-3">Product Description</h5>
+            <div class="small">{!! nl2br(e($product->description)) !!}</div>
+        </div>
 
         {{-- Seller store card --}}
         <div class="mt-5 p-3 border rounded bg-white">
@@ -192,12 +198,6 @@
                     {{ $seller->barangay ?? '' }} {{ $seller->city ?? '' }} {{ $seller->province ?? '' }}
                 </dd>
             </dl>
-        </div>
-
-        {{-- Description --}}
-        <div class="mt-4 p-3 border rounded bg-white">
-            <h5 class="fw-semibold mb-3">Product Description</h5>
-            <div class="small">{!! nl2br(e($product->description)) !!}</div>
         </div>
     </div>
 

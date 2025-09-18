@@ -54,12 +54,7 @@
               </div>
 
               <!-- Quick Add to Cart -->
-              <button
-                class="btn btn-sm btn-outline-success w-100 mt-auto add-to-cart"
-                data-product-id="{{ $product->id }}"
-              >
-                <i class="fas fa-cart-plus me-1"></i> Add to Cart
-              </button>
+              
             </div>
           </div>
         </a>

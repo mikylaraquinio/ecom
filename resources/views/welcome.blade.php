@@ -24,42 +24,144 @@
                     </div>
                 </form>
             </div>
+        </div>
     </div>
-    </div>
+    {{-- Events / Ads (compact card) --}}
+<section id="events-ads" class="mt-4">
+  <div class="container px-3 px-lg-4"> {{-- slightly tighter container --}}
+    <div class="outer-card border rounded-3 shadow-sm p-2 p-md-3">
+      <div class="row g-2 align-items-stretch">
 
-     <section class="container mt-4">
-        <div class="row g-3">
-            <div class="col-6">
-            <button type="button"
-                    class="w-100 p-4 border rounded-3 bg-white shadow-sm text-center group-filter"
-                    data-group="produce" style="min-height:110px;">
-                <div class="fw-bold fs-5">Produce</div>
-                <div class="text-muted small">Fruits, vegetables, grains…</div>
-            </button>
+        {{-- LEFT: carousel --}}
+        <div class="col-lg-9">
+          <div class="hero-wrapper rounded-3 overflow-hidden">
+            <div id="livestockEventsCarousel" class="carousel slide h-100" data-bs-ride="carousel" data-bs-interval="5000">
+              <div class="carousel-indicators">
+                <button type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide-to="0" class="active"></button>
+                <button type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide-to="1"></button>
+                <button type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide-to="2"></button>
+              </div>
+
+              <div class="carousel-inner h-100">
+                <div class="carousel-item active">
+                  <a href="#">
+                    <img src="{{ asset('assets/crops.jpg') }}" class="d-block w-100 event-poster" alt="Provincial Livestock Fair">
+                    <div class="carousel-caption text-start compact-caption">
+                      <h6 class="mb-1 fw-semibold">Provincial Livestock Fair</h6>
+                      <p class="mb-0 small">Dagupan • Oct 12–14</p>
+                    </div>
+                  </a>
+                </div>
+
+                <div class="carousel-item">
+                  <a href="#">
+                    <img src="{{ asset('assets/farmer.jpg') }}" class="d-block w-100 event-poster" alt="Free Vet Outreach">
+                    <div class="carousel-caption text-start compact-caption">
+                      <h6 class="mb-1 fw-semibold">Free Vet Outreach</h6>
+                      <p class="mb-0 small">Urdaneta • Sept 28</p>
+                    </div>
+                  </a>
+                </div>
+
+                <div class="carousel-item">
+                  <a href="#">
+                    <img src="{{ asset('assets/shop-bg.jpg') }}" class="d-block w-100 event-poster" alt="Cattle Auction Day">
+                    <div class="carousel-caption text-start compact-caption">
+                      <h6 class="mb-1 fw-semibold">Cattle Auction Day</h6>
+                      <p class="mb-0 small">Mangaldan • Oct 20</p>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+              <button class="carousel-control-prev" type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+              </button>
+              <button class="carousel-control-next" type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+              </button>
             </div>
-            <div class="col-6">
-            <button type="button"
-                    class="w-100 p-4 border rounded-3 bg-white shadow-sm text-center group-filter"
-                    data-group="livestock" style="min-height:110px;">
-                <div class="fw-bold fs-5">Livestocks</div>
-                <div class="text-muted small">Cattle, poultry, etc.</div>
-            </button>
-            </div>
+          </div>
         </div>
 
-        <!-- Active-filter chip -->
-        <div class="d-flex align-items-center gap-2 mt-2" id="activeFilter" style="display:none;">
+        {{-- RIGHT: stacked buttons (same height as carousel) --}}
+        <div class="col-lg-3">
+          <div class="right-rail d-flex flex-column gap-2">
+            <button type="button"
+                    class="rail-btn flex-fill py-3 px-3 border rounded-3 bg-white shadow-sm text-center group-filter"
+                    data-group="livestock">
+              <div class="fw-semibold">Livestocks</div>
+              <div class="text-muted small">Cattle, poultry, etc.</div>
+            </button>
+
+            <button type="button"
+                    class="rail-btn flex-fill py-3 px-3 border rounded-3 bg-white shadow-sm text-center group-filter"
+                    data-group="produce">
+              <div class="fw-semibold">Produce</div>
+              <div class="text-muted small">Fruits, vegetables, grains…</div>
+            </button>
+          </div>
+
+          <div class="d-flex align-items-center gap-2 mt-2" id="activeFilter" style="display:none;">
             <span class="badge bg-success" id="activeFilterLabel"></span>
-            <!-- <button class="btn btn-link p-0 ms-2" id="clearFilter">Clear</button>-->
+          </div>
         </div>
-    </section>
 
-    <style>
-    /* tiny highlight when a filter is active */
-    .group-filter.active { outline: 3px solid #71b127; outline-offset: 2px; }
-    </style>
+      </div>
+    </div>
+  </div>
+
+  {{-- compact styles --}}
+  <style>
+    /* compact overall height (adjust these two to taste) */
+    #events-ads { --hero-h: 300px; }                 /* desktop height (was ~380px) */
+     @media (max-width: 991.98px) {             /* below lg */
+      #events-ads { --hero-h: auto; }
+      #events-ads .hero-wrapper { height: auto; }
+      #events-ads .right-rail {
+        height: auto;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: .75rem;
+        margin-top: .5rem;
+      }
+      #events-ads .rail-btn {
+        padding: .9rem .8rem;
+      }
+      #events-ads .rail-btn .fs-5 { font-size: 1rem; }
+    }
+
+    /* outer card smaller radius/padding handled via classes */
+    #events-ads .hero-wrapper { height: var(--hero-h); }
+    #events-ads .right-rail { height: var(--hero-h); }
+    #events-ads .rail-btn { min-height: 0; }
+
+    /* image & caption compact */
+    #events-ads .event-poster { height: 100%; object-fit: cover; }
+    #events-ads .compact-caption {
+      left: 0; right: 0; bottom: 0;
+      padding: 14px 12px 10px;                        /* smaller padding */
+      background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
+      text-shadow: 0 1px 2px rgba(0,0,0,.5);
+      border-bottom-left-radius: .5rem;
+      border-bottom-right-radius: .5rem;
+    }
+    #events-ads .compact-caption h6 { font-size: .95rem; }
+    #events-ads .compact-caption p { font-size: .75rem; }
+
+    /* smaller gaps on mobile */
+    @media (max-width: 576px) {
+      #events-ads .compact-caption h6 { font-size: .9rem; }
+      #events-ads .compact-caption p { font-size: .72rem; }
+    }
+
+    /* active outline */
+    #events-ads .group-filter.active { outline: 3px solid #71b127; outline-offset: 2px; }
+  </style>
+</section>
 
 
+    
     <!-- Featured Categories Section 
     <section id="featured-categories" class="py-5">
         <div class="container text-center">
@@ -128,94 +230,6 @@
             </div>
         </div>
     </section>
-    
-    {{-- Livestock Events / Ads Slider --}}
-<section id="livestock-events" class="py-5">
-  <div class="container px-4 px-lg-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2 class="p-title mb-0">Livestock Events & Ads</h2>
-    </div>
-
-    <div id="livestockEventsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
-      {{-- Indicators --}}
-      <div class="carousel-indicators">
-        <button type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-        <button type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-        <button type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
-      </div>
-
-      {{-- Slides --}}
-      <div class="carousel-inner rounded-3 shadow-sm">
-        {{-- Slide 1 --}}
-        <div class="carousel-item active">
-          <a href="#" class="d-block position-relative">
-            <img src="{{ asset('assets/events/livestock-fair.jpg') }}" class="d-block w-100 event-poster" alt="Provincial Livestock Fair poster">
-            <div class="carousel-caption text-start">
-              <h5 class="mb-1 fw-bold">Provincial Livestock Fair</h5>
-              <p class="mb-0 small">Dagupan • Oct 12–14</p>
-            </div>
-          </a>
-        </div>
-
-        {{-- Slide 2 --}}
-        <div class="carousel-item">
-          <a href="#" class="d-block position-relative">
-            <img src="{{ asset('assets/events/vet-outreach.jpg') }}" class="d-block w-100 event-poster" alt="Free veterinary outreach poster">
-            <div class="carousel-caption text-start">
-              <h5 class="mb-1 fw-bold">Free Vet Outreach</h5>
-              <p class="mb-0 small">Urdaneta • Sept 28</p>
-            </div>
-          </a>
-        </div>
-
-        {{-- Slide 3 --}}
-        <div class="carousel-item">
-          <a href="#" class="d-block position-relative">
-            <img src="{{ asset('assets/events/auction-day.jpg') }}" class="d-block w-100 event-poster" alt="Cattle auction day poster">
-            <div class="carousel-caption text-start">
-              <h5 class="mb-1 fw-bold">Cattle Auction Day</h5>
-              <p class="mb-0 small">Mangaldan • Oct 20</p>
-            </div>
-          </a>
-        </div>
-      </div>
-
-      {{-- Controls --}}
-      <button class="carousel-control-prev" type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Previous</span>
-      </button>
-      <button class="carousel-control-next" type="button" data-bs-target="#livestockEventsCarousel" data-bs-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Next</span>
-      </button>
-    </div>
-  </div>
-
-  {{-- Local styles (you can move to style.css if you prefer) --}}
-  <style>
-    .event-poster {
-      height: 360px;
-      object-fit: cover;
-    }
-    .carousel-caption {
-      left: 0; right: 0; bottom: 0;
-      text-shadow: 0 1px 3px rgba(0,0,0,.6);
-      background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
-      padding: 24px 16px 12px;
-      border-bottom-left-radius: .6rem;
-      border-bottom-right-radius: .6rem;
-    }
-    @media (max-width: 576px) {
-      .event-poster { height: 220px; }
-      .carousel-caption h5 { font-size: 1rem; }
-      .carousel-caption p { font-size: .75rem; }
-    }
-  </style>
-</section>
-
-
-
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {

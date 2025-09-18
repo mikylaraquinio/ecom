@@ -107,14 +107,19 @@
                   </div>
                   <div class="ptc-right">
                     @if(auth()->user()->role !== 'seller')
-                      <a href="#" class="ptc-shop" data-toggle="modal" data-target="#ModalCreate">
+                            <div class="text-center mt-3">
+                            <a href="#" class="ptc-shop" data-toggle="modal" data-target="#ModalCreate">
+                        <i class="fas fa-store mr-1"></i> Start Selling
+                            </a>
+
+                            </div>
+                        @else
+                            <div class="text-center mt-3">
+                                <a href="{{ route('myshop') }}" class="ptc-shop">
                         <i class="fas fa-store mr-1"></i> My Shop
-                      </a>
-                    @else
-                      <a href="{{ route('myshop') }}" class="ptc-shop">
-                        <i class="fas fa-store mr-1"></i> My Shop
-                      </a>
-                    @endif
+                                </a>
+                            </div>
+                        @endif
                   </div>
                 </div>
 
@@ -670,47 +675,77 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Your existing app scripts that use jQuery/Bootstrap can go here (unchanged) -->
-    <script>
-        // AJAX seller form
-        document.addEventListener("DOMContentLoaded", function () {
-            const form = document.getElementById("sellerRegistrationForm");
-            if (form) {
-              form.addEventListener("submit", function (event) {
-                event.preventDefault();
-                let formData = new FormData(this);
-                fetch(this.action, {
-                    method: this.method,
+      <script>
+        function uploadProfilePicture(event) {
+            let file = event.target.files[0];
+            if (file) {
+                let formData = new FormData();
+                formData.append('profile_picture', file);
+
+                fetch({
+                    method: 'POST',
                     body: formData,
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     }
-                })
-                .then(response => response.json()) 
-                .then(data => {
-                    if (data.success) {
-                        $('#ModalCreate').modal('hide');
-                        document.getElementById("shopButtonContainer")?.innerHTML = `
-                            <div class="text-center mt-3">
-                                <a href="{{ route('myshop') }}" class="btn text-white shadow-sm rounded-pill px-4 d-flex align-items-center justify-content-center" style="background-color: #8B5E3C;">
-                                    <i class="fas fa-basket me-2"></i> My Shop
-                                </a>
-                            </div>
-                        `;
-                    } else {
-                        alert("Registration failed! Please try again.");
-                    }
-                })
-                .catch(error => console.error("Error:", error));
-              });
+                }).then(response => response.json())
+                    .then(data => location.reload())
+                    .catch(error => console.error('Error:', error));
             }
-        });
+        }
+    </script>
 
-        // Add to cart & wishlist toggle (unchanged)
+
+<!-- JavaScript for AJAX Form Submission -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("sellerRegistrationForm");
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault(); // Prevent page refresh
+
+        let formData = new FormData(this);
+
+        fetch(this.action, {
+            method: this.method,
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+            }
+        })
+        .then(response => response.json()) 
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                let modal = bootstrap.Modal.getInstance(document.getElementById("ModalCreate"));
+                modal.hide();
+
+                // Replace the button with "My Shop"
+                document.getElementById("shopButtonContainer").innerHTML = `
+                    <div class="text-center mt-3">
+                        <a href="{{ route('myshop') }}" class="btn text-white shadow-sm rounded-pill px-4 d-flex align-items-center justify-content-center" style="background-color: #8B5E3C;">
+                            <i class="fas fa-basket me-2"></i> My Shop
+                        </a>
+                    </div>
+                `;
+            } else {
+                alert("Registration failed! Please try again.");
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    });
+});
+</script>
+
+    <script>
+        // Handle "Add to Cart" with AJAX
         document.querySelectorAll('.add-to-cart-form').forEach(form => {
             form.addEventListener('submit', function (e) {
-                e.preventDefault();
+                e.preventDefault(); // Prevent normal form submission
+
                 const productId = this.dataset.id;
-                const quantity = 1;
+                const quantity = 1; // default quantity if not using input field
+
                 fetch(`/cart/add/${productId}`, {
                     method: 'POST',
                     headers: {
@@ -731,20 +766,30 @@
                             showConfirmButton: false
                         });
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message,
+                        });
                     }
                 })
                 .catch(err => {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong!' });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Something went wrong!',
+                    });
                     console.error(err);
                 });
             });
         });
 
+        // Handle "Remove from Wishlist"
         document.querySelectorAll('.toggle-wishlist-btn').forEach(btn => {
             btn.addEventListener('click', function () {
                 const productId = this.dataset.id;
                 const button = this;
+
                 fetch(`/wishlist/toggle/${productId}`, {
                     method: 'POST',
                     headers: {
@@ -762,99 +807,82 @@
                             timer: 1200,
                             showConfirmButton: false
                         });
+
                         button.closest('.col-md-4').remove();
                     }
                 })
                 .catch(err => {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Could not remove item from wishlist.' });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Could not remove item from wishlist.',
+                    });
                     console.error(err);
                 });
             });
         });
+    </script>
 
-        // Stars widget
-        document.querySelectorAll('.stars').forEach(starGroup => {
-            const orderId = starGroup.getAttribute('data-order-id');
-            const label = document.getElementById(`rating-label-${orderId}`);
-            const stars = starGroup.querySelectorAll('label');
-            const radios = starGroup.querySelectorAll('input[type="radio"]');
-            const labels = ["Terrible", "Poor", "Average", "Good", "Amazing"];
+    <script>
+    document.querySelectorAll('.stars').forEach(starGroup => {
+        const orderId = starGroup.getAttribute('data-order-id');
+        const label = document.getElementById(`rating-label-${orderId}`);
+        const stars = starGroup.querySelectorAll('label');
+        const radios = starGroup.querySelectorAll('input[type="radio"]');
+        const labels = ["Terrible", "Poor", "Average", "Good", "Amazing"];
 
-            stars.forEach((star) => {
-                const value = parseInt(star.getAttribute('data-value'));
-                star.addEventListener('mouseenter', () => {
-                    stars.forEach((s, i) => { s.style.color = (i < value) ? '#ffc107' : '#ccc'; });
-                    if (label) label.textContent = labels[value - 1];
+        // Highlight stars on hover
+        stars.forEach((star, idx) => {
+            const value = parseInt(star.getAttribute('data-value'));
+
+            star.addEventListener('mouseenter', () => {
+                stars.forEach((s, i) => {
+                    s.style.color = (i < value) ? '#ffc107' : '#ccc';
                 });
-                star.addEventListener('mouseleave', () => {
-                    const checked = [...radios].find(r => r.checked);
-                    const val = checked ? parseInt(checked.value) : 0;
-                    stars.forEach((s, i) => { s.style.color = (i < val) ? '#ffc107' : '#ccc'; });
-                    if (label) label.textContent = val ? labels[val - 1] : "Choose rating";
+                label.textContent = labels[value - 1];
+            });
+
+            star.addEventListener('mouseleave', () => {
+                const checked = [...radios].find(r => r.checked);
+                const val = checked ? parseInt(checked.value) : 0;
+
+                stars.forEach((s, i) => {
+                    s.style.color = (i < val) ? '#ffc107' : '#ccc';
                 });
-                star.addEventListener('click', () => { radios[value - 1].checked = true; });
+
+                label.textContent = val ? labels[val - 1] : "Choose rating";
+            });
+
+            star.addEventListener('click', () => {
+                radios[value - 1].checked = true;
             });
         });
+    });
+    </script>
 
-        // terms / register button
-        document.addEventListener("DOMContentLoaded", function () {
-            const checkbox = document.getElementById("terms");
-            const registerBtn = document.getElementById("registerButton");
-            if (checkbox && registerBtn) {
-                registerBtn.disabled = !checkbox.checked;
-                checkbox.addEventListener("change", function () {
-                    registerBtn.disabled = !this.checked;
-                    if (this.checked) {
-                        registerBtn.classList.remove("btn-secondary");
-                        registerBtn.classList.add("btn-danger");
-                    } else {
-                        registerBtn.classList.remove("btn-danger");
-                        registerBtn.classList.add("btn-secondary");
-                    }
-                });
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const checkbox = document.getElementById("terms");
+    const registerBtn = document.getElementById("registerButton");
+
+    if (checkbox && registerBtn) {
+        registerBtn.disabled = !checkbox.checked;
+
+        checkbox.addEventListener("change", function () {
+            registerBtn.disabled = !this.checked;
+
+            if (this.checked) {
+                registerBtn.classList.remove("btn-secondary");
+                registerBtn.classList.add("btn-danger"); // or your preferred red class
+            } else {
+                registerBtn.classList.remove("btn-danger");
+                registerBtn.classList.add("btn-secondary");
             }
         });
-    </script>
+    }
+});
+</script>
 
-    <!-- 🚀 Custom controller for TOP tiles (placed AFTER jQuery & Bootstrap) -->
-    <script>
-      $(function () {
-        const $topLinks   = $('#profileTopTabs .nav-link');
-        const $topContent = $('.profile-main > .tab-content').first(); // top-level panes container
-
-        // Unhook Bootstrap for top tiles so it doesn't fight our logic
-        $topLinks.each(function(){
-          $(this).off('click.bs.tab'); // remove BS tab handler if attached
-        });
-        $topLinks.removeAttr('data-toggle').removeAttr('data-bs-toggle');
-
-        function showTopPane(href) {
-          const target = href || '#user-dashboard';
-
-          // Active state on tiles
-          $topLinks.removeClass('active');
-          $topLinks.filter('[href="' + target + '"]').addClass('active');
-
-          // Show only the chosen top-level pane
-          $topContent.children('.tab-pane').removeClass('show active');
-          $(target).addClass('show active');
-
-          // Show orders subtabs only for "Your Orders"
-          $('#orders-subtabs').toggle(target === '#user-dashboard');
-        }
-
-        // Click handler for the tiles
-        $('#profileTopTabs').on('click', '.nav-link', function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          showTopPane($(this).attr('href'));
-        });
-
-        // Initialize on load
-        const initialHref = $topLinks.filter('.active').attr('href') || '#user-dashboard';
-        showTopPane(initialHref);
-      });
-    </script>
+    @include('farmers.modal.sell')
 
 </x-app-layout>
