@@ -29,11 +29,26 @@
                                     @endphp
                                     <div class="list-group-item py-3">
                                         <div class="d-flex align-items-center gap-3">
-                                            <input class="form-check-input mt-0 item-check" type="checkbox"
-                                                name="selected_items[]" value="{{ $cartItem->id }}" checked
-                                                data-price="{{ $cartItem->product->price }}"
-                                                data-qty="{{ $cartItem->quantity }}"
-                                                data-seller="{{ $cartItem->product->user_id }}">
+                                            @if($cartItem->id == 0)
+                                                {{-- Buy Now flow: send product + qty --}}
+                                                <input type="hidden" name="selected_items[0][product_id]"
+                                                    value="{{ $cartItem->product->id }}">
+                                                <input type="hidden" name="selected_items[0][quantity]"
+                                                    value="{{ $cartItem->quantity }}">
+
+                                                {{-- Hidden checkbox for JS subtotal calculation --}}
+                                                <input type="checkbox" class="item-check d-none" checked
+                                                    data-price="{{ $cartItem->product->price }}"
+                                                    data-qty="{{ $cartItem->quantity }}"
+                                                    data-seller="{{ $cartItem->product->user_id }}">
+                                            @else
+                                                {{-- Normal cart checkout --}}
+                                                <input class="form-check-input mt-0 item-check" type="checkbox"
+                                                    name="selected_items[]" value="{{ $cartItem->id }}" checked
+                                                    data-price="{{ $cartItem->product->price }}"
+                                                    data-qty="{{ $cartItem->quantity }}"
+                                                    data-seller="{{ $cartItem->product->user_id }}">
+                                            @endif
                                             <img src="{{ asset('storage/' . $cartItem->product->image) }}"
                                                 alt="{{ $cartItem->product->name }}" class="rounded border"
                                                 style="width:76px;height:76px;object-fit:cover;">
@@ -116,13 +131,15 @@
                                 <div class="card-body payment-methods">
                                     <label class="form-check d-flex align-items-center justify-content-between mb-2">
                                         <div class="d-flex align-items-center gap-2">
-                                            <input class="form-check-input" type="radio" name="payment_method" id="pm_gcash" value="gcash" required>
+                                            <input class="form-check-input" type="radio" name="payment_method" id="pm_gcash"
+                                                value="gcash" required>
                                             <span>GCash</span>
                                         </div>
                                     </label>
                                     <label class="form-check d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
-                                            <input class="form-check-input" type="radio" name="payment_method" id="pm_cod" value="cod">
+                                            <input class="form-check-input" type="radio" name="payment_method" id="pm_cod"
+                                                value="cod">
                                             <span>Cash on Delivery</span>
                                         </div>
                                     </label>
@@ -138,28 +155,33 @@
                                 <div class="card-body">
 
                                     <div class="d-flex justify-content-between mb-2">
-                                    <div class="text-start">Sub Total:</div>
-                                    <div class="text-end">₱<span id="sum-subtotal">{{ number_format($subtotal, 2) }}</span></div>
-                                </div>
-
-                                <div class="d-flex justify-content-between mb-2">
-                                    <div class="text-start">Shipping Subtotal:</div>
-                                    <div class="text-end">₱<span id="sum-shipping">{{ number_format($totalShipping, 2) }}</span></div>
-                                </div>
-
-                                <div class="d-flex justify-content-between mb-2">
-                                    <div class="text-start">Shipping Discount Subtotal:</div>
-                                    <div class="text-end">- ₱<span id="sum-shipping-discount">{{ number_format($shippingDiscount ?? 0, 2) }}</span></div>
-                                </div>
-
-                                <hr class="my-3">
-
-                                <div class="d-flex justify-content-between fs-5 fw-bold">
-                                    <div class="text-start">Total Payment</div>
-                                    <div class="text-end text-success">
-                                        ₱<span id="sum-total">{{ number_format(($subtotal + $totalShipping) - ($shippingDiscount ?? 0), 2) }}</span>
+                                        <div class="text-start">Sub Total:</div>
+                                        <div class="text-end">₱<span
+                                                id="sum-subtotal">{{ number_format($subtotal, 2) }}</span></div>
                                     </div>
-                                </div>
+
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <div class="text-start">Shipping Subtotal:</div>
+                                        <div class="text-end">₱<span
+                                                id="sum-shipping">{{ number_format($totalShipping, 2) }}</span></div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <div class="text-start">Shipping Discount Subtotal:</div>
+                                        <div class="text-end">- ₱<span
+                                                id="sum-shipping-discount">{{ number_format($shippingDiscount ?? 0, 2) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-3">
+
+                                    <div class="d-flex justify-content-between fs-5 fw-bold">
+                                        <div class="text-start">Total Payment</div>
+                                        <div class="text-end text-success">
+                                            ₱<span
+                                                id="sum-total">{{ number_format(($subtotal + $totalShipping) - ($shippingDiscount ?? 0), 2) }}</span>
+                                        </div>
+                                    </div>
 
                                     {{-- Optional: keep per-seller shipping breakdown, shown smaller below --}}
                                     @if(!empty($shippingBySeller))
@@ -448,9 +470,29 @@
                 const pm = document.querySelector('input[name="payment_method"]:checked');
                 if (!pm) return alert('Please select a payment method.');
 
-                const selectedItems = Array.from(document.querySelectorAll('input[name="selected_items[]"]:checked')).map(i => i.value);
-                if (!selectedItems.length) return alert('Please select at least one product.');
+                // --- Collect selected items ---
+                let selectedItems = Array.from(
+                    document.querySelectorAll('input[name="selected_items[]"]:checked')
+                ).map(i => i.value);
 
+                // If cart items are empty, check for Buy Now hidden fields
+                if (!selectedItems.length) {
+                    const buyNowProductId = document.querySelector('input[name="selected_items[0][product_id]"]')?.value;
+                    const buyNowQty = document.querySelector('input[name="selected_items[0][quantity]"]')?.value;
+
+                    if (buyNowProductId && buyNowQty) {
+                        selectedItems = [{
+                            product_id: buyNowProductId,
+                            quantity: buyNowQty
+                        }];
+                    }
+                }
+
+                if (!selectedItems.length) {
+                    return alert('Please select at least one product.');
+                }
+
+                // --- Send request ---
                 fetch("{{ route('checkout.process') }}", {
                     method: "POST",
                     headers: {
@@ -487,15 +529,18 @@
     <style>
         .checkout-page .card {
             border-radius: 12px;
-            display: block;  
+            display: block;
             align-items: unset !important;
-            text-align: left; 
+            text-align: left;
         }
-        .checkout-page .card-body > .d-flex {
-        width: 100%;                 /* rows span full width */
+
+        .checkout-page .card-body>.d-flex {
+            width: 100%;
+            /* rows span full width */
         }
+
         .checkout-page .card-body .text-end {
-        text-align: right !important;
+            text-align: right !important;
         }
 
         .checkout-page .card-header {
@@ -505,15 +550,19 @@
         .checkout-page .list-group-item {
             border-color: #f1f1f1;
         }
+
         /* Payment methods alignment */
         .payment-methods .form-check {
             width: 100%;
             cursor: pointer;
         }
+
         .payment-methods span {
             flex: 1;
-            text-align: left;        /* label text left-aligned */
+            text-align: left;
+            /* label text left-aligned */
         }
+
         .checkout-page .form-check-input {
             width: 18px;
             height: 18px;

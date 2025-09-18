@@ -47,10 +47,11 @@
 
                 <div class="d-flex align-items-center gap-3 small text-muted mb-3">
                     <div class="text-warning">
-                    <i class="fa fa-star"></i>
-                    <span>{{ $avgRating ?? '—' }}</span>
-                </div>
-                <a href="#ratings" class="text-decoration-none">{{ number_format($storeStats['ratings_count']) }} Ratings</a>
+                        <i class="fa fa-star"></i>
+                        <span>{{ $avgRating ?? '—' }}</span>
+                    </div>
+                    <a href="#ratings" class="text-decoration-none">{{ number_format($storeStats['ratings_count']) }}
+                        Ratings</a>
                     <span class="text-muted">|</span>
                     <span>Sold {{ $product->total_sold ?? '—' }}</span>
                 </div>
@@ -80,14 +81,9 @@
                     <span class="me-3 text-muted">Quantity</span>
                     <div class="input-group" style="max-width: 180px;">
                         <button class="btn btn-outline-secondary" type="button" id="decQty">−</button>
-                        <input
-                            type="number"
-                            class="form-control text-center"
-                            id="qtyInput"
-                            min="{{ (int)($product->min_order_qty ?? 1) }}"
-                            max="{{ (int)($product->stock ?? 9999) }}"
-                            value="{{ (int)($product->min_order_qty ?? 1) }}"
-                        >
+                        <input type="number" class="form-control text-center" id="qtyInput"
+                            min="{{ (int) ($product->min_order_qty ?? 1) }}" max="{{ (int) ($product->stock ?? 9999) }}"
+                            value="{{ (int) ($product->min_order_qty ?? 1) }}">
                         <button class="btn btn-outline-secondary" type="button" id="incQty">+</button>
                     </div>
                 </div>
@@ -96,25 +92,30 @@
                 <div class="d-flex flex-wrap gap-2">
                     <form id="addToCartForm" method="POST" action="{{ route('cart.add', $product->id) }}">
                         @csrf
-                        <input type="hidden" name="quantity" id="qtyField" value="{{ (int)($product->min_order_qty ?? 1) }}">
+                        <input type="hidden" name="quantity" id="qtyField"
+                            value="{{ (int) ($product->min_order_qty ?? 1) }}">
                         <button type="submit" class="btn btn-outline-danger btn-lg px-4">
                             <i class="fas fa-cart-plus me-1"></i> Add To Cart
                         </button>
                     </form>
 
-                    <form method="GET" action="{{ route('checkout.show') }}"
+                    <form method="POST" action="{{ route('checkout.prepare') }}"
                         onsubmit="document.getElementById('buyNowQty').value = document.getElementById('qtyInput').value;">
+                        @csrf
                         <input type="hidden" name="product_id" value="{{ $product->id }}">
-                        <input type="hidden" id="buyNowQty" name="quantity" value="{{ (int)($product->min_order_qty ?? 1) }}">
+                        <input type="hidden" id="buyNowQty" name="quantity"
+                            value="{{ (int) ($product->min_order_qty ?? 1) }}">
                         <button class="btn btn-danger btn-lg px-4">Buy Now</button>
                     </form>
+
 
 
                     @auth
                         <form method="POST" action="{{ route('wishlist.toggle', $product->id) }}">
                             @csrf
                             <button class="btn btn-outline-secondary btn-lg" type="submit">
-                                <i class="{{ auth()->user()->wishlist->contains($product->id) ? 'fas' : 'far' }} fa-heart me-1"></i>
+                                <i
+                                    class="{{ auth()->user()->wishlist->contains($product->id) ? 'fas' : 'far' }} fa-heart me-1"></i>
                                 Favorite
                             </button>
                         </form>
@@ -137,12 +138,9 @@
         <div class="mt-5 p-3 border rounded bg-white">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                 <div class="d-flex align-items-center gap-3">
-                    <img
-                        src="{{ $seller?->profile_picture ? asset('storage/'.$seller->profile_picture) : asset('assets/default.png') }}"
-                        alt="{{ $seller?->username ?? 'Seller' }}"
-                        class="rounded-circle"
-                        style="width:64px;height:64px;object-fit:cover;"
-                    >
+                    <img src="{{ $seller?->profile_picture ? asset('storage/' . $seller->profile_picture) : asset('assets/default.png') }}"
+                        alt="{{ $seller?->username ?? 'Seller' }}" class="rounded-circle"
+                        style="width:64px;height:64px;object-fit:cover;">
                     <div>
                         <div class="fw-semibold">{{ $seller?->username ?? $seller?->name ?? 'Seller' }}</div>
                         <div class="small text-muted">
@@ -170,8 +168,10 @@
 
             <div class="d-flex flex-wrap gap-4 mt-3 small">
                 <div><span class="text-muted">Ratings:</span> {{ number_format($storeStats['ratings_count']) }}</div>
-                @if($storeStats['response_rate']) <div><span class="text-muted">Response Rate:</span> {{ $storeStats['response_rate'] }}</div> @endif
-                @if($storeStats['response_time']) <div><span class="text-muted">Response Time:</span> {{ $storeStats['response_time'] }}</div> @endif
+                @if($storeStats['response_rate'])
+                <div><span class="text-muted">Response Rate:</span> {{ $storeStats['response_rate'] }}</div> @endif
+                @if($storeStats['response_time'])
+                <div><span class="text-muted">Response Time:</span> {{ $storeStats['response_time'] }}</div> @endif
             </div>
         </div>
 
@@ -202,12 +202,42 @@
     </div>
 
     <style>
-        .product-gallery .main-image { max-height: 520px; display:flex; align-items:center; justify-content:center; }
-        .product-gallery .main-image img { max-height: 500px; width:100%; object-fit:contain; }
-        .thumbs .thumb-img { width:70px; height:70px; object-fit:cover; border:1px solid #e5e5e5; border-radius:8px; }
-        .thumbs .thumb.active .thumb-img, .thumbs .thumb-img:hover { border-color:#d0011b; }
-        .price-box { background:#fff5f6; border:1px solid #ffd9de; }
-        @media (max-width: 991.98px) { .product-gallery .main-image { max-height: 380px; } }
+        .product-gallery .main-image {
+            max-height: 520px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .product-gallery .main-image img {
+            max-height: 500px;
+            width: 100%;
+            object-fit: contain;
+        }
+
+        .thumbs .thumb-img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+        }
+
+        .thumbs .thumb.active .thumb-img,
+        .thumbs .thumb-img:hover {
+            border-color: #d0011b;
+        }
+
+        .price-box {
+            background: #fff5f6;
+            border: 1px solid #ffd9de;
+        }
+
+        @media (max-width: 991.98px) {
+            .product-gallery .main-image {
+                max-height: 380px;
+            }
+        }
     </style>
 
     <script>
@@ -233,28 +263,28 @@
     </script>
 
     <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('addToCartForm');
-  if (!form) return;
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('addToCartForm');
+            if (!form) return;
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault(); // stop full-page POST
-    fetch(form.action, {
-      method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-        'Accept': 'application/json'
-      },
-      body: new FormData(form)
-    })
-    .then(r => r.json())
-    .then(data => {
-      // Use your own toast/SweetAlert here
-      alert(data.message || 'Added to cart!');
-    })
-    .catch(() => alert('Something went wrong adding to cart.'));
-  });
-});
-</script>
+            form.addEventListener('submit', (e) => {
+                e.preventDefault(); // stop full-page POST
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: new FormData(form)
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        // Use your own toast/SweetAlert here
+                        alert(data.message || 'Added to cart!');
+                    })
+                    .catch(() => alert('Something went wrong adding to cart.'));
+            });
+        });
+    </script>
 
 </x-app-layout>

@@ -13,21 +13,47 @@ use Illuminate\Support\Facades\Auth;
 
 class CheckoutController extends Controller
 {
+    // ✅ FIXED prepareCheckout
     public function prepareCheckout(Request $request)
     {
+        // If coming from cart (selected items)
         $selectedItems = $request->input('selected_items', []);
 
-        if (empty($selectedItems)) {
-            return response()->json(['error' => 'No items selected.'], 400);
+        if (!empty($selectedItems)) {
+            session(['selected_items' => $selectedItems]);
+            return response()->json(['redirect_url' => route('checkout.show')]);
         }
 
-        // Store selected items in session for checkout page
-        session(['selected_items' => $selectedItems]);
+        // If coming from Buy Now (single product)
+        if ($request->has('product_id')) {
+            $productId = $request->input('product_id');
+            $quantity = max(1, (int) $request->input('quantity', 1)); // 👈 force int
 
-        // Redirect to checkout page
-        return response()->json(['redirect_url' => route('checkout.show')]);
+            $product = \App\Models\Product::findOrFail($productId);
+
+            if ($product->stock < $quantity) {
+                return redirect()->back()->with('error', 'Not enough stock available.');
+            }
+
+            session([
+                'selected_items' => [
+                    [
+                        'product_id' => $product->id,
+                        'quantity' => (int) $quantity, // 👈 force int
+                        'buy_now' => true,
+                    ]
+                ]
+            ]);
+
+            return redirect()->route('checkout.show');
+        }
+
+        return response()->json(['error' => 'No items selected.'], 400);
     }
 
+
+
+    // ✅ FIXED showCheckout
     public function showCheckout()
     {
         $user = Auth::user();
@@ -42,10 +68,32 @@ class CheckoutController extends Controller
             return redirect()->route('shop')->with('error', 'No items selected for checkout.');
         }
 
-        $cartItems = Cart::where('user_id', $user->id)
-            ->whereIn('id', $selectedItems)
-            ->with('product.user')
-            ->get();
+        $cartItems = collect();
+
+        if (isset($selectedItems[0]['product_id'])) {
+            // ✅ Buy Now flow
+            foreach ($selectedItems as $item) {
+                $product = Product::with('user')->find($item['product_id']);
+                if ($product) {
+                    // Create a "fake" cart item so checkout page can still use same blade
+                    $fakeCart = new Cart([
+                        'id' => 0, // fake ID (not in DB)
+                        'user_id' => $user->id,
+                        'product_id' => $product->id,
+                        'quantity' => (int) ($item['quantity'] ?? 1), // 👈 force int
+                    ]);
+                    $fakeCart->setRelation('product', $product);
+                    $cartItems->push($fakeCart);
+                }
+            }
+        } else {
+            // ✅ Cart Checkout flow
+            $cartIds = array_map('intval', $selectedItems);
+            $cartItems = Cart::where('user_id', $user->id)
+                ->whereIn('id', $cartIds)
+                ->with('product.user')
+                ->get();
+        }
 
         if ($cartItems->isEmpty()) {
             return redirect()->route('shop')->with('error', 'Your cart is empty.');
@@ -53,15 +101,15 @@ class CheckoutController extends Controller
 
         // ✅ Subtotal
         $subtotal = $cartItems->sum(
-            fn($item) =>
-            $item->product ? $item->product->price * $item->quantity : 0
+            fn($item) => $item->product ? $item->product->price * (int) $item->quantity : 0
         );
 
         // ✅ Shipping by seller
         $shippingBySeller = [];
         foreach ($cartItems as $item) {
-            if (!$item->product || !$item->product->user)
+            if (!$item->product || !$item->product->user) {
                 continue;
+            }
 
             $sellerId = $item->product->user->id;
             $buyerTown = $user->town ?? 'default_town';
@@ -75,7 +123,7 @@ class CheckoutController extends Controller
                 ];
             }
 
-            $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * $item->quantity;
+            $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * (int) $item->quantity;
         }
 
         // ✅ Calculate shipping fees
@@ -105,6 +153,9 @@ class CheckoutController extends Controller
             'shippingBySeller'
         ));
     }
+
+
+
 
 
 
@@ -177,26 +228,63 @@ class CheckoutController extends Controller
         try {
             $request->validate([
                 'address_id' => 'required|exists:addresses,id',
-                'selected_items' => 'required|array',
-                'payment_method' => 'required|string'
+                'payment_method' => 'required|string',
             ]);
 
             $user = auth()->user();
-            $selectedItems = $request->selected_items;
 
-            $cartItems = Cart::where('user_id', $user->id)
-                ->whereIn('id', $selectedItems)
-                ->with('product.user')
-                ->get();
+            // ✅ Pull from request OR session (for Buy Now)
+            $selectedItems = $request->selected_items ?? session('selected_items', []);
+
+            if (empty($selectedItems)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No items selected.'
+                ]);
+            }
+
+            $cartItems = collect();
+
+            // ✅ Detect Buy Now flow
+            if (isset($selectedItems[0]['product_id'])) {
+                foreach ($selectedItems as $item) {
+                    $product = Product::with('user')->findOrFail($item['product_id']);
+
+                    if ($product->stock < $item['quantity']) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Not enough stock for {$product->name}"
+                        ], 400);
+                    }
+
+                    // Fake cart item so checkout flow works
+                    $fakeCart = new Cart([
+                        'id' => 0,
+                        'user_id' => $user->id,
+                        'product_id' => $product->id,
+                        'quantity' => $item['quantity'],
+                    ]);
+                    $fakeCart->setRelation('product', $product);
+                    $cartItems->push($fakeCart);
+                }
+            } else {
+                // ✅ Cart Checkout flow
+                $cartItems = Cart::where('user_id', $user->id)
+                    ->whereIn('id', $selectedItems)
+                    ->with('product.user')
+                    ->get();
+            }
 
             if ($cartItems->isEmpty()) {
-                return response()->json(['success' => false, 'message' => 'No valid items found.']);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid items found.'
+                ]);
             }
 
             // ✅ Subtotal
             $subtotal = $cartItems->sum(
-                fn($item) =>
-                $item->product ? $item->product->price * $item->quantity : 0
+                fn($item) => $item->product ? $item->product->price * $item->quantity : 0
             );
 
             // ✅ Shipping
@@ -228,7 +316,7 @@ class CheckoutController extends Controller
                 'payment_method' => $request->payment_method,
                 'status' => 'pending',
                 'total_amount' => $grandTotal,
-                'shipping_fee' => $totalShipping, // 🆕 keep separate if you have column
+                'shipping_fee' => $totalShipping,
             ]);
 
             foreach ($cartItems as $cartItem) {
@@ -237,7 +325,11 @@ class CheckoutController extends Controller
                     'quantity' => $cartItem->quantity,
                     'price' => $cartItem->product->price
                 ]);
-                $cartItem->delete();
+
+                // Only delete if it’s a real cart item
+                if ($cartItem->id != 0) {
+                    $cartItem->delete();
+                }
             }
 
             return response()->json([
@@ -247,12 +339,17 @@ class CheckoutController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Checkout failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage()
             ], 500);
         }
     }
+
+
 
     public function saveSelectedAddress(Request $request)
     {

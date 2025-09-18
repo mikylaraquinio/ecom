@@ -209,4 +209,34 @@ class ProfileController extends Controller
         return redirect()->back()->with('error', 'Order cannot be canceled at this stage.');
     }
 
+    public function confirmReceipt($id)
+    {
+        $order = Order::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->with('orderItems.product') // ✅ load order items + products
+            ->firstOrFail();
+
+        // Reduce stock when completing
+        foreach ($order->orderItems as $item) {
+            $product = $item->product;
+
+            if ($product) {
+                if ($product->stock >= $item->quantity) {
+                    $product->stock -= $item->quantity;
+                    $product->save();
+                } else {
+                    return redirect()->back()->with('error', "Not enough stock for {$product->name}.");
+                }
+            }
+        }
+
+        $order->status = 'completed';
+        $order->delivered_at = now();
+        $order->save();
+
+        return redirect()->route('user_profile')->with('success', 'Order marked as completed.');
+    }
+
+
+
 }
