@@ -49,8 +49,13 @@
               </div>
 
               <div class="d-flex justify-content-between align-items-center text-muted mb-2" style="font-size:12px;">
-                <span><i class="fas fa-star text-warning"></i> 4.8</span>
-                <span>Sold 234</span>
+                <span>
+                  <i class="fas fa-star text-warning"></i>
+                  {{ $product->avg_rating ? number_format($product->avg_rating, 1) : '—' }}
+                  {{-- optional: show count --}}
+                  {{-- <span class="ms-1">({{ $product->ratings_count }})</span> --}}
+                </span>
+                <span>Sold {{ number_format((int)($product->total_sold ?? 0)) }}</span>
               </div>
 
               <!-- Quick Add to Cart -->

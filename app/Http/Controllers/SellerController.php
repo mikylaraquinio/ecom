@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\Category;
+use App\Notifications\OrderStatusUpdated;
 use App\Models\Seller;
-use Illuminate\Support\Facades\DB;
+
 
 class SellerController extends Controller
 {
@@ -18,42 +20,86 @@ class SellerController extends Controller
     }
 
     public function storeSeller(Request $request)
-    {
-        $request->validate([
-            'farm_name' => 'required|string|max:255',
-            'farm_address' => 'required|string|max:255',
-            'gov_id' => 'nullable|file|mimes:jpg,png,pdf|max:2048',
-            'farm_certificate' => 'nullable|file|mimes:jpg,png,pdf|max:2048',
-            'mobile_money' => 'nullable|string|max:20',
-            'terms' => 'required|accepted',
-        ]);
+{
+    $user = Auth::user();
 
-        // Get authenticated user
-        $user = Auth::user();
+    $validated = $request->validate([
+        'shop_name'            => 'required|string|max:30',
+        'pickup_address'       => 'nullable|string|max:255',
+        'pickup_full_name'     => 'nullable|string|max:255',
+        'pickup_phone'         => 'nullable|string|max:50',
+        'pickup_region_group'  => 'nullable|string|max:100',
+        'pickup_province'      => 'nullable|string|max:100',
+        'pickup_city'          => 'nullable|string|max:100',
+        'pickup_barangay'      => 'nullable|string|max:100',
+        'pickup_postal'        => 'nullable|string|max:16',
+        'pickup_detail'        => 'nullable|string|max:1000',
+        'business_type'        => 'required|string|in:individual,sole,corporation,cooperative',
+        'tax_id'               => 'nullable|string|max:50',
+        'gov_id'               => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        'rsbsa'                => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        'mayors_permit'        => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+    ]);
 
-        if (!$user || !$user instanceof User) {
-            return redirect()->back()->with('error', 'User not found or not authenticated.');
-        }
+    $govPath = $request->file('gov_id')
+        ? $request->file('gov_id')->store('seller_docs', 'public')
+        : optional($user->seller)->gov_id_path;
 
-        // Handle file uploads
-        $govIdPath = $request->hasFile('gov_id') ? $request->file('gov_id')->store('documents', 'public') : $user->gov_id;
-        $farmCertPath = $request->hasFile('farm_certificate') ? $request->file('farm_certificate')->store('documents', 'public') : $user->farm_certificate;
+    $rsbsaPath = $request->file('rsbsa')
+        ? $request->file('rsbsa')->store('seller_docs', 'public')
+        : optional($user->seller)->rsbsa_path;
 
-        // Manually updating attributes instead of using update()
-        $user->farm_name = $request->farm_name;
-        $user->farm_address = $request->farm_address;
-        $user->gov_id = $govIdPath;
-        $user->farm_certificate = $farmCertPath;
-        $user->mobile_money = $request->mobile_money;
-        $user->role = 'seller'; // Change user role to seller
+    $mayorsPermitPath = $request->file('mayors_permit')
+        ? $request->file('mayors_permit')->store('seller_docs', 'public')
+        : optional($user->seller)->mayors_permit_path;
 
-        $user->save(); // Save changes to the database
+    $data = [
+        'shop_name'           => $validated['shop_name'],
+        'pickup_address'      => $validated['pickup_address']      ?? null,
+        'pickup_full_name'    => $validated['pickup_full_name']    ?? null,
+        'pickup_phone'        => $validated['pickup_phone']        ?? null,
+        'pickup_region_group' => $validated['pickup_region_group'] ?? null,
+        'pickup_province'     => $validated['pickup_province']     ?? null,
+        'pickup_city'         => $validated['pickup_city']         ?? null,
+        'pickup_barangay'     => $validated['pickup_barangay']     ?? null,
+        'pickup_postal'       => $validated['pickup_postal']       ?? null,
+        'pickup_detail'       => $validated['pickup_detail']       ?? null,
 
-        return redirect()->route('user_profile')->with('success', 'Seller registration successful!');
+        'business_type'       => $validated['business_type'],
+        'tax_id'              => $validated['tax_id']              ?? null,
+        'gov_id_path'         => $govPath,
+        'rsbsa_path'          => $rsbsaPath,
+        'mayors_permit_path'  => $mayorsPermitPath,
+
+        'status'              => 'approved', // or 'pending'
+    ];
+
+    \App\Models\Seller::updateOrCreate(['user_id' => $user->id], $data);
+
+    if ($user->role !== 'seller') {
+        $user->role = 'seller';
+        $user->save();
+        Auth::setUser($user->fresh());
     }
+
+    // 👇 keep this route in sync with your JS (or change to user_profile if you prefer)
+    $redirect = route('user_profile');
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success'      => true,
+            'message'      => 'Seller registration saved!',
+            'redirect_url' => $redirect,
+        ], 200);
+    }
+
+    return redirect($redirect)->with('success', 'Seller registration saved!');
+}
+
 
     public function myOrders()
     {
+        // ✅ fix: use auth()->user()
         $user = auth()->user();
 
         $ordersToShip = $user->orders()
@@ -81,21 +127,38 @@ class SellerController extends Controller
         ));
     }
 
-
     public function incomingOrders()
     {
         $orders = Order::whereHas('orderItems', function ($query) {
             $query->whereHas('product', function ($subQuery) {
+                // ✅ fix: use auth()->id()
                 $subQuery->where('user_id', auth()->id());
             });
-        })->orderBy('created_at', 'desc') // ✅ Add this
-            ->with('orderItems.product', 'buyer', 'shippingAddress') // Optional: eager load to reduce N+1
-            ->get();
+        })
+        ->orderBy('created_at', 'desc')
+        ->with('orderItems.product', 'buyer', 'shippingAddress')
+        ->get();
 
+        // ✅ fix: use auth()->user()
         $user = auth()->user();
-        $mainCategories = Category::whereNull('parent_id')->get(); // Add this
+        $mainCategories = Category::whereNull('parent_id')->get();
 
-        return view('myshop', compact('orders', 'mainCategories', 'user'));
+        // 🔔 Notifications for this page as well (optional but useful)
+        $unreadNotifications = $user->unreadNotifications()->latest()->take(10)->get();
+        $allNotifications    = $user->notifications()->latest()->paginate(10);
+
+        // (Optional) Mark order notifications as read when viewing this page:
+        // $user->unreadNotifications()
+        //     ->where('type', \App\Notifications\NewIncomingOrderNotification::class)
+        //     ->get()->each->markAsRead();
+
+        return view('myshop', compact(
+            'orders',
+            'mainCategories',
+            'user',
+            'unreadNotifications',
+            'allNotifications'
+        ));
     }
 
     public function approveOrder($id)
@@ -119,7 +182,6 @@ class SellerController extends Controller
         $order = Order::findOrFail($id);
         $newStatus = $request->input('status');
 
-        // When marking as completed, reduce stock
         if ($newStatus === 'completed') {
             foreach ($order->orderItems as $item) {
                 $product = $item->product;
@@ -130,19 +192,24 @@ class SellerController extends Controller
                     return redirect()->back()->with('error', "Not enough stock for {$product->name}.");
                 }
             }
-            $order->delivered_at = now(); // ✅ Set delivered date
+            $order->delivered_at = now();
         }
 
         if ($newStatus === 'shipped') {
-            $order->shipped_at = now(); // ✅ Set shipped date
+            $order->shipped_at = now();
         }
 
         $order->status = $newStatus;
         $order->save();
 
+        $extra = null;
+        if ($newStatus === 'shipped') {
+            $extra = trim(' '.($request->courier ?? '').' '.($request->tracking_no ?? ''));
+        }
+        $this->notifyBuyer($order, $extra); // 👈
+
         return redirect()->route('myshop')->with('success', 'Order status updated successfully.');
     }
-
 
     public function myShop()
     {
@@ -150,59 +217,65 @@ class SellerController extends Controller
         return view('myshop', compact('categories'));
     }
 
-    public function index()
+    public function index(Request $request)
     {
+        // ✅ fix: use auth()->user()
         $user = auth()->user();
 
         // Fetch main categories
         $mainCategories = Category::whereNull('parent_id')->get();
 
-        // Fetch seller's orders
-        $orders = [];
+        // 🔔 Notifications (Step 6)
+        $unreadNotifications = $user->unreadNotifications()->latest()->take(10)->get();
+        $allNotifications    = $user->notifications()->latest()->paginate(10);
+
+        // Fetch seller's orders with optional status filter
+        $orders = collect();
         if ($user->role === 'seller') {
             $orders = Order::whereHas('orderItems.product', function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })->with('orderItems.product')
+                    $query->where('user_id', $user->id);
+                })
+                ->when($request->filled('status'), function ($q) use ($request) {
+                    $q->where('status', $request->status);
+                })
+                ->with([
+                    'orderItems.product',   // products in the order
+                    'buyer',                // used as $order->buyer->name
+                    'shippingAddress',      // used in the table
+                ])
                 ->orderBy('created_at', 'desc')
-                ->paginate(10);
+                ->paginate(10)
+                ->appends($request->query()); // keep filter in pagination links
         }
 
         $products = $user->products;
 
-        // ✅ Completed Sales (actual revenue)
+        // --- analytics ---
         $completedSales = Order::whereHas('orderItems.product', function ($query) use ($user) {
             $query->where('user_id', $user->id);
-        })->where('status', 'completed')
-            ->sum('total_amount');
+        })->where('status', 'completed')->sum('total_amount');
 
-        // ✅ Pending Sales (potential revenue)
         $pendingSales = Order::whereHas('orderItems.product', function ($query) use ($user) {
             $query->where('user_id', $user->id);
-        })->where('status', 'pending')
-            ->sum('total_amount');
+        })->where('status', 'pending')->sum('total_amount');
 
-        // ✅ Combine into total (optional)
         $totalSales = $completedSales + $pendingSales;
 
-        // ✅ Total Orders (all statuses)
         $totalOrders = Order::whereHas('orderItems.product', function ($query) use ($user) {
             $query->where('user_id', $user->id);
         })->count();
 
-        // ✅ Completed Orders only
         $completedOrders = Order::whereHas('orderItems.product', function ($query) use ($user) {
             $query->where('user_id', $user->id);
         })->where('status', 'completed')->count();
 
-        // ✅ Pending Orders only
         $pendingOrders = Order::whereHas('orderItems.product', function ($query) use ($user) {
             $query->where('user_id', $user->id);
         })->where('status', 'pending')->count();
 
-        // Get all seller's completed order items grouped by product
         $topProducts = Order::whereHas('orderItems.product', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })
+                $query->where('user_id', $user->id);
+            })
             ->where('status', 'completed')
             ->with('orderItems.product')
             ->get()
@@ -215,31 +288,23 @@ class SellerController extends Controller
                 ];
             })
             ->sortByDesc('total_quantity')
-            ->take(5); // ✅ Top 5
+            ->take(5);
 
-        // Pick the first as the "Most Sold"
         $mostSoldProduct = $topProducts->first();
 
-        $lowStockCount = $user->products()
-            ->where('stock', '<=', 5)
-            ->count();
-
-        $lowStockProducts = $user->products()
-            ->where('stock', '<=', 5)
-            ->get();
-
+        $lowStockCount = $user->products()->where('stock', '<=', 5)->count();
+        $lowStockProducts = $user->products()->where('stock', '<=', 5)->get();
 
         $revenueTrends = Order::whereHas('orderItems.product', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })
-            ->where('status', 'completed') // only count completed orders
+                $query->where('user_id', $user->id);
+            })
+            ->where('status', 'completed')
             ->select(
                 DB::raw('MONTH(created_at) as month'),
                 DB::raw('SUM(total_amount) as total')
             )
             ->groupBy(DB::raw('MONTH(created_at)'))
             ->pluck('total', 'month');
-
 
         return view('myshop', compact(
             'user',
@@ -256,7 +321,9 @@ class SellerController extends Controller
             'mostSoldProduct',
             'lowStockCount',
             'lowStockProducts',
-            'revenueTrends'
+            'revenueTrends',
+            'unreadNotifications',
+            'allNotifications'
         ));
     }
 
@@ -264,12 +331,11 @@ class SellerController extends Controller
     {
         $order = Order::findOrFail($id);
 
-        // Make sure only the buyer who owns the order can confirm
+        // ✅ fix: use auth()->id()
         if ($order->user_id !== auth()->id()) {
             return redirect()->back()->with('error', 'Unauthorized action.');
         }
 
-        // Mark as completed (same as seller side)
         $order->status = 'completed';
         $order->delivered_at = now();
         $order->save();
@@ -300,5 +366,15 @@ class SellerController extends Controller
 
         return redirect()->route('myshop')->with('error', 'Invalid request.');
     }
+
+    private function notifyBuyer(Order $order, ?string $extraMsg = null): void
+    {
+        $buyer = $order->user ?? $order->buyer;
+        if ($buyer) {
+            $buyer->notify(new OrderStatusUpdated($order, $extraMsg));
+        }
+    }
+
+    
 
 }

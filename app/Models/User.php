@@ -3,9 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+
 use Illuminate\Support\Facades\Hash;
 
 class User extends Authenticatable
@@ -77,7 +78,7 @@ class User extends Authenticatable
     }
     public function seller()
     {
-        return $this->hasOne(Seller::class, 'user_id');
+        return $this->hasOne(\App\Models\Seller::class);
     }
 
     public function wishlist()
@@ -95,6 +96,7 @@ class User extends Authenticatable
         return $this->hasMany(Message::class, 'receiver_id');
     }
 
+    
 
 
 }

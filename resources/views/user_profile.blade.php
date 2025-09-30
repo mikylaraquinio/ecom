@@ -72,19 +72,17 @@
                             </a>
                         </li>
 
-                        @if(auth()->user()->role !== 'seller')
-                            <li class="nav-item">
-                                <a href="#" class="nav-link text-white" data-toggle="modal" data-target="#ModalCreate">
-                                    <i class="fas fa-tractor mr-2"></i> Start Selling
+                        <div class="ptc-right" id="shopButtonContainer">
+                            @if(auth()->user()->role !== 'seller')
+                                <a id="startSellingBtn" href="#" class="ptc-shop" data-toggle="modal" data-target="#ModalCreate">
+                                <i class="fas fa-store mr-1"></i> Start Selling
                                 </a>
-                            </li>
-                        @else
-                            <li class="nav-item">
-                                <a href="{{ route('myshop') }}" class="btn text-white shadow-sm rounded-pill px-4 d-flex align-items-center justify-content-center" style="background-color: #8B5E3C;">
-                                    <i class="fas fa-store mr-2"></i> My Shop
+                            @else
+                                <a href="{{ route('myshop') }}" class="ptc-shop">
+                                <i class="fas fa-store mr-1"></i> My Shop
                                 </a>
-                            </li>
-                        @endif
+                            @endif
+                        </div>
                     </ul>
                 </div>
             </nav>
@@ -108,7 +106,7 @@
                   <div class="ptc-right">
                     @if(auth()->user()->role !== 'seller')
                             <div class="text-center mt-3">
-                            <a href="#" class="ptc-shop" data-toggle="modal" data-target="#ModalCreate">
+                            <a id="startSellingBtn" href="#" class="ptc-shop" data-toggle="modal" data-target="#ModalCreate">
                         <i class="fas fa-store mr-1"></i> Start Selling
                             </a>
 

@@ -8,6 +8,9 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Address;
 use App\Models\Product;
+use App\Models\User;
+use App\Notifications\NewOrderForSeller;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -53,7 +56,6 @@ class CheckoutController extends Controller
 
 
 
-    // ✅ FIXED showCheckout
     public function showCheckout()
     {
         $user = Auth::user();
@@ -73,14 +75,15 @@ class CheckoutController extends Controller
         if (isset($selectedItems[0]['product_id'])) {
             // ✅ Buy Now flow
             foreach ($selectedItems as $item) {
-                $product = Product::with('user')->find($item['product_id']);
+                // ⭐ CHANGE #1: eager-load seller profile too
+                $product = \App\Models\Product::with('user.seller')->findOrFail($item['product_id']);
                 if ($product) {
                     // Create a "fake" cart item so checkout page can still use same blade
-                    $fakeCart = new Cart([
-                        'id' => 0, // fake ID (not in DB)
-                        'user_id' => $user->id,
+                    $fakeCart = new \App\Models\Cart([
+                        'id'         => 0, // fake ID (not in DB)
+                        'user_id'    => $user->id,
                         'product_id' => $product->id,
-                        'quantity' => (int) ($item['quantity'] ?? 1), // 👈 force int
+                        'quantity'   => (int) ($item['quantity'] ?? 1),
                     ]);
                     $fakeCart->setRelation('product', $product);
                     $cartItems->push($fakeCart);
@@ -89,9 +92,11 @@ class CheckoutController extends Controller
         } else {
             // ✅ Cart Checkout flow
             $cartIds = array_map('intval', $selectedItems);
-            $cartItems = Cart::where('user_id', $user->id)
-                ->whereIn('id', $cartIds)
-                ->with('product.user')
+
+            // ⭐ CHANGE #2: eager-load seller profile too
+            $cartItems = \App\Models\Cart::where('user_id', $user->id)
+                ->whereIn('id', $selectedItems)
+                ->with('product.user.seller')   // add .seller here
                 ->get();
         }
 
@@ -104,35 +109,51 @@ class CheckoutController extends Controller
             fn($item) => $item->product ? $item->product->price * (int) $item->quantity : 0
         );
 
-        // ✅ Shipping by seller
+        // Get addresses early to know the buyer's city
+        $addresses = $user->addresses;
+        $selectedAddressId = session('selected_address_id');
+        $selectedAddr = $selectedAddressId
+            ? $addresses->firstWhere('id', (int) $selectedAddressId)
+            : $addresses->first();
+
+        $buyerCity = optional($selectedAddr)->city
+            ?? ($user->city ?? $user->town ?? '');
+
+
+        // ✅ Shipping by seller (city → city)
         $shippingBySeller = [];
         foreach ($cartItems as $item) {
-            if (!$item->product || !$item->product->user) {
-                continue;
-            }
+            if (!$item->product || !$item->product->user) continue;
 
-            $sellerId = $item->product->user->id;
-            $buyerTown = $user->town ?? 'default_town';
-            $sellerTown = $item->product->user->town ?? 'default_town';
+            $sellerUser = $item->product->user;        // has ->seller eager-loaded
+            $seller     = $sellerUser->seller;
 
-            if (!isset($shippingBySeller[$sellerId])) {
-                $shippingBySeller[$sellerId] = [
-                    'seller' => $item->product->user,
-                    'weight' => 0,
+            // Prefer seller pickup city; fall back to seller user city/town
+            $sellerCity = optional($seller)->pickup_city
+                    ?? ($sellerUser->city ?? $sellerUser->town ?? '');
+
+            $sid = $sellerUser->id;
+
+            if (!isset($shippingBySeller[$sid])) {
+                $shippingBySeller[$sid] = [
+                    'seller'      => $sellerUser,
+                    'buyer_city'  => $buyerCity,
+                    'seller_city' => $sellerCity,
+                    'weight'      => 0,
                     'shippingFee' => 0,
                 ];
             }
 
-            $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * (int) $item->quantity;
+            $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int) $item->quantity;
         }
 
-        // ✅ Calculate shipping fees
+        // ✅ Calculate shipping fees using distance rate (₱16 + ₱12/km)
         $totalShipping = 0;
         foreach ($shippingBySeller as $sid => $info) {
             $fee = \App\Helpers\ShippingHelper::calculate(
-                $user->town,
-                $info['seller']->town,
-                $info['weight']
+                $info['buyer_city'],
+                $info['seller_city'],
+                $info['weight'] // not used by the new table but kept for signature
             );
             $shippingBySeller[$sid]['shippingFee'] = $fee;
             $totalShipping += $fee;
@@ -143,6 +164,35 @@ class CheckoutController extends Controller
 
         $addresses = $user->addresses;
 
+        // ⭐ NEW BLOCK (#3): build per-seller pickup addresses (AFTER $cartItems is ready)
+        $pickupBySeller = [];
+        foreach ($cartItems as $item) {
+            $sellerUser = optional($item->product)->user;
+            if (!$sellerUser) continue;
+
+            $sid = $sellerUser->id;
+            if (isset($pickupBySeller[$sid])) continue; // only once per seller
+
+            $sp = optional($sellerUser->seller);
+
+            // One-line address (prefer the pre-composed column if you saved it; otherwise assemble)
+            $addressLine = $sp?->pickup_address
+                ?: collect([
+                    $sp?->pickup_detail,
+                    $sp?->pickup_barangay,
+                    $sp?->pickup_city,
+                    $sp?->pickup_province,
+                    $sp?->pickup_region_group,
+                    $sp?->pickup_postal,
+                ])->filter()->implode(', ');
+
+            $pickupBySeller[$sid] = [
+                'name'         => $sellerUser->name ?? $sellerUser->username ?? 'Seller',
+                'phone'        => $sp?->pickup_phone,
+                'address_line' => $addressLine,
+            ];
+        }
+
         return view('checkout', compact(
             'cartItems',
             'user',
@@ -150,7 +200,8 @@ class CheckoutController extends Controller
             'subtotal',
             'totalShipping',
             'grandTotal',
-            'shippingBySeller'
+            'shippingBySeller',
+            'pickupBySeller' // ⭐ pass to Blade
         ));
     }
 
@@ -162,13 +213,14 @@ class CheckoutController extends Controller
     // Save New Address
     public function saveAddress(Request $request)
     {
-        $validated = $request->validate([
-            'full_name' => 'required|string|max:255',
-            'mobile_number' => 'required|string|max:15',
-            'floor_unit_number' => 'required|string|max:255',
-            'province' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'barangay' => 'required|string|max:255',
+    $validated = $request->validate([
+            'full_name'         => 'required|string|max:255',
+            'mobile_number'     => 'required|string|max:20',   // align with updateAddress
+            'floor_unit_number' => 'nullable|string|max:255',  // was required -> nullable
+            'province'          => 'required|string|max:255',
+            'city'              => 'required|string|max:255',
+            'barangay'          => 'required|string|max:255',
+            'notes'             => 'nullable|string|max:500',
         ]);
 
         $address = auth()->user()->addresses()->create($validated);
@@ -225,10 +277,13 @@ class CheckoutController extends Controller
     // In CheckoutController.php
     public function process(Request $request)
     {
-        try {
+        
+            // ✅ validate including fulfillment_method
             $request->validate([
-                'address_id' => 'required|exists:addresses,id',
-                'payment_method' => 'required|string',
+                'payment_method'      => 'required|in:gcash,cod',
+                'fulfillment_method'  => 'required|in:delivery,pickup',            // <—
+                'address_id'          => 'required_if:fulfillment_method,delivery' // <— only required for delivery
+                                            . '|nullable|exists:addresses,id',
             ]);
 
             $user = auth()->user();
@@ -248,9 +303,9 @@ class CheckoutController extends Controller
             // ✅ Detect Buy Now flow
             if (isset($selectedItems[0]['product_id'])) {
                 foreach ($selectedItems as $item) {
-                    $product = Product::with('user')->findOrFail($item['product_id']);
+                    $product = \App\Models\Product::with('user')->findOrFail($item['product_id']);
 
-                    if ($product->stock < $item['quantity']) {
+                    if ($product->stock < (int)$item['quantity']) {
                         return response()->json([
                             'success' => false,
                             'message' => "Not enough stock for {$product->name}"
@@ -258,18 +313,18 @@ class CheckoutController extends Controller
                     }
 
                     // Fake cart item so checkout flow works
-                    $fakeCart = new Cart([
-                        'id' => 0,
-                        'user_id' => $user->id,
+                    $fakeCart = new \App\Models\Cart([
+                        'id'         => 0,
+                        'user_id'    => $user->id,
                         'product_id' => $product->id,
-                        'quantity' => $item['quantity'],
+                        'quantity'   => (int)$item['quantity'],
                     ]);
                     $fakeCart->setRelation('product', $product);
                     $cartItems->push($fakeCart);
                 }
             } else {
                 // ✅ Cart Checkout flow
-                $cartItems = Cart::where('user_id', $user->id)
+                $cartItems = \App\Models\Cart::where('user_id', $user->id)
                     ->whereIn('id', $selectedItems)
                     ->with('product.user')
                     ->get();
@@ -284,70 +339,105 @@ class CheckoutController extends Controller
 
             // ✅ Subtotal
             $subtotal = $cartItems->sum(
-                fn($item) => $item->product ? $item->product->price * $item->quantity : 0
+                fn($item) => $item->product ? $item->product->price * (int)$item->quantity : 0
             );
 
-            // ✅ Shipping
-            $shippingBySeller = [];
-            foreach ($cartItems as $item) {
-                $sellerId = $item->product->user->id;
-                $buyerTown = $user->town ?? 'default_town';
-                $sellerTown = $item->product->user->town ?? 'default_town';
+            // ✅ Shipping — compute ONLY if delivery
+            $fulfillment = $request->input('fulfillment_method', 'delivery'); // <—
+            $totalShipping = 0;
+            if ($fulfillment === 'delivery') {
+                // Determine buyer city from address_id (if provided), else fallback
+                $buyerCity = null;
+                if ($request->filled('address_id')) {
+                    $addr = \App\Models\Address::where('id', $request->address_id)
+                        ->where('user_id', $user->id)
+                        ->first();
+                    $buyerCity = optional($addr)->city;
+                }
+                $buyerCity = $buyerCity ?? ($user->city ?? $user->town ?? '');
 
-                if (!isset($shippingBySeller[$sellerId])) {
-                    $shippingBySeller[$sellerId] = ['weight' => 0];
+                $shippingBySeller = [];
+                foreach ($cartItems as $item) {
+                    if (!$item->product || !$item->product->user) continue;
+
+                    $sellerUser = $item->product->user;   // has seller loaded
+                    $seller     = $sellerUser->seller;
+                    $sellerCity = optional($seller)->pickup_city
+                            ?? ($sellerUser->city ?? $sellerUser->town ?? '');
+
+                    $sid = $sellerUser->id;
+
+                    if (!isset($shippingBySeller[$sid])) {
+                        $shippingBySeller[$sid] = [
+                            'weight'      => 0,
+                            'buyer_city'  => $buyerCity,
+                            'seller_city' => $sellerCity,
+                            'fee'         => 0,
+                        ];
+                    }
+
+                    $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int)$item->quantity;
+
+                    $shippingBySeller[$sid]['fee'] = \App\Helpers\ShippingHelper::calculate(
+                        $shippingBySeller[$sid]['buyer_city'],
+                        $shippingBySeller[$sid]['seller_city'],
+                        $shippingBySeller[$sid]['weight']
+                    );
                 }
 
-                $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * $item->quantity;
-                $shippingBySeller[$sellerId]['fee'] = \App\Helpers\ShippingHelper::calculate(
-                    $buyerTown,
-                    $sellerTown,
-                    $shippingBySeller[$sellerId]['weight']
-                );
+                $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
             }
 
-            $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
+            // ✅ Grand total
             $grandTotal = $subtotal + $totalShipping;
 
-            // ✅ Create Order
-            $order = Order::create([
-                'user_id' => $user->id,
-                'address_id' => $request->address_id,
-                'payment_method' => $request->payment_method,
-                'status' => 'pending',
-                'total_amount' => $grandTotal,
-                'shipping_fee' => $totalShipping,
+            // ✅ Create Order (save the method; if pickup → address is null)
+            $order = \App\Models\Order::create([
+                'user_id'            => $user->id,
+                'address_id'         => $fulfillment === 'delivery' ? $request->address_id : null,
+                'payment_method'     => $request->payment_method,
+                'fulfillment_method' => $fulfillment,                                              
+                'status'             => 'pending',
+                'total_amount'       => $grandTotal,
+                'shipping_fee'       => $totalShipping,
             ]);
 
             foreach ($cartItems as $cartItem) {
                 $order->orderItems()->create([
                     'product_id' => $cartItem->product_id,
-                    'quantity' => $cartItem->quantity,
-                    'price' => $cartItem->product->price
+                    'quantity'   => (int)$cartItem->quantity,
+                    'price'      => $cartItem->product->price
                 ]);
 
-                // Only delete if it’s a real cart item
                 if ($cartItem->id != 0) {
                     $cartItem->delete();
                 }
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Order placed successfully!',
-                'redirect_url' => route('checkout.success')
-            ]);
+            $order->load('orderItems.product.user');
 
-        } catch (\Exception $e) {
-            \Log::error('Checkout failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
-        }
+    // Group order items by seller_id
+    $itemsBySeller = $order->orderItems
+        ->filter(fn ($oi) => optional($oi->product)->user_id)
+        ->groupBy(fn ($oi) => $oi->product->user_id);
+
+    // Send ONE notification per seller with ONLY their items
+    foreach ($itemsBySeller as $sellerId => $itemsForSeller) {
+        $seller = User::find($sellerId);
+        if (!$seller) continue;
+
+        Notification::send($seller, new \App\Notifications\NewOrderForSeller($order, $itemsForSeller));
+        // or: $seller->notify(new NewOrderForSeller($order, $itemsForSeller));
     }
+
+    // Then finish as you do now:
+    return response()->json([
+        'success'      => true,
+        'message'      => 'Order placed successfully!',
+        'redirect_url' => route('checkout.success')
+    ]);
+    }
+
 
 
 

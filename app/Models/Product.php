@@ -62,7 +62,11 @@ class Product extends Model
 
     public function reviews()
     {
-        return $this->hasMany(Review::class); // assumes reviews table has product_id
+        return $this->hasMany(Review::class); 
+    }
+
+    public function images() {
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order')->orderBy('id');
     }
 
 }

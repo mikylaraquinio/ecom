@@ -36,8 +36,14 @@
               @endphp
 
               <li class="nav-item dropdown">
-                <a href="#" class="nav-link dropdown-toggle position-relative"
-                   id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                <a class="nav-link dropdown-toggle position-relative"
+                  id="notifDropdown"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                  data-bs-auto-close="outside"
+                  data-bs-display="static"
+                  aria-expanded="false"
+                  title="Notifications">
                   <i class="fa-regular fa-bell"></i>
                   @if($unreadCount > 0)
                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
@@ -46,43 +52,60 @@
                   @endif
                 </a>
 
-                <div class="dropdown-menu dropdown-menu-end p-0"
-                     aria-labelledby="notifDropdown"
-                     style="width:320px;max-height:380px;overflow:auto;">
-                  @forelse($notifications as $n)
-                    @php
-                      $data = $n->data ?? [];
-                      $title = $data['title'] ?? 'Notification';
-                      $message = $data['message'] ?? ($data['body'] ?? '');
-                      $url = $data['url'] ?? '#';
-                    @endphp
-                    <a href="{{ $url }}"
-                       class="dropdown-item d-flex gap-2 align-items-start notif-item {{ $n->read_at ? '' : 'bg-light' }}"
-                       data-id="{{ $n->id }}">
-                      <span class="mt-1">
-                        <i class="fa-solid fa-circle small {{ $n->read_at ? 'text-secondary' : 'text-success' }}"></i>
-                      </span>
-                      <div class="flex-grow-1">
-                        <div class="small fw-semibold">{{ $title }}</div>
-                        @if($message)
-                          <div class="small text-muted">{{ \Illuminate\Support\Str::limit($message, 90) }}</div>
-                        @endif
-                        <div class="small text-muted">{{ $n->created_at->diffForHumans() }}</div>
-                      </div>
-                    </a>
-                  @empty
-                    <div class="p-4 text-center text-muted small">No notifications yet</div>
-                  @endforelse
-
-                  <div class="dropdown-divider m-0"></div>
-                  <div class="d-flex justify-content-between align-items-center p-2">
-                    <a href="{{ route('notifications.index') }}" class="btn btn-link btn-sm">View all</a>
+                <div class="dropdown-menu dropdown-menu-end notifications-menu shadow p-0" aria-labelledby="notifDropdown">
+                  <div class="menu-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Notifications</span>
                     @if($unreadCount > 0)
                       <button class="btn btn-sm btn-outline-secondary" id="markAllReadBtn">Mark all as read</button>
                     @endif
                   </div>
+
+                  <div class="menu-body">
+                    @forelse($notifications as $n)
+                      @php
+                        $data    = $n->data ?? [];
+                        $title   = $data['title'] ?? 'New notification';
+                        $message = $data['message'] ?? ($data['body'] ?? '');
+
+                        // Choose URL safely
+                        $url = match ($data['type'] ?? null) {
+                            // Seller notifications
+                            'new_order' => route('myshop'),
+
+                            // Buyer notifications: go to order detail if we have an id, else to orders list
+                            'order_status' => isset($data['order_id'])
+                                ? route('user_profile', ['order' => $data['order_id']])
+                                : route('user_profile'),
+
+                            // Fallback to whatever was stored (or '#')
+                            default => $data['url'] ?? '#',
+                        };
+
+                        $isUnread = is_null($n->read_at);
+                      @endphp
+
+                      <a href="{{ $url }}"
+                        class="notif-item d-flex align-items-start {{ $isUnread ? 'is-unread' : 'is-read' }}"
+                        data-id="{{ $n->id }}">
+                        <span class="dot"></span>
+                        <div class="content flex-grow-1">
+                          <div class="title">{{ $title }}</div>
+                          @if($message)
+                            <div class="msg">{{ $message }}</div>
+                          @endif
+                          <div class="time">{{ $n->created_at->diffForHumans() }}</div>
+                        </div>
+                      </a>
+                    @empty
+                      <div class="p-4 text-center text-muted small">No notifications yet</div>
+                    @endforelse
+
+                    <div class="menu-footer d-flex justify-content-between align-items-center">
+                      <a href="{{ route('notifications.index') }}" class="btn btn-link btn-sm">View all</a>
+                    </div>
                 </div>
               </li>
+
 
               <li class="nav-item dropdown">
                 <a href="#" class="nav-link dropdown-toggle d-flex align-items-center"
@@ -139,4 +162,67 @@
     }
   });
   </script>
+  <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        if (window.Echo && "{{ auth()->id() }}") {
+          window.Echo.private('users.{{ auth()->id() }}')
+            .notification((data) => {
+              // 1) increment badge
+              const bell = document.querySelector('#notifDropdown .badge');
+              if (bell) {
+                bell.textContent = (parseInt(bell.textContent || '0', 10) + 1);
+              } else {
+                const badge = document.createElement('span');
+                badge.className = 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger';
+                badge.textContent = '1';
+                document.getElementById('notifDropdown').appendChild(badge);
+              }
+
+              // 2) prepend item in dropdown
+              const menu = document.querySelector('#notifDropdown + .dropdown-menu');
+              if (menu) {
+                const a = document.createElement('a');
+                a.href = data.url || '#';
+                a.className = 'dropdown-item d-flex gap-2 align-items-start notif-item bg-light';
+                a.innerHTML = `
+                  <span class="mt-1"><i class="fa-solid fa-circle small text-success"></i></span>
+                  <div class="flex-grow-1">
+                    <div class="small fw-semibold">${data.title || 'Notification'}</div>
+                    ${data.message ? `<div class="small text-muted">${data.message}</div>` : ''}
+                    <div class="small text-muted">just now</div>
+                  </div>`;
+                menu.insertBefore(a, menu.firstChild);
+              }
+            });
+        }
+      });
+    </script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          // Mark all as read
+          document.getElementById('markAllReadBtn')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const r = await fetch('{{ route("notifications.readAll") }}', {
+              method: 'POST',
+              headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+            });
+            if (r.ok) location.reload();
+          });
+
+          // Mark single as read when clicked
+          document.querySelectorAll('.notifications-menu .notif-item').forEach(el => {
+            el.addEventListener('click', async (ev) => {
+              const id = el.dataset.id;
+              // fire-and-forget; don’t block navigation
+              fetch('{{ url("/notifications/read") }}/' + id, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+              }).catch(() => {});
+            });
+          });
+        });
+      </script>
+
+
 </header>
