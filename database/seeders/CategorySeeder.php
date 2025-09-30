@@ -9,68 +9,56 @@ class CategorySeeder extends Seeder
 {
     public function run()
     {
-        DB::transaction(function () {
-            // === Main Categories ===
-            $categories = [
-                'Grains & Cereals' => [
-                    'Cereal Grains', 
-                    'Pseudocereal Grains'
-                ],
-                'Vegetables' => [
-                    'Brassicas (Cabbage Family)',
-                    'Fruiting Vegetables',
-                    'Leafy Greens',
-                    'Legumes',
-                    'Mushrooms & Fungi',
-                    'Other & Specialty Vegetables',
-                    'Roots & Tubers',
-                ],
-                'Fruits' => [
-                    'Citrus Fruits',
-                    'Berries',
-                    'Melons',
-                    'Tropical & Exotic Fruits',
-                    'Stone Fruits (Drupes)',
-                    'Pome Fruits',
-                    'Figs & Related Fruits',
-                    'Vine Fruits',
-                    'Nutritious & Super Fruits',
-                    'Unique/Other Fruits',
-                ],
-                'Herbs & Spices' => [
-                    'Seeds & Pods',
-                    'Roots, Rhizomes, & Bark',
-                    'Fruits, Berries & Peppers',
-                    'Floral & Other Exotic Spices',
-                    'Leafy & Aromatic Herbs',
-                    'Bay Leaves',
-                    'Floral & Unique Herbs',
-                    'Medicinal & Traditional Herbs',
-                    'Asian & African Specialty Herbs',
-                    'Other Specialty Herbs',
-                ],
-            ];
-
-            foreach ($categories as $mainCategory => $subcategories) {
-                // Insert main category and get ID
-                $categoryId = DB::table('categories')->insertGetId([
-                    'name' => $mainCategory,
-                    'parent_id' => null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                // Prepare subcategories data
-                $subcategoryData = array_map(fn($sub) => [
-                    'name' => $sub,
-                    'parent_id' => $categoryId,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ], $subcategories);
-
-                // Insert subcategories
-                DB::table('categories')->insert($subcategoryData);
-            }
-        });
+        DB::table('categories')->insert([
+            [
+                'id' => 1,
+                'name' => 'Vegetables',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 2,
+                'name' => 'Fruits',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 3,
+                'name' => 'Grains',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 4,
+                'name' => 'Poultry & Eggs',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 5,
+                'name' => 'Fish & Seafood',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 6,
+                'name' => 'Seeds & Farming Inputs',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 7,
+                'name' => 'Livestock',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
     }
 }

@@ -488,8 +488,15 @@
 
                                             </div>
 
-                                            <div class="mt-4">
+                                           <div class="mt-4">
                                                 <h5 class="fw-bold">Revenue Trends</h5>
+                                                <select id="filterType" class="form-select w-auto mb-3">
+                                                    <option value="daily">Daily</option>
+                                                    <option value="weekly">Weekly</option>
+                                                    <option value="monthly" selected>Monthly</option>
+                                                    <option value="quarterly">Quarterly</option>
+                                                    <option value="yearly">Yearly</option>
+                                                </select>
                                                 <canvas id="salesChart"></canvas>
                                             </div>
                                         </div>
@@ -506,44 +513,47 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const ctx = document.getElementById('salesChart').getContext('2d');
+        let chart;
 
-        // Laravel data -> JS
-        const revenueTrends = @json($revenueTrends);
+        function fetchRevenueData(type = 'monthly') {
+            fetch(`/seller/revenue-data?type=${type}`)
+                .then(res => res.json())
+                .then(data => {
+                    const labels = Object.keys(data);
+                    const values = Object.values(data);
 
-        const labels = Object.keys(revenueTrends).map(month => {
-            const months = [
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
-            ];
-            return months[month - 1]; // convert 1 → "January"
+                    if (chart) chart.destroy(); // destroy old chart before drawing new one
+
+                    chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Revenue (₱)',
+                                data: values,
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                fill: true,
+                                tension: 0.3
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: true } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                });
+        }
+
+        document.getElementById('filterType').addEventListener('change', function () {
+            fetchRevenueData(this.value);
         });
 
-        const data = Object.values(revenueTrends);
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Revenue (₱)',
-                    data: data,
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: true }
-                },
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        });
+        // load default (monthly) on page load
+        fetchRevenueData();
     </script>
+
     <!-- Ensure jQuery & Bootstrap are Loaded -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>

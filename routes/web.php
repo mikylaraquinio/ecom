@@ -156,6 +156,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/chat/data/conversations', [ChatController::class, 'conversations'])->name('chat.conversations');
     Route::get('/chat/data/messages/{receiverId}', [ChatController::class, 'messages'])->name('chat.messages');
 
+Route::get('/seller/revenue-data', [SellerController::class, 'revenueData'])->name('seller.revenueData');
+
 
 
 

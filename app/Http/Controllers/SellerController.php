@@ -228,19 +228,6 @@ class SellerController extends Controller
             ->where('stock', '<=', 5)
             ->get();
 
-
-        $revenueTrends = Order::whereHas('orderItems.product', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })
-            ->where('status', 'completed') // only count completed orders
-            ->select(
-                DB::raw('MONTH(created_at) as month'),
-                DB::raw('SUM(total_amount) as total')
-            )
-            ->groupBy(DB::raw('MONTH(created_at)'))
-            ->pluck('total', 'month');
-
-
         return view('myshop', compact(
             'user',
             'products',
@@ -255,10 +242,85 @@ class SellerController extends Controller
             'topProducts',
             'mostSoldProduct',
             'lowStockCount',
-            'lowStockProducts',
-            'revenueTrends'
+            'lowStockProducts'
         ));
     }
+
+    public function revenueData(Request $request)
+    {
+        $user = auth()->user();
+        $type = $request->get('type', 'monthly'); // default monthly
+
+        $query = Order::whereHas('orderItems.product', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })->where('status', 'completed');
+
+        switch ($type) {
+            case 'daily':
+                $data = $query->select(
+                    DB::raw('DATE(updated_at) as label'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                    ->groupBy(DB::raw('DATE(updated_at)'))
+                    ->orderBy('label')
+                    ->pluck('total', 'label');
+                break;
+
+            case 'weekly':
+                $data = $query->select(
+                    DB::raw('YEARWEEK(updated_at) as label'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                    ->groupBy(DB::raw('YEARWEEK(updated_at)'))
+                    ->orderBy('label')
+                    ->pluck('total', 'label');
+                break;
+
+            case 'monthly':
+                $data = $query->select(
+                    DB::raw('YEAR(updated_at) as year'),
+                    DB::raw('MONTH(updated_at) as month'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                    ->groupBy(DB::raw('YEAR(updated_at), MONTH(updated_at)'))
+                    ->orderBy('year')
+                    ->orderBy('month')
+                    ->get()
+                    ->mapWithKeys(fn($row) => [
+                        $row->year . '-' . str_pad($row->month, 2, '0', STR_PAD_LEFT) => $row->total
+                    ]);
+                break;
+
+            case 'quarterly':
+                $data = $query->select(
+                    DB::raw('YEAR(updated_at) as year'),
+                    DB::raw('QUARTER(updated_at) as quarter'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                    ->groupBy(DB::raw('YEAR(updated_at), QUARTER(updated_at)'))
+                    ->orderBy('year')
+                    ->orderBy('quarter')
+                    ->get()
+                    ->mapWithKeys(fn($row) => [
+                        $row->year . ' Q' . $row->quarter => $row->total
+                    ]);
+                break;
+
+            case 'yearly':
+                $data = $query->select(
+                    DB::raw('YEAR(updated_at) as label'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                    ->groupBy(DB::raw('YEAR(updated_at)'))
+                    ->orderBy('label')
+                    ->pluck('total', 'label');
+                break;
+        }
+
+        return response()->json($data);
+    }
+
+
 
     public function confirmReceipt($id)
     {

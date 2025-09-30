@@ -52,8 +52,6 @@ class CheckoutController extends Controller
     }
 
 
-
-    // ✅ FIXED showCheckout
     public function showCheckout()
     {
         $user = Auth::user();
@@ -63,7 +61,6 @@ class CheckoutController extends Controller
         }
 
         $selectedItems = session('selected_items', []);
-
         if (empty($selectedItems)) {
             return redirect()->route('shop')->with('error', 'No items selected for checkout.');
         }
@@ -75,12 +72,11 @@ class CheckoutController extends Controller
             foreach ($selectedItems as $item) {
                 $product = Product::with('user')->find($item['product_id']);
                 if ($product) {
-                    // Create a "fake" cart item so checkout page can still use same blade
                     $fakeCart = new Cart([
-                        'id' => 0, // fake ID (not in DB)
+                        'id' => 0,
                         'user_id' => $user->id,
                         'product_id' => $product->id,
-                        'quantity' => (int) ($item['quantity'] ?? 1), // 👈 force int
+                        'quantity' => (int) ($item['quantity'] ?? 1),
                     ]);
                     $fakeCart->setRelation('product', $product);
                     $cartItems->push($fakeCart);
@@ -111,34 +107,44 @@ class CheckoutController extends Controller
                 continue;
             }
 
-            $sellerId = $item->product->user->id;
+            $seller = $item->product->user;
+            $sellerId = $seller->id;
             $buyerTown = $user->town ?? 'default_town';
-            $sellerTown = $item->product->user->town ?? 'default_town';
+            $sellerTown = $seller->town ?? 'default_town';
 
             if (!isset($shippingBySeller[$sellerId])) {
                 $shippingBySeller[$sellerId] = [
-                    'seller' => $item->product->user,
+                    'seller' => $seller,
                     'weight' => 0,
                     'shippingFee' => 0,
+                    'hasLivestock' => false,
                 ];
             }
 
             $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * (int) $item->quantity;
+
+            // ✅ Detect livestock by category_id
+            if ($item->product->category && $item->product->category->id == 7) {
+                $shippingBySeller[$sellerId]['hasLivestock'] = true;
+            }
         }
 
         // ✅ Calculate shipping fees
         $totalShipping = 0;
+        $buyerAddress = $user->addresses->first()?->full_address ?? null;
         foreach ($shippingBySeller as $sid => $info) {
             $fee = \App\Helpers\ShippingHelper::calculate(
                 $user->town,
                 $info['seller']->town,
-                $info['weight']
+                $info['weight'],
+                $info['hasLivestock'],
+                $buyerAddress,
+                $info['seller']->addresses->first()?->full_address
             );
             $shippingBySeller[$sid]['shippingFee'] = $fee;
             $totalShipping += $fee;
         }
 
-        // ✅ Grand total
         $grandTotal = $subtotal + $totalShipping;
 
         $addresses = $user->addresses;
@@ -153,10 +159,6 @@ class CheckoutController extends Controller
             'shippingBySeller'
         ));
     }
-
-
-
-
 
 
     // Save New Address
@@ -232,8 +234,6 @@ class CheckoutController extends Controller
             ]);
 
             $user = auth()->user();
-
-            // ✅ Pull from request OR session (for Buy Now)
             $selectedItems = $request->selected_items ?? session('selected_items', []);
 
             if (empty($selectedItems)) {
@@ -245,7 +245,7 @@ class CheckoutController extends Controller
 
             $cartItems = collect();
 
-            // ✅ Detect Buy Now flow
+            // ✅ Buy Now flow
             if (isset($selectedItems[0]['product_id'])) {
                 foreach ($selectedItems as $item) {
                     $product = Product::with('user')->findOrFail($item['product_id']);
@@ -257,7 +257,6 @@ class CheckoutController extends Controller
                         ], 400);
                     }
 
-                    // Fake cart item so checkout flow works
                     $fakeCart = new Cart([
                         'id' => 0,
                         'user_id' => $user->id,
@@ -290,19 +289,34 @@ class CheckoutController extends Controller
             // ✅ Shipping
             $shippingBySeller = [];
             foreach ($cartItems as $item) {
-                $sellerId = $item->product->user->id;
+                $seller = $item->product->user;
+                $sellerId = $seller->id;
                 $buyerTown = $user->town ?? 'default_town';
-                $sellerTown = $item->product->user->town ?? 'default_town';
+                $sellerTown = $seller->town ?? 'default_town';
 
                 if (!isset($shippingBySeller[$sellerId])) {
-                    $shippingBySeller[$sellerId] = ['weight' => 0];
+                    $shippingBySeller[$sellerId] = [
+                        'weight' => 0,
+                        'hasLivestock' => false,
+                    ];
                 }
 
                 $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * $item->quantity;
+
+                // ✅ Detect livestock by category_id
+                if ($item->product->category && $item->product->category->id == 7) {
+                    $shippingBySeller[$sellerId]['hasLivestock'] = true;
+                }
+
+                $buyerAddress = $user->addresses()->find($request->address_id)?->full_address ?? null;
+
                 $shippingBySeller[$sellerId]['fee'] = \App\Helpers\ShippingHelper::calculate(
                     $buyerTown,
                     $sellerTown,
-                    $shippingBySeller[$sellerId]['weight']
+                    $shippingBySeller[$sellerId]['weight'],
+                    $shippingBySeller[$sellerId]['hasLivestock'],
+                    $buyerAddress,
+                    $seller->addresses->first()?->full_address
                 );
             }
 
@@ -326,7 +340,6 @@ class CheckoutController extends Controller
                     'price' => $cartItem->product->price
                 ]);
 
-                // Only delete if it’s a real cart item
                 if ($cartItem->id != 0) {
                     $cartItem->delete();
                 }
@@ -348,7 +361,6 @@ class CheckoutController extends Controller
             ], 500);
         }
     }
-
 
 
     public function saveSelectedAddress(Request $request)
