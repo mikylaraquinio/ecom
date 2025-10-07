@@ -119,7 +119,6 @@ Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('c
 Route::get('/checkout/getAddress', [CheckoutController::class, 'getAddress'])->name('checkout.getAddress');
 Route::put('/checkout/updateAddress/{id}', [CheckoutController::class, 'updateAddress'])->name('checkout.updateAddress');
 Route::post('/checkout/saveSelectedAddress', [CheckoutController::class, 'saveSelectedAddress'])->name('checkout.saveSelectedAddress');
-Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
 
 /*Orders*/
 Route::get('/seller/orders', [SellerController::class, 'incomingOrders'])->name('seller.orders');

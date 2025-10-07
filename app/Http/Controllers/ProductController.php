@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\ProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -16,35 +16,34 @@ class ProductController extends Controller
     {
         $query = Product::query();
 
-        // ✅ Search Filter
+        // Search Filter
         if ($request->filled('search')) {
             $search = trim(strtolower($request->search));
             $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
         }
 
-        // ✅ Category Filtering (ID & Name)
+        // Category Filtering (ID & Name)
         if ($request->filled('category')) {
             $categoryInput = $request->category;
 
-            // Check if the category input is a valid ID or Name
             $category = Category::where('id', $categoryInput)
                 ->orWhere('name', $categoryInput)
                 ->first();
 
             if ($category) {
                 if ($category->parent_id === null) {
-                    // If it's a main category, include subcategories
+                    // main category -> include subcategories
                     $subCategoryIds = Category::where('parent_id', $category->id)->pluck('id')->toArray();
                     $subCategoryIds[] = $category->id;
                     $query->whereIn('category_id', $subCategoryIds);
                 } else {
-                    // If it's a subcategory, filter by its ID
+                    // subcategory -> filter by its ID
                     $query->where('category_id', $category->id);
                 }
             }
         }
 
-        // ✅ Price Filtering
+        // Price Filtering
         if ($request->filled('min_price') && is_numeric($request->min_price)) {
             $query->where('price', '>=', $request->min_price);
         }
@@ -56,10 +55,10 @@ class ProductController extends Controller
             $query->where('user_id', (int) $request->seller);
         }
 
-        // ✅ Stock Availability - Hide Out of Stock Products
-        $query->where('stock', '>', 0); // 🔥 This line hides products with stock = 0
+        // Stock Availability - Hide Out of Stock Products
+        $query->where('stock', '>', 0);
 
-        // ✅ Sorting Logic
+        // Sorting
         if ($request->filled('sort_by')) {
             switch ($request->sort_by) {
                 case 'low_to_high':
@@ -74,13 +73,28 @@ class ProductController extends Controller
             }
         }
 
-        // ✅ Fetch Products
-        $products = $query->get();
+        $query
+            ->withAvg('reviews as avg_rating', 'rating')
+            ->withCount('reviews as ratings_count')
+            ->withSum(
+                ['orderItems as total_sold' => function ($q) {
+                    $q->join('orders', 'order_items.order_id', '=', 'orders.id')
+                      ->where('orders.status', 'completed');
+                }],
+                'quantity'
+            );
 
-        // ✅ Fetch Categories in Hierarchical Structure
+        // Fetch Products + ordered images
+        $products = $query
+            ->with(['images' => function ($q) {
+                $q->orderBy('sort_order')->orderBy('id');
+            }])
+            ->get();
+
+        // Fetch Categories in Hierarchical Structure
         $categories = Category::whereNull('parent_id')->with('subcategories')->get();
 
-        // ✅ AJAX Support for Dynamic Filtering
+        // AJAX support
         if ($request->ajax()) {
             return view('partials.product-list', compact('products'))->render();
         }
@@ -88,37 +102,38 @@ class ProductController extends Controller
         return view('shop', compact('products', 'categories'));
     }
 
-
     public function autocomplete(Request $request)
     {
         $query = $request->input('search');
 
         if (!$query || strlen($query) < 2) {
-            return response()->json([]); // Return empty if no valid query
+            return response()->json([]);
         }
 
         $products = Product::where('name', 'LIKE', "%{$query}%")
             ->limit(10)
-            ->get(['name']); // Fetch only 'name' for efficiency
+            ->get(['name']);
 
         return response()->json($products);
     }
 
-
     public function myProducts()
     {
-        $user = Auth::user(); // Get the authenticated user
+        $user = Auth::user();
 
         if (!$user) {
             return redirect()->route('login')->with('error', 'You must be logged in.');
         }
 
-        $products = $user->products
+        $products = $user->products()
+            ->with(['images' => function ($q) {
+                $q->orderBy('sort_order')->orderBy('id');
+            }])
             ->withCount([
                 'orderItems as total_sold' => function ($query) {
                     $query->join('orders', 'order_items.order_id', '=', 'orders.id')
-                        ->where('orders.status', 'completed')
-                        ->selectRaw('COALESCE(SUM(order_items.quantity), 0)');
+                          ->where('orders.status', 'completed')
+                          ->selectRaw('COALESCE(SUM(order_items.quantity), 0)');
                 }
             ])
             ->get();
@@ -126,133 +141,286 @@ class ProductController extends Controller
         return view('seller.my-products', compact('products'));
     }
 
-
     public function create()
     {
         $mainCategories = Category::with('subcategories')->get();
         return view('your-view-file', compact('mainCategories'));
-
     }
 
     public function store(Request $request)
     {
-        // Validate the request
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'unit' => 'required|string|in:kg,piece,bundle,sack',
-            'weight' => 'required|numeric|min:0.01', // ✅ added
+            'image'         => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'gallery.*'     => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'name'          => 'required|string|max:255',
+            'description'   => 'required|string',
+            'price'         => 'required|numeric|min:0',
+            'stock'         => 'required|integer|min:0',
+            'unit'          => 'required|string|in:kg,piece,bundle,sack',
+            'weight'        => 'required|numeric|min:0.01',
             'min_order_qty' => 'nullable|integer|min:1',
-            'category' => 'required|exists:categories,id',
+            'category'      => 'required|exists:categories,id',
         ]);
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('products', 'public');
-        } else {
-            return back()->with('error', 'Image upload failed.');
-        }
+        // Cover image
+        $imagePath = $request->file('image')->store('products', 'public');
 
-        // Create new product
+        // Create product
         $product = new Product();
-        $product->name = $request->name;
-        $product->description = $request->description;
-        $product->price = $request->price;
-        $product->stock = $request->stock;
-        $product->unit = $request->unit;
-        $product->weight = $request->weight; // ✅ save weight
-        $product->min_order_qty = $request->min_order_qty ?? 1;
-        $product->image = $imagePath;
-        $product->image_path = asset('storage/' . $imagePath);
-        $product->category_id = $request->category;
-        $product->user_id = auth()->id();
+        $product->fill([
+            'name'          => $request->name,
+            'description'   => $request->description,
+            'price'         => $request->price,
+            'stock'         => $request->stock,
+            'unit'          => $request->unit,
+            'weight'        => $request->weight,
+            'min_order_qty' => $request->min_order_qty ?? 1,
+            'image'         => $imagePath, // legacy cover column
+            'image_path'    => Storage::disk('public')->url($imagePath),
+            'category_id'   => $request->category,
+            'user_id'       => auth()->id(),
+        ]);
         $product->save();
 
-        return redirect()->back()->with('success', 'Product added successfully.');
-    }
+        // Save gallery[] files (if any)
+        if ($request->hasFile('gallery')) {
+            $order = 0;
+            foreach ($request->file('gallery') as $file) {
+                $path = $file->store('products', 'public');
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'path'       => $path,
+                    'sort_order' => $order++,
+                ]);
+            }
+        }
 
+        return back()->with('success', 'Product added successfully.');
+    }
 
     public function update(Request $request, $id)
     {
-        $product = Product::findOrFail($id);
+        $product = Product::with('images')->findOrFail($id);
 
-        // Validate the request
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name'        => 'required|string|max:255',
             'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'weight' => 'required|numeric|min:0.01', // ✅ added weight validation
-            'category' => 'required|exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'price'       => 'required|numeric|min:0',
+            'stock'       => 'required|integer|min:0',
+            'weight'      => 'required|numeric|min:0.01',
+            'category'    => 'required|exists:categories,id',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'gallery.*'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            // Optional reordering/removal arrays:
+            'existing_order'    => 'sometimes|array',
+            'existing_order.*'  => 'nullable',
+            'remove_existing'   => 'sometimes|array',
+            'remove_existing.*' => 'nullable',
         ]);
 
-        // Assign values
-        $product->name = $request->name;
-        $product->description = $request->description;
-        $product->price = $request->price;
-        $product->stock = $request->stock;
-        $product->weight = $request->weight; // ✅ save updated weight
-        $product->category_id = $request->category;
+        // Basic fields
+        $product->fill([
+            'name'        => $request->name,
+            'description' => $request->description,
+            'price'       => $request->price,
+            'stock'       => $request->stock,
+            'weight'      => $request->weight,
+            'category_id' => $request->category,
+        ]);
 
-        // Handle Image Upload (if new image is uploaded)
+        // If user uploaded a NEW cover image, replace legacy cover file
         if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($product->image && Storage::exists('public/' . $product->image)) {
-                Storage::delete('public/' . $product->image);
+            if ($product->image && Storage::exists('public/'.$product->image)) {
+                Storage::delete('public/'.$product->image);
             }
-
-            // Store new image
-            $path = $request->file('image')->store('products', 'public');
-            $product->image = $path;
+            $product->image = $request->file('image')->store('products', 'public');
         }
 
-        // Save updates
         $product->save();
 
-        return redirect()->back()->with('success', 'Product updated successfully!');
+        // ===== Remove existing images (by ID or by URL) =====
+        if ($request->filled('remove_existing')) {
+            foreach ((array)$request->remove_existing as $val) {
+                // Try by numeric ID first
+                if (ctype_digit((string)$val)) {
+                    $img = $product->images->firstWhere('id', (int)$val);
+                } else {
+                    // or by URL -> path match
+                    $img = $product->images->first(function ($i) use ($val) {
+                        return Storage::disk('public')->url($i->path) === $val
+                            || asset('storage/'.$i->path) === $val;
+                    });
+                }
+                if ($img) {
+                    if (Storage::disk('public')->exists($img->path)) {
+                        Storage::disk('public')->delete($img->path);
+                    }
+                    $img->delete();
+                }
+            }
+        }
+
+        // ===== Reorder existing images =====
+        if ($request->filled('existing_order')) {
+            $order = 0;
+            foreach ((array)$request->existing_order as $token) {
+                if ($token === 'main') {
+                    // (optional) handle legacy cover as a gallery record if you ever add that
+                    continue;
+                }
+                if (ctype_digit((string)$token)) {
+                    $img = $product->images->firstWhere('id', (int)$token);
+                    if ($img) {
+                        $img->sort_order = $order++;
+                        $img->save();
+                    }
+                }
+            }
+        }
+
+        // ===== Add any newly uploaded gallery[] files =====
+        if ($request->hasFile('gallery')) {
+            // Determine the next sort index
+            $order = (int) ($product->images()->max('sort_order') ?? 0);
+            foreach ($request->file('gallery') as $file) {
+                $path = $file->store('products', 'public');
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'path'       => $path,
+                    'sort_order' => $order++,
+                ]);
+            }
+        }
+
+        return back()->with('success', 'Product updated successfully!');
     }
-
-
 
     public function destroy($id)
     {
-        $product = Product::findOrFail($id);
+        $product = Product::with('images')->findOrFail($id);
 
-        // Ensure user is authenticated
+        // Ensure user is authenticated and owns the product
         if (!Auth::check() || $product->user_id !== Auth::id()) {
             return redirect()->back()->withErrors(['error' => 'Unauthorized!']);
         }
 
-        $product->delete();
+        // Collect files to delete after commit
+        $filesToDelete = [];
+        if ($product->image) {
+            $filesToDelete[] = $product->image;
+        }
+        foreach ($product->images as $img) {
+            if (!empty($img->path)) {
+                $filesToDelete[] = $img->path;
+            }
+        }
+
+        DB::transaction(function () use ($product) {
+            // If you have FK cascade on product_images (recommended), this is enough
+            $product->delete();
+        });
+
+        DB::afterCommit(function () use ($filesToDelete) {
+            foreach ($filesToDelete as $p) {
+                if ($p && Storage::disk('public')->exists($p)) {
+                    Storage::disk('public')->delete($p);
+                }
+            }
+        });
+
         return redirect()->back()->with('success', 'Product deleted successfully!');
     }
 
     public function show(Product $product)
     {
-        $product->load(['category.parent', 'user', 'reviews']);
+        $product->load([
+            'category.parent',
+            'user',
+            'images' => function ($q) {
+                $q->orderBy('sort_order')->orderBy('id');
+            },
+        ]);
 
         $seller = $product->user;
-        $mainImage = $product->image ? asset('storage/' . $product->image) : asset('assets/products.jpg');
-        $gallery = [$mainImage];
 
-        $ratingsCount = $product->reviews()->count();
-        $avgRating = round((float) $product->reviews()->avg('rating'), 1);
+        // Helper to append file mtime as ?v= to bust cache per-file
+        $v = function (?string $relPath) {
+            if (!$relPath) {
+                return asset('assets/products.jpg'); // fallback (no versioning for asset)
+            }
+            $disk = Storage::disk('public');
+            $url  = $disk->url($relPath);
+            if ($disk->exists($relPath)) {
+                try {
+                    $ts = $disk->lastModified($relPath);
+                    return $url . '?v=' . $ts;
+                } catch (\Throwable $e) {
+                    return $url;
+                }
+            }
+            return $url;
+        };
+
+        // Cover (legacy single column) – versioned by file mtime
+        $mainImage = $product->image
+            ? $v($product->image)
+            : asset('assets/products.jpg');
+
+        // Build gallery: cover first (versioned), then additional images (each versioned)
+        $gallery = [];
+        if ($product->image) { $gallery[] = $mainImage; }
+        if ($product->images && $product->images->count()) {
+            foreach ($product->images as $img) {
+                if (!empty($img->path)) {
+                    $gallery[] = $v($img->path);
+                }
+            }
+        }
+        if (empty($gallery)) {
+            $gallery[] = asset('assets/products.jpg');
+        }
+
+        // Ratings, reviews, etc.
+        $ratingsCount = (int) $product->reviews()->count();
+        $avgRating    = $ratingsCount ? round((float) $product->reviews()->avg('rating'), 1) : null;
+
+        $rawBreakdown = $product->reviews()
+            ->select('rating', DB::raw('COUNT(*) as c'))
+            ->groupBy('rating')
+            ->pluck('c', 'rating');
+
+        $breakdown = [];
+        for ($i = 5; $i >= 1; $i--) {
+            $count = (int) ($rawBreakdown[$i] ?? 0);
+            $breakdown[$i] = [
+                'count' => $count,
+                'pct'   => $ratingsCount ? round($count * 100 / $ratingsCount) : 0,
+            ];
+        }
+
+        $reviewPhotos = $product->reviews()
+            ->whereNotNull('photo_path')
+            ->pluck('photo_path')
+            ->take(12);
+
+        $reviews = $product->reviews()
+            ->with('user:id,name,profile_picture')
+            ->latest()
+            ->take(10)
+            ->get();
 
         $storeStats = [
-            'ratings_count' => $ratingsCount,
+            'ratings_count'  => $ratingsCount,
             'products_count' => $seller ? $seller->products()->count() : 0,
-            'response_rate' => $seller->response_rate ?? null,
-            'response_time' => $seller->response_time ?? null,
-            'member_since' => $seller?->created_at,
-            'followers_count' => $seller->followers_count ?? null,
+            'response_rate'  => $seller->response_rate ?? null,
+            'response_time'  => $seller->response_time ?? null,
+            'member_since'   => $seller?->created_at,
+            'followers_count'=> $seller->followers_count ?? null,
         ];
 
-        return view('productview', compact('product', 'seller', 'mainImage', 'gallery', 'storeStats', 'avgRating'));
+        return view('productview', compact(
+            'product','seller','mainImage','gallery',
+            'storeStats','avgRating','ratingsCount','breakdown','reviews','reviewPhotos'
+        ));
     }
-
-
 }

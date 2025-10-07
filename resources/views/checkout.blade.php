@@ -32,26 +32,26 @@
                                             @if($cartItem->id == 0)
                                                 {{-- Buy Now flow: send product + qty --}}
                                                 <input type="hidden" name="selected_items[0][product_id]"
-                                                    value="{{ $cartItem->product->id }}">
+                                                       value="{{ $cartItem->product->id }}">
                                                 <input type="hidden" name="selected_items[0][quantity]"
-                                                    value="{{ $cartItem->quantity }}">
+                                                       value="{{ $cartItem->quantity }}">
 
                                                 {{-- Hidden checkbox for JS subtotal calculation --}}
                                                 <input type="checkbox" class="item-check d-none" checked
-                                                    data-price="{{ $cartItem->product->price }}"
-                                                    data-qty="{{ $cartItem->quantity }}"
-                                                    data-seller="{{ $cartItem->product->user_id }}">
+                                                       data-price="{{ $cartItem->product->price }}"
+                                                       data-qty="{{ $cartItem->quantity }}"
+                                                       data-seller="{{ $cartItem->product->user_id }}">
                                             @else
                                                 {{-- Normal cart checkout --}}
                                                 <input class="form-check-input mt-0 item-check" type="checkbox"
-                                                    name="selected_items[]" value="{{ $cartItem->id }}" checked
-                                                    data-price="{{ $cartItem->product->price }}"
-                                                    data-qty="{{ $cartItem->quantity }}"
-                                                    data-seller="{{ $cartItem->product->user_id }}">
+                                                       name="selected_items[]" value="{{ $cartItem->id }}" checked
+                                                       data-price="{{ $cartItem->product->price }}"
+                                                       data-qty="{{ $cartItem->quantity }}"
+                                                       data-seller="{{ $cartItem->product->user_id }}">
                                             @endif
                                             <img src="{{ asset('storage/' . $cartItem->product->image) }}"
-                                                alt="{{ $cartItem->product->name }}" class="rounded border"
-                                                style="width:76px;height:76px;object-fit:cover;">
+                                                 alt="{{ $cartItem->product->name }}" class="rounded border"
+                                                 style="width:76px;height:76px;object-fit:cover;">
                                             <div class="flex-grow-1">
                                                 <div class="fw-semibold">{{ $cartItem->product->name }}</div>
                                                 @if($sellerName)
@@ -73,14 +73,14 @@
                                 @endforeach
                             </div>
 
-                            <div class="card-footer bg-white py-3 small text-muted">
+                            <div class="card-footer bg-white py-3 small text-muted" id="shipping-note">
                                 <i class="bi bi-truck"></i>
                                 Shipping: ₱50 per shop (auto-calculated)
                             </div>
                         </div>
                     </div>
 
-                    <!-- RIGHT: Address + Payment + Summary -->
+                    <!-- RIGHT: Address + Fulfillment + Payment + Summary -->
                     <div class="col-12 col-lg-4">
                         <div class="position-sticky" style="top: 90px;">
 
@@ -97,7 +97,7 @@
                                     @if($user->addresses->count() > 0 && $selectedAddress)
                                         <div class="d-flex gap-3 align-items-start" id="displayed-address">
                                             <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center"
-                                                style="width:42px;height:42px;">
+                                                 style="width:42px;height:42px;">
                                                 <i class="bi bi-geo-alt-fill"></i>
                                             </div>
                                             <div class="flex-grow-1 small">
@@ -123,6 +123,79 @@
                                 </div>
                             </div>
 
+                            <!-- Fulfillment (NEW) -->
+                            <div class="card shadow-sm border-0 mb-3">
+                                <div class="card-header bg-white py-3">
+                                    <h5 class="mb-0 fw-semibold">Fulfillment</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check d-flex align-items-start gap-2 mb-2">
+                                        <input class="form-check-input mt-1" type="radio"
+                                                name="fulfillment_method" id="fm_delivery" value="delivery" checked>
+                                        <label class="form-check-label w-100" for="fm_delivery">
+                                            <div class="fw-semibold">For delivery</div>
+                                            <div class="text-muted small">Ship to the address above</div>
+                                        </label>
+                                        </div>
+
+                                        <div class="form-check d-flex align-items-start gap-2">
+                                        <input class="form-check-input mt-1" type="radio"
+                                                name="fulfillment_method" id="fm_pickup" value="pickup">
+                                        <label class="form-check-label w-100" for="fm_pickup">
+                                            <div class="fw-semibold">Pick up</div>
+                                            <div class="text-muted small">No shipping fee. Pickup details will be sent after checkout.</div>
+                                        </label>
+                                    </div>
+
+                                    <input type="hidden" name="fulfillment_method_final" id="fulfillment_method_final" value="delivery">
+                                    
+                                    {{-- Seller pickup addresses (shown only when "Pickup" is selected) --}}
+                                    @if(!empty($pickupBySeller))
+                                        <div id="pickupAddresses" class="mt-3 d-none">
+                                            <div class="small text-muted mb-2">Pickup locations for your order</div>
+
+                                            @foreach($pickupBySeller as $info)
+                                            @php
+                                                $addr = trim($info['address_line'] ?? '');
+                                                // Fallback to seller name if address is empty (avoids broken map)
+                                                $q = $addr !== '' ? $addr : ($info['name'] ?? 'Pickup');
+                                            @endphp
+
+                                            <div class="border rounded p-2 mb-2 small">
+                                                <div class="fw-semibold">{{ $info['name'] }}</div>
+
+                                                @if($addr !== '')
+                                                <div class="text-muted">{{ $addr }}</div>
+                                                @else
+                                                <div class="text-muted fst-italic">Pickup address will be provided by the seller.</div>
+                                                @endif
+
+                                                @if(!empty($info['phone']))
+                                                <div class="text-muted">Contact: {{ $info['phone'] }}</div>
+                                                @endif
+
+                                                {{-- Map (lazy-loaded when pickup is selected) --}}
+                                                <div class="mt-2">
+                                                <iframe
+                                                    class="pickup-map w-100 rounded border"
+                                                    height="180"
+                                                    loading="lazy"
+                                                    referrerpolicy="no-referrer-when-downgrade"
+                                                    data-src="https://maps.google.com/maps?q={{ urlencode($q) }}&z=15&output=embed">
+                                                </iframe>
+                                                <div class="mt-1">
+                                                    <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($q) }}" target="_blank" class="small">
+                                                    Open in Google Maps
+                                                    </a>
+                                                </div>
+                                                </div>
+                                            </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
                             <!-- Payment -->
                             <div class="card shadow-sm border-0 mb-3">
                                 <div class="card-header bg-white py-3">
@@ -132,14 +205,14 @@
                                     <label class="form-check d-flex align-items-center justify-content-between mb-2">
                                         <div class="d-flex align-items-center gap-2">
                                             <input class="form-check-input" type="radio" name="payment_method" id="pm_gcash"
-                                                value="gcash" required>
+                                                   value="gcash" required>
                                             <span>GCash</span>
                                         </div>
                                     </label>
                                     <label class="form-check d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
                                             <input class="form-check-input" type="radio" name="payment_method" id="pm_cod"
-                                                value="cod">
+                                                   value="cod">
                                             <span>Cash on Delivery</span>
                                         </div>
                                     </label>
@@ -272,8 +345,8 @@
                 @foreach($addresses as $address)
                     <div class="address-card">
                         <input type="radio" name="selected_address" id="address-{{ $address->id }}"
-                            value="{{ $address->id }}" class="form-check-input me-2"
-                            @if(session('selected_address_id') == $address->id) checked @endif>
+                               value="{{ $address->id }}" class="form-check-input me-2"
+                               @if(session('selected_address_id') == $address->id) checked @endif>
                         <label for="address-{{ $address->id }}" class="ms-1">
                             <strong>{{ $address->full_name }} - {{ $address->mobile_number }}</strong><br>
                             {{ $address->floor_unit_number }}, {{ $address->barangay }}, {{ $address->city }},
@@ -282,10 +355,10 @@
                         </label>
 
                         <button class="edit-address-btn btn btn-link p-0 small" type="button" data-id="{{ $address->id }}"
-                            data-full_name="{{ $address->full_name }}" data-mobile_number="{{ $address->mobile_number }}"
-                            data-notes="{{ $address->notes }}" data-floor_unit_number="{{ $address->floor_unit_number }}"
-                            data-province="{{ $address->province }}" data-city="{{ $address->city }}"
-                            data-barangay="{{ $address->barangay }}">
+                                data-full_name="{{ $address->full_name }}" data-mobile_number="{{ $address->mobile_number }}"
+                                data-notes="{{ $address->notes }}" data-floor_unit_number="{{ $address->floor_unit_number }}"
+                                data-province="{{ $address->province }}" data-city="{{ $address->city }}"
+                                data-barangay="{{ $address->barangay }}">
                             Edit
                         </button>
                     </div>
@@ -311,13 +384,28 @@
             const saveAddressBtn = document.getElementById('saveAddressBtn');
             const addressIdInput = document.getElementById('addressId');
             const proceedBtn = document.getElementById('proceed-btn');
+            const fm = document.querySelector('input[name="fulfillment_method"]:checked')?.value || 'delivery';
+
+
+            // New Fulfillment refs
+            const fmDelivery = document.getElementById('fm_delivery');
+            const fmPickup   = document.getElementById('fm_pickup');
+            const fmHidden   = document.getElementById('fulfillment_method_final');
+
+            const shippingNoteEl     = document.getElementById('shipping-note');
+            const displayedAddressEl = document.getElementById('displayed-address');
+            const editAddrBtnHeader  = document.getElementById('edit-address-btn');
 
             // ---------- Totals
             const itemChecks = document.querySelectorAll('.item-check');
             const sumSubtotal = document.getElementById('sum-subtotal');
             const sumShipping = document.getElementById('sum-shipping');
-            const sumShippingDiscount = document.getElementById('sum-shipping-discount'); // NEW
+            const sumShippingDiscount = document.getElementById('sum-shipping-discount');
             const sumTotal = document.getElementById('sum-total');
+
+            function isPickupMode() {
+                return !!document.getElementById('fm_pickup')?.checked;
+            }
 
             function recalcSummary() {
                 let subtotal = 0;
@@ -328,9 +416,15 @@
                     subtotal += price * qty;
                 });
 
-                // Keep server-rendered shipping/discount values but recompute grand total on selection change
-                const shipping = parseFloat((sumShipping?.textContent || '0').replace(/,/g, '')) || 0;
-                const shippingDiscount = parseFloat((sumShippingDiscount?.textContent || '0').replace(/,/g, '')) || 0;
+                // base shipping & discount from DOM (server-rendered)…
+                let shipping = parseFloat((sumShipping?.textContent || '0').replace(/,/g, '')) || 0;
+                let shippingDiscount = parseFloat((sumShippingDiscount?.textContent || '0').replace(/,/g, '')) || 0;
+
+                // …but in pickup mode, zero them out
+                if (isPickupMode()) {
+                    shipping = 0;
+                    shippingDiscount = 0;
+                }
 
                 const total = subtotal + shipping - shippingDiscount;
 
@@ -338,13 +432,66 @@
                 sumTotal.textContent = total.toFixed(2);
             }
 
+            function applyFulfillmentMode() {
+                const pickup = isPickupMode();
+                fmHidden.value = pickup ? 'pickup' : 'delivery';
+
+                // Toggle address card interactions (pickup = dim/disable)
+                if (pickup) {
+                    displayedAddressEl?.classList.add('address-disabled');
+                    if (editAddrBtnHeader) {
+                        editAddrBtnHeader.disabled = true;
+                        editAddrBtnHeader.setAttribute('aria-disabled', 'true');
+                    }
+                    if (shippingNoteEl) {
+                        shippingNoteEl.classList.add('text-success');
+                        shippingNoteEl.innerHTML = `<i class="bi bi-bag-check"></i> Pickup: No shipping fee`;
+                    }
+                } else {
+                    displayedAddressEl?.classList.remove('address-disabled');
+                    if (editAddrBtnHeader) {
+                        editAddrBtnHeader.disabled = false;
+                        editAddrBtnHeader.removeAttribute('aria-disabled');
+                    }
+                    if (shippingNoteEl) {
+                        shippingNoteEl.classList.remove('text-success');
+                        shippingNoteEl.innerHTML = `<i class="bi bi-truck"></i> Shipping: ₱50 per shop (auto-calculated)`;
+                    }
+                }
+
+                const pickupEl = document.getElementById('pickupAddresses');
+                    if (pickupEl) {
+                    pickupEl.classList.toggle('d-none', !pickup);
+
+                    // Lazy-load map iframes when pickup is selected
+                    if (pickup) {
+                        pickupEl.querySelectorAll('iframe.pickup-map').forEach(iframe => {
+                        if (!iframe.src && iframe.dataset.src) {
+                            iframe.src = iframe.dataset.src;
+                        }
+                        });
+                    }
+                    }
+
+                recalcSummary();
+            }
+
             itemChecks.forEach(cb => cb.addEventListener('change', recalcSummary));
+
+            // Bind fulfillment changes
+            fmDelivery?.addEventListener('change', applyFulfillmentMode);
+            fmPickup?.addEventListener('change', applyFulfillmentMode);
+
+            // Initial calc + mode
             recalcSummary();
+            applyFulfillmentMode();
 
             // ---------- Edit Address Modal
             editAddressBtn?.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                // Do not open when pickup selected
+                if (isPickupMode()) return;
                 editAddressModal.style.display = 'flex';
             });
 
@@ -400,7 +547,8 @@
                     const address1 = lines[1] ?? '';
                     const notes = lines[2] ?? '';
 
-                    document.querySelector('input[name="address_id"]').value = this.value;
+                    const dest = document.querySelector('input[name="address_id"]');
+                    if (dest) dest.value = this.value;
 
                     const display = document.getElementById('displayed-address');
                     display.innerHTML = `
@@ -464,8 +612,13 @@
             proceedBtn?.addEventListener('click', function (e) {
                 e.preventDefault();
 
+                const fulfillment = document.getElementById('fulfillment_method_final')?.value || 'delivery';
                 const addressId = document.querySelector('input[name="address_id"]')?.value;
-                if (!addressId) return alert('Please select a shipping address.');
+
+                // Address only required for delivery
+                if (fulfillment === 'delivery' && !addressId) {
+                    return alert('Please select a shipping address.');
+                }
 
                 const pm = document.querySelector('input[name="payment_method"]:checked');
                 if (!pm) return alert('Please select a payment method.');
@@ -497,26 +650,31 @@
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                        "Accept": "application/json",
                     },
                     body: JSON.stringify({
-                        address_id: addressId,
+                        address_id: addressId || null,
                         selected_items: selectedItems,
-                        payment_method: pm.value
+                        payment_method: pm.value,
+                        fulfillment_method: document.getElementById('fulfillment_method_final')?.value || 'delivery'
                     })
                 })
-                    .then(r => r.json())
-                    .then(data => {
+                    .then(async (r) => {
+                        const data = await r.json().catch(() => ({}));
+                        if (!r.ok) {
+                            const msg = data?.message
+                            || (data?.errors && Object.values(data.errors).flat()[0])
+                            || 'Something went wrong.';
+                            alert(msg);
+                            return;
+                        }
                         if (data.success && data.redirect_url) {
                             window.location.href = data.redirect_url;
                         } else {
-                            alert(data.error || 'Something went wrong.');
+                            alert(data.error || data.message || 'Something went wrong.');
                         }
                     })
-                    .catch(err => {
-                        console.error(err);
-                        alert('Something went wrong.');
-                    });
             });
 
             // Helpers
@@ -534,40 +692,19 @@
             text-align: left;
         }
 
-        .checkout-page .card-body>.d-flex {
-            width: 100%;
-            /* rows span full width */
-        }
-
-        .checkout-page .card-body .text-end {
-            text-align: right !important;
-        }
-
-        .checkout-page .card-header {
-            border-bottom: 1px solid #eee;
-        }
-
-        .checkout-page .list-group-item {
-            border-color: #f1f1f1;
-        }
+        .checkout-page .card-body>.d-flex { width: 100%; }
+        .checkout-page .card-body .text-end { text-align: right !important; }
+        .checkout-page .card-header { border-bottom: 1px solid #eee; }
+        .checkout-page .list-group-item { border-color: #f1f1f1; }
+        .checkout-page .form-check { display: flex; align-items: flex-start; gap: .5rem; }
+        .checkout-page .form-check-input { width: 18px; height: 18px; margin: 0; }
+        .checkout-page .form-check-input.mt-1 { margin-top: .2rem; } /* tiny nudge */
+        .checkout-page .form-check-label { line-height: 1.25; }
 
         /* Payment methods alignment */
-        .payment-methods .form-check {
-            width: 100%;
-            cursor: pointer;
-        }
-
-        .payment-methods span {
-            flex: 1;
-            text-align: left;
-            /* label text left-aligned */
-        }
-
-        .checkout-page .form-check-input {
-            width: 18px;
-            height: 18px;
-            margin: 0;
-        }
+        .payment-methods .form-check { width: 100%; cursor: pointer; }
+        .payment-methods span { flex: 1; text-align: left; }
+        .checkout-page .form-check-input { width: 18px; height: 18px; margin: 0; }
 
         /* Custom modal (swap to Bootstrap modal if preferred) */
         .modal {
@@ -591,11 +728,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
         }
 
-        .right-modal {
-            justify-content: flex-end;
-            align-items: stretch;
-        }
-
+        .right-modal { justify-content: flex-end; align-items: stretch; }
         .right-modal .modal-content {
             max-width: 420px;
             height: 100%;
@@ -603,58 +736,30 @@
             box-shadow: -6px 0 24px rgba(0, 0, 0, .18);
         }
 
-        .modal-body {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .modal-text,
-        .modal-address {
-            width: 48%;
-        }
+        .modal-body { display: flex; flex-wrap: wrap; gap: 16px; }
+        .modal-text, .modal-address { width: 48%; }
 
         .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            border-top: 1px solid #eee;
-            padding-top: 12px;
+            display: flex; justify-content: flex-end; gap: 10px;
+            border-top: 1px solid #eee; padding-top: 12px;
         }
 
         .address-card {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            border: 1px solid #e9ecef;
-            border-radius: 10px;
-            background: #fafafa;
-            padding: 12px;
-            margin-bottom: 10px;
+            display: flex; align-items: flex-start; gap: 10px;
+            border: 1px solid #e9ecef; border-radius: 10px; background: #fafafa;
+            padding: 12px; margin-bottom: 10px;
         }
 
-        .address-card:hover {
-            background: #f6fff6;
-            border-color: #cce5cc;
+        .address-card:hover { background: #f6fff6; border-color: #cce5cc; }
+        .address-card label { flex: 1; cursor: pointer; }
+
+        /* Dim/disable address card when pickup selected */
+        .address-disabled {
+            opacity: .6;
+            pointer-events: none;
         }
 
-        .address-card label {
-            flex: 1;
-            cursor: pointer;
-        }
-
-        @media (max-width: 992px) {
-            .right-modal .modal-content {
-                max-width: 100%;
-            }
-        }
-
-        @media (max-width: 768px) {
-
-            .modal-text,
-            .modal-address {
-                width: 100%;
-            }
-        }
+        @media (max-width: 992px) { .right-modal .modal-content { max-width: 100%; } }
+        @media (max-width: 768px) { .modal-text, .modal-address { width: 100%; } }
     </style>
 </x-app-layout>
