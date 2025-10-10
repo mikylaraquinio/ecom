@@ -98,7 +98,6 @@ Route::get('/subcategories/{id}/products', [ProductController::class, 'getProduc
 Route::middleware(['auth'])->group(function () {
     Route::resource('products', ProductController::class);
     Route::get('/my-products', [ProductController::class, 'myProducts'])->name('products.myProducts');
-    Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
 });
 
 Route::get('/autocomplete', [ProductController::class, 'autocomplete']);
@@ -157,6 +156,8 @@ Route::middleware('auth')->group(function () {
     // NEW: lightweight data endpoints for the widget (JSON)
     Route::get('/chat/data/conversations', [ChatController::class, 'conversations'])->name('chat.conversations');
     Route::get('/chat/data/messages/{receiverId}', [ChatController::class, 'messages'])->name('chat.messages');
+
+Route::get('/seller/revenue-data', [SellerController::class, 'revenueData'])->name('seller.revenueData');
 
 
 Route::get('/invoice', [PaymentController::class, 'createInvoice'])->name('invoice.create');

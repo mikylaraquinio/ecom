@@ -21,7 +21,7 @@ class CartController extends Controller
         }
 
         $cartItems = Cart::where('user_id', $user->id)
-            ->with('product.user') // load seller so we can compute shipping
+            ->with(['product.user', 'product.category']) // include category
             ->get();
 
         // ✅ Group by seller for shipping
@@ -30,43 +30,52 @@ class CartController extends Controller
             if (!$item->product || !$item->product->user)
                 continue;
 
-            $sellerId = $item->product->user->id;
+            $seller = $item->product->user;
+            $sellerId = $seller->id;
+
             $buyerTown = $user->town ?? 'default_town';
-            $sellerTown = $item->product->user->town ?? 'default_town';
+            $sellerTown = $seller->town ?? 'default_town';
 
             if (!isset($shippingBySeller[$sellerId])) {
                 $shippingBySeller[$sellerId] = [
-                    'seller' => $item->product->user,
+                    'seller' => $seller,
                     'buyerTown' => $buyerTown,
                     'sellerTown' => $sellerTown,
                     'weight' => 0,
+                    'hasLivestock' => false,
                     'shippingFee' => 0,
                 ];
+            }
+
+            // ✅ detect livestock
+            if ($item->product->category && $item->product->category->name === 'Livestock') {
+                $shippingBySeller[$sellerId]['hasLivestock'] = true;
             }
 
             $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * $item->quantity;
         }
 
-        // ✅ calculate fees
+        // ✅ calculate shipping
         $totalShipping = 0;
         foreach ($shippingBySeller as $sid => $info) {
-            $fee = \App\Helpers\ShippingHelper::calculate(
+            $fee = ShippingHelper::calculate(
                 $info['buyerTown'],
                 $info['sellerTown'],
-                $info['weight']
+                $info['weight'],
+                $info['hasLivestock'],
+                $user->address ?? null,
+                $info['seller']->farm_address ?? null
             );
             $shippingBySeller[$sid]['shippingFee'] = $fee;
             $totalShipping += $fee;
         }
 
-        // ✅ subtotal of products
         $totalPrice = $cartItems->sum(fn($item) => $item->product ? $item->product->price * $item->quantity : 0);
-
-        // ✅ grand total
         $grandTotal = $totalPrice + $totalShipping;
 
         return view('cart', compact('cartItems', 'shippingBySeller', 'totalPrice', 'totalShipping', 'grandTotal'));
     }
+
 
 
     public function add(Request $request, $id)
@@ -241,7 +250,7 @@ class CartController extends Controller
 
         $cartItems = Cart::where('user_id', $user->id)
             ->whereIn('id', $selectedItems)
-            ->with('product.user')
+            ->with(['product.user', 'product.category'])
             ->get();
 
         if ($cartItems->isEmpty()) {
@@ -261,17 +270,26 @@ class CartController extends Controller
 
             $totalPrice += $product->price * $cartItem->quantity;
 
-            $sellerId = $product->user->id;
+            $seller = $product->user;
+            $sellerId = $seller->id;
             $buyerTown = $user->town ?? 'default_town';
-            $sellerTown = $product->user->town ?? 'default_town';
+            $sellerTown = $seller->town ?? 'default_town';
 
             if (!isset($totalWeightPerSeller[$sellerId])) {
                 $totalWeightPerSeller[$sellerId] = [
                     'buyerTown' => $buyerTown,
                     'sellerTown' => $sellerTown,
                     'weight' => 0,
+                    'hasLivestock' => false,
+                    'seller' => $seller,
                 ];
             }
+
+            // ✅ detect livestock
+            if ($product->category && $product->category->name === 'Livestock') {
+                $totalWeightPerSeller[$sellerId]['hasLivestock'] = true;
+            }
+
             $totalWeightPerSeller[$sellerId]['weight'] += ($product->weight ?? 0) * $cartItem->quantity;
 
             $orderItems[] = [
@@ -287,10 +305,13 @@ class CartController extends Controller
         // ✅ calculate shipping
         $shippingFee = 0;
         foreach ($totalWeightPerSeller as $info) {
-            $shippingFee += \App\Helpers\ShippingHelper::calculate(
+            $shippingFee += ShippingHelper::calculate(
                 $info['buyerTown'],
                 $info['sellerTown'],
-                $info['weight']
+                $info['weight'],
+                $info['hasLivestock'],
+                $user->address ?? null,
+                $info['seller']->farm_address ?? null
             );
         }
 
@@ -319,6 +340,7 @@ class CartController extends Controller
 
         return redirect()->route('shop')->with('success', 'Your order has been placed successfully!');
     }
+
 
     public function showUserProfile()
     {

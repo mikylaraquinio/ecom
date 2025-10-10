@@ -323,7 +323,8 @@ class SellerController extends Controller
             'lowStockProducts',
             'revenueTrends',
             'unreadNotifications',
-            'allNotifications'
+            'allNotifications',
+            'products'
         ));
     }
 
