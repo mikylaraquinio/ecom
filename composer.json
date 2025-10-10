@@ -11,9 +11,13 @@
     "require": {
         "php": "^8.2",
         "doctrine/dbal": "^4.2",
+        "guzzlehttp/guzzle": "^7.10",
         "laravel/framework": "^11.31",
+        "laravel/socialite": "^5.23",
         "laravel/tinker": "^2.9",
-        "twilio/sdk": "^8.6"
+        "spatie/browsershot": "^5.0.5",
+        "twilio/sdk": "^8.6",
+        "xendit/xendit-php": "^7.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -76,5 +80,15 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": {
+        "xendit": {
+            "type": "vcs",
+            "url": "https://github.com/xendit/xendit-php"
+        },
+        "0": {
+            "type": "vcs",
+            "url": "https://github.com/xendit/xendit-php.git"
+        }
+    }
 }

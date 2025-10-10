@@ -13,9 +13,12 @@ use App\Notifications\NewOrderForSeller;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\XenditService;
+
 
 class CheckoutController extends Controller
 {
+
     // ✅ FIXED prepareCheckout
     public function prepareCheckout(Request $request)
     {
@@ -274,169 +277,198 @@ class CheckoutController extends Controller
     }
 
 
-    // In CheckoutController.php
-    public function process(Request $request)
-    {
-        
-            // ✅ validate including fulfillment_method
-            $request->validate([
-                'payment_method'      => 'required|in:gcash,cod',
-                'fulfillment_method'  => 'required|in:delivery,pickup',            // <—
-                'address_id'          => 'required_if:fulfillment_method,delivery' // <— only required for delivery
-                                            . '|nullable|exists:addresses,id',
+public function process(Request $request)
+{
+    // ✅ Validation
+    $request->validate([
+        'payment_method'      => 'required|in:gcash,online,cod',
+        'fulfillment_method'  => 'required|in:delivery,pickup',
+        'address_id'          => 'required_if:fulfillment_method,delivery|nullable|exists:addresses,id',
+    ]);
+
+    $user = auth()->user();
+    $selectedItems = $request->selected_items ?? session('selected_items', []);
+
+    if (empty($selectedItems)) {
+        return response()->json(['success' => false, 'message' => 'No items selected.']);
+    }
+
+    // ✅ Build cart items
+    $cartItems = collect();
+    if (isset($selectedItems[0]['product_id'])) {
+        // Buy Now flow
+        foreach ($selectedItems as $item) {
+            $product = Product::with('user')->findOrFail($item['product_id']);
+            if ($product->stock < (int)$item['quantity']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Not enough stock for {$product->name}"
+                ], 400);
+            }
+
+            $fakeCart = new Cart([
+                'id'         => 0,
+                'user_id'    => $user->id,
+                'product_id' => $product->id,
+                'quantity'   => (int)$item['quantity'],
             ]);
+            $fakeCart->setRelation('product', $product);
+            $cartItems->push($fakeCart);
+        }
+    } else {
+        // Cart checkout flow
+        $cartItems = Cart::where('user_id', $user->id)
+            ->whereIn('id', $selectedItems)
+            ->with('product.user')
+            ->get();
+    }
 
-            $user = auth()->user();
+    if ($cartItems->isEmpty()) {
+        return response()->json(['success' => false, 'message' => 'No valid items found.']);
+    }
 
-            // ✅ Pull from request OR session (for Buy Now)
-            $selectedItems = $request->selected_items ?? session('selected_items', []);
+    // ✅ Compute totals
+    $subtotal = $cartItems->sum(fn($item) => $item->product ? $item->product->price * (int)$item->quantity : 0);
+    $fulfillment = $request->input('fulfillment_method', 'delivery');
+    $totalShipping = 0;
 
-            if (empty($selectedItems)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No items selected.'
-                ]);
+    if ($fulfillment === 'delivery') {
+        $buyerCity = null;
+        if ($request->filled('address_id')) {
+            $addr = Address::where('id', $request->address_id)
+                ->where('user_id', $user->id)
+                ->first();
+            $buyerCity = optional($addr)->city;
+        }
+        $buyerCity = $buyerCity ?? ($user->city ?? $user->town ?? '');
+
+        $shippingBySeller = [];
+        foreach ($cartItems as $item) {
+            if (!$item->product || !$item->product->user) continue;
+
+            $sellerUser = $item->product->user;
+            $seller     = $sellerUser->seller;
+            $sellerCity = optional($seller)->pickup_city
+                ?? ($sellerUser->city ?? $sellerUser->town ?? '');
+
+            $sid = $sellerUser->id;
+
+            if (!isset($shippingBySeller[$sid])) {
+                $shippingBySeller[$sid] = [
+                    'weight'      => 0,
+                    'buyer_city'  => $buyerCity,
+                    'seller_city' => $sellerCity,
+                    'fee'         => 0,
+                ];
             }
 
-            $cartItems = collect();
+            $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int)$item->quantity;
 
-            // ✅ Detect Buy Now flow
-            if (isset($selectedItems[0]['product_id'])) {
-                foreach ($selectedItems as $item) {
-                    $product = \App\Models\Product::with('user')->findOrFail($item['product_id']);
-
-                    if ($product->stock < (int)$item['quantity']) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => "Not enough stock for {$product->name}"
-                        ], 400);
-                    }
-
-                    // Fake cart item so checkout flow works
-                    $fakeCart = new \App\Models\Cart([
-                        'id'         => 0,
-                        'user_id'    => $user->id,
-                        'product_id' => $product->id,
-                        'quantity'   => (int)$item['quantity'],
-                    ]);
-                    $fakeCart->setRelation('product', $product);
-                    $cartItems->push($fakeCart);
-                }
-            } else {
-                // ✅ Cart Checkout flow
-                $cartItems = \App\Models\Cart::where('user_id', $user->id)
-                    ->whereIn('id', $selectedItems)
-                    ->with('product.user')
-                    ->get();
-            }
-
-            if ($cartItems->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No valid items found.'
-                ]);
-            }
-
-            // ✅ Subtotal
-            $subtotal = $cartItems->sum(
-                fn($item) => $item->product ? $item->product->price * (int)$item->quantity : 0
+            $shippingBySeller[$sid]['fee'] = \App\Helpers\ShippingHelper::calculate(
+                $shippingBySeller[$sid]['buyer_city'],
+                $shippingBySeller[$sid]['seller_city'],
+                $shippingBySeller[$sid]['weight']
             );
+        }
 
-            // ✅ Shipping — compute ONLY if delivery
-            $fulfillment = $request->input('fulfillment_method', 'delivery'); // <—
-            $totalShipping = 0;
-            if ($fulfillment === 'delivery') {
-                // Determine buyer city from address_id (if provided), else fallback
-                $buyerCity = null;
-                if ($request->filled('address_id')) {
-                    $addr = \App\Models\Address::where('id', $request->address_id)
-                        ->where('user_id', $user->id)
-                        ->first();
-                    $buyerCity = optional($addr)->city;
-                }
-                $buyerCity = $buyerCity ?? ($user->city ?? $user->town ?? '');
+        $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
+    }
 
-                $shippingBySeller = [];
-                foreach ($cartItems as $item) {
-                    if (!$item->product || !$item->product->user) continue;
+    $grandTotal = $subtotal + $totalShipping;
 
-                    $sellerUser = $item->product->user;   // has seller loaded
-                    $seller     = $sellerUser->seller;
-                    $sellerCity = optional($seller)->pickup_city
-                            ?? ($sellerUser->city ?? $sellerUser->town ?? '');
+    // ✅ Create Order
+    $order = Order::create([
+        'user_id'            => $user->id,
+        'address_id'         => $fulfillment === 'delivery' ? $request->address_id : null,
+        'payment_method'     => $request->payment_method,
+        'fulfillment_method' => $fulfillment,
+        'status'             => 'pending',
+        'total_amount'       => $grandTotal,
+        'shipping_fee'       => $totalShipping,
+    ]);
 
-                    $sid = $sellerUser->id;
+    foreach ($cartItems as $cartItem) {
+        $order->orderItems()->create([
+            'product_id' => $cartItem->product_id,
+            'quantity'   => (int)$cartItem->quantity,
+            'price'      => $cartItem->product->price
+        ]);
 
-                    if (!isset($shippingBySeller[$sid])) {
-                        $shippingBySeller[$sid] = [
-                            'weight'      => 0,
-                            'buyer_city'  => $buyerCity,
-                            'seller_city' => $sellerCity,
-                            'fee'         => 0,
-                        ];
-                    }
+        if ($cartItem->id != 0) {
+            $cartItem->delete();
+        }
+    }
 
-                    $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int)$item->quantity;
+    $order->load('orderItems.product.user');
 
-                    $shippingBySeller[$sid]['fee'] = \App\Helpers\ShippingHelper::calculate(
-                        $shippingBySeller[$sid]['buyer_city'],
-                        $shippingBySeller[$sid]['seller_city'],
-                        $shippingBySeller[$sid]['weight']
-                    );
-                }
-
-                $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
-            }
-
-            // ✅ Grand total
-            $grandTotal = $subtotal + $totalShipping;
-
-            // ✅ Create Order (save the method; if pickup → address is null)
-            $order = \App\Models\Order::create([
-                'user_id'            => $user->id,
-                'address_id'         => $fulfillment === 'delivery' ? $request->address_id : null,
-                'payment_method'     => $request->payment_method,
-                'fulfillment_method' => $fulfillment,                                              
-                'status'             => 'pending',
-                'total_amount'       => $grandTotal,
-                'shipping_fee'       => $totalShipping,
-            ]);
-
-            foreach ($cartItems as $cartItem) {
-                $order->orderItems()->create([
-                    'product_id' => $cartItem->product_id,
-                    'quantity'   => (int)$cartItem->quantity,
-                    'price'      => $cartItem->product->price
-                ]);
-
-                if ($cartItem->id != 0) {
-                    $cartItem->delete();
-                }
-            }
-
-            $order->load('orderItems.product.user');
-
-    // Group order items by seller_id
+    // ✅ Notify sellers
     $itemsBySeller = $order->orderItems
-        ->filter(fn ($oi) => optional($oi->product)->user_id)
-        ->groupBy(fn ($oi) => $oi->product->user_id);
+        ->filter(fn($oi) => optional($oi->product)->user_id)
+        ->groupBy(fn($oi) => $oi->product->user_id);
 
-    // Send ONE notification per seller with ONLY their items
     foreach ($itemsBySeller as $sellerId => $itemsForSeller) {
         $seller = User::find($sellerId);
-        if (!$seller) continue;
-
-        Notification::send($seller, new \App\Notifications\NewOrderForSeller($order, $itemsForSeller));
-        // or: $seller->notify(new NewOrderForSeller($order, $itemsForSeller));
+        if ($seller) {
+            Notification::send($seller, new \App\Notifications\NewOrderForSeller($order, $itemsForSeller));
+        }
     }
 
-    // Then finish as you do now:
+    // ✅ Handle Online or GCash Payments
+    if (in_array($request->payment_method, ['gcash', 'online'])) {
+        try {
+            // ✅ Fix for "Only variables should be passed by reference"
+            $config = \Xendit\Configuration::getDefaultConfiguration();
+            $config->setApiKey(env('XENDIT_SECRET_KEY'));
+
+            $apiInstance = new \Xendit\Invoice\InvoiceApi(null, $config);
+
+            $amount = (float) $grandTotal; // assign variable first
+
+            $invoiceParams = new \Xendit\Invoice\CreateInvoiceRequest([
+                'external_id' => 'order-' . $order->id,
+                'payer_email' => $user->email ?? 'customer@example.com',
+                'description' => 'Payment for Order #' . $order->id,
+                'amount' => $amount,
+                'success_redirect_url' => route('checkout.success'),
+                'failure_redirect_url' => route('checkout.show'),
+                'payment_methods' => ['GCASH', 'GRABPAY', 'PAYMAYA', 'QRPH', 'CARD', 'OVER_THE_COUNTER'],
+            ]);
+
+            $invoice = $apiInstance->createInvoice($invoiceParams);
+
+            $order->update([
+                'payment_reference' => $invoice->getId() ?? null,
+                'invoice_url' => $invoice->getInvoiceUrl() ?? null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'redirect_url' => $invoice['invoice_url'],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Xendit Invoice Error: ' . $e->getMessage());
+            if (method_exists($e, 'getResponseBody')) {
+                \Log::error('Response Body: ' . json_encode($e->getResponseBody()));
+            }
+            if (method_exists($e, 'getResponseHeaders')) {
+                \Log::error('Response Headers: ' . json_encode($e->getResponseHeaders()));
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create Xendit invoice. Please try again.',
+            ], 500);
+        }
+    }
+
+    // ✅ COD fallback
     return response()->json([
-        'success'      => true,
-        'message'      => 'Order placed successfully!',
-        'redirect_url' => route('checkout.success')
+        'success' => true,
+        'message' => 'Order placed successfully!',
+        'redirect_url' => route('checkout.success'),
     ]);
-    }
+}
+
+
 
 
 
@@ -458,4 +490,48 @@ class CheckoutController extends Controller
         $products = Product::latest()->take(6)->get(); // Get latest 6 products
         return view('checkout.success', compact('products'));
     }
+
+    public function handleXenditWebhook(Request $request)
+    {
+        $data = $request->all();
+
+        if (!isset($data['external_id'])) {
+            return response()->json(['error' => 'Invalid payload'], 400);
+        }
+
+        $orderId = (int) str_replace('order-', '', $data['external_id']);
+        $order = \App\Models\Order::with('orderItems.product.user.seller')->find($orderId);
+
+        if (!$order) {
+            return response()->json(['error' => 'Order not found'], 404);
+        }
+
+        if (($data['status'] ?? '') === 'PAID') {
+            $order->update(['status' => 'paid']);
+
+            $xendit = app(\App\Services\XenditService::class);
+
+            foreach ($order->orderItems as $item) {
+                $seller = $item->product->user->seller ?? null;
+                if (!$seller || !$seller->xendit_account_id) continue;
+
+                $amount = $item->price * $item->quantity;
+                $platformFee = $amount * 0.05; // Example: 5% commission
+                $payout = $amount - $platformFee;
+
+                try {
+                    $xendit->transferToSeller([
+                        'seller_id' => $seller->xendit_account_id,
+                        'amount' => $payout,
+                        'reference' => 'order-' . $order->id . '-' . $seller->id,
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Xendit Payout Error: ' . $e->getMessage());
+                }
+            }
+        }
+
+        return response()->json(['success' => true]);
+    }
+
 }

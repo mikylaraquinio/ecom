@@ -13,6 +13,7 @@ use App\Http\Controllers\ChatController;
 use App\Models\Category;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PaymentController;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -47,6 +48,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/sell', [ProfileController::class, 'sell'])->name('profile.sell');
+    Route::post('/profile/picture', [ProfileController::class, 'updatePicture'])
+        ->name('profile.picture.update');
 
     Route::post('/profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.updatePassword');
 
@@ -156,15 +159,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/chat/data/messages/{receiverId}', [ChatController::class, 'messages'])->name('chat.messages');
 
 
-
-
-
-
-
-
-
-
+Route::get('/invoice', [PaymentController::class, 'createInvoice'])->name('invoice.create');
+Route::post('/xendit/webhook', [CheckoutController::class, 'handleXenditWebhook']);
 
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
+

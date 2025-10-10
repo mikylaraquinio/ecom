@@ -117,43 +117,29 @@ class ProfileController extends Controller
         return back()->with('success', 'Password updated successfully!');
     }
 
-    public function updateProfilePicture(Request $request)
+    public function updatePicture(Request $request)
     {
         $request->validate([
-            'profile_picture' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            'profile_picture' => ['required','image','max:2048'], // ~2MB, adjust as needed
         ]);
 
-        // Retrieve user properly
-        $user = Auth::user();
+        $user = $request->user();
 
-        if (!$user) {
-            return back()->withErrors(['error' => 'User not authenticated.']);
+        // store to public disk -> storage/app/public/profile_pictures/...
+        $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+
+        // optionally delete old file if you stored path previously
+        if (!empty($user->profile_picture) && Storage::disk('public')->exists($user->profile_picture)) {
+            Storage::disk('public')->delete($user->profile_picture);
         }
 
-        // Debugging: Ensure $user is an instance of User
-        if (!$user instanceof User) {
-            return back()->withErrors(['error' => 'User model not found.']);
-        }
+        $user->profile_picture = $path; // store relative path like "profile_pictures/abc.jpg"
+        $user->save();
 
-        if ($request->hasFile('profile_picture')) {
-            // Delete old profile picture if not the default
-            if ($user->profile_picture && $user->profile_picture !== 'assets/default.png') {
-                Storage::disk('public')->delete($user->profile_picture);
-            }
-
-            // Store the new image
-            $path = $request->file('profile_picture')->store('profile_pictures', 'public');
-            $user->profile_picture = $path;
-
-            // Debugging: Confirm before saving
-            if (method_exists($user, 'save')) {
-                $user->save();
-            } else {
-                return back()->withErrors(['error' => 'Save method does not exist on User model.']);
-            }
-        }
-
-        return back()->with('success', 'Profile picture updated successfully.');
+        return response()->json([
+            'success' => true,
+            'path' => asset('storage/'.$path), // for instant preview if needed
+        ]);
     }
     // In your controller
     public function showProfile()

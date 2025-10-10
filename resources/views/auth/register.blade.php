@@ -1,166 +1,199 @@
+@php($title = 'Register | FarmSmart')
+
 <x-guest-layout>
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <style>
-        /* Reuse your login page style */
-        * {
-            box-sizing: border-box;
-        }
-
         body, html {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f8f3;
         }
 
-        .login-wrapper {
+        .register-container {
             display: flex;
-            flex-direction: row;
-            min-height: calc(100vh - 112px);
-            margin-top: 72px;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 120px);
+            padding: 2rem;
+        }
+
+        .register-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            padding: 3rem 2.5rem;
             width: 100%;
-        }
-
-        .login-left {
-            flex: 1;
-            background-color: #d7f2c9;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 3rem 2rem;
+            max-width: 480px;
             text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
         }
 
-        .welcome-content {
-            color: #2f4f1c;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .welcome-content img {
-            max-height: 70px;
-            margin-bottom: 1.5rem;
-        }
-
-        .welcome-content h1 {
-            font-size: 2.5rem;
+        .register-card img {
+            height: 65px;
             margin-bottom: 1rem;
         }
 
-        .welcome-content p {
-            font-size: 1.2rem;
-            max-width: 450px;
-            line-height: 1.6;
-        }
-
-        .login-box {
-            flex: 1;
-            background: #ffffff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 4rem 3rem;
-            max-width: 600px;
-            box-shadow: -5px 0 30px rgba(0, 0, 0, 0.05);
-        }
-
-        .login-box h2 {
-            font-size: 2rem;
-            color: #4C7737;
+        .register-card h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2f4f1c;
             margin-bottom: 0.5rem;
         }
 
-        .login-box p {
-            font-size: 1rem;
-            color: #6c757d;
+        .register-card p.subtitle {
+            font-size: 0.95rem;
+            color: #6b7280;
+            margin-bottom: 2rem;
+            line-height: 1.6;
         }
 
         .input-group {
-            margin-top: 1.5rem;
+            text-align: left;
+            margin-bottom: 1.25rem;
         }
 
         .input-group label {
             display: block;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #333;
+            color: #374151;
+            margin-bottom: 0.3rem;
         }
 
-        .input-group input, .input-group textarea {
+        .input-group input,
+        .input-group textarea {
             width: 100%;
             padding: 0.75rem;
-            font-size: 1rem;
             border-radius: 8px;
-            border: 1px solid #ccc;
+            border: 1px solid #cbd5e1;
+            background-color: #f9fafb;
+            font-size: 0.95rem;
+            transition: border 0.2s ease, box-shadow 0.2s ease;
+            resize: none;
         }
 
+        .input-group input:focus,
+        .input-group textarea:focus {
+            border-color: #71b127;
+            background-color: #fff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(113, 177, 39, 0.1);
+        }
+
+        /* Register button */
         .farm-btn {
-            background: linear-gradient(to right, #71b127, #9feb47);
+            background: linear-gradient(90deg, #71b127, #9feb47);
             color: white;
-            font-weight: bold;
+            font-weight: 600;
             border: none;
-            padding: 0.85rem;
-            width: 100%;
             border-radius: 8px;
+            padding: 0.85rem;
+            font-size: 1rem;
+            width: 100%;
+            margin-top: 1rem;
             cursor: pointer;
-            font-size: 1.1rem;
-            margin-top: 2rem;
+            transition: background 0.3s ease, transform 0.1s ease;
         }
 
         .farm-btn:hover {
-            background: #5d9f22;
+            background: #5a9216;
+            transform: translateY(-1px);
         }
 
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1.8rem 0;
+            color: #9ca3af;
+            font-size: 0.9rem;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #e5e7eb;
+            margin: 0 0.75rem;
+        }
+
+        /* Google register button */
+        .btn-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            background-color: #fff;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            color: #3c4043;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'Roboto', Arial, sans-serif;
+            height: 45px;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-google img {
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            margin-top: -1px;
+        }
+
+        .btn-google:hover {
+            background-color: #f7f8f8;
+            border-color: #c6c6c6;
+        }
+
+        .btn-google:active {
+            background-color: #e8e8e8;
+            border-color: #a8a8a8;
+        }
+
+        /* Login link */
         .signup-text {
             text-align: center;
             margin-top: 1.5rem;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
 
         .signup-text a {
             color: #4C7737;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .signup-text a:hover {
             text-decoration: underline;
         }
 
-        @media (max-width: 900px) {
-            .login-wrapper {
-                flex-direction: column;
-                min-height: auto;
-            }
-
-            .login-left, .login-box {
-                flex: none;
-                width: 100%;
-            }
-
-            .login-box {
-                padding: 2rem;
-                box-shadow: none;
+        @media (max-width: 768px) {
+            .register-card {
+                padding: 2rem 1.5rem;
             }
         }
     </style>
 
-    <div class="login-wrapper">
-        <!-- Left section -->
-        <div class="login-left">
-            <div class="welcome-content">
-                <img src="assets/logo.png" alt="FarmSmart Logo">
-                <h1>Grow with FarmSmart</h1>
-                <p>Connect with farmers, buy fresh produce, and thrive in agriculture.</p>
-            </div>
-        </div>
-
-        <!-- Right form section -->
-        <div class="login-box">
-            <div class="text-center mb-4">
-                <h2>Create Account</h2>
-                <p>Sign up and become part of our farming community.</p>
-            </div>
+    <div class="register-container">
+        <div class="register-card">
+            <img src="{{ asset('assets/logo.png') }}" alt="FarmSmart Logo">
+            <h2>Create Account</h2>
+            <p class="subtitle">
+                Join the FarmSmart community and grow your farm with powerful tools and connections.
+            </p>
 
             <form method="POST" action="{{ route('register') }}">
                 @csrf
@@ -189,7 +222,7 @@
                 <!-- Address -->
                 <div class="input-group">
                     <label for="address">Complete Address</label>
-                    <textarea id="address" name="address" rows="2" placeholder="e.g. Brgy. Sampaguita, San Juan, Batangas" required style="resize: none;">{{ old('address') }}</textarea>
+                    <textarea id="address" name="address" rows="2" placeholder="e.g. Brgy. Sampaguita, San Juan, Batangas" required>{{ old('address') }}</textarea>
                     <x-input-error :messages="$errors->get('address')" class="mt-1" />
                 </div>
 
@@ -209,8 +242,16 @@
 
                 <button type="submit" class="farm-btn">Register</button>
 
+                <div class="divider">or</div>
+
+                <!-- Register with Google -->
+                <button type="button" class="btn-google">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon">
+                    Register with Google
+                </button>
+
                 <div class="signup-text">
-                    Already have an account? <a href="{{ route('login') }}">Log in here</a>
+                    Already have an account? <a href="{{ route('login') }}">Log in</a>
                 </div>
             </form>
         </div>
