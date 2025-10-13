@@ -34,7 +34,8 @@
 
             <!-- Product Image -->
             <div class="position-relative overflow-hidden" style="height: 180px;">
-              <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover">
+              <img src="{{ $product->image_path ?? asset('assets/products.jpg') }}" 
+                  alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover">
               <span class="badge bg-success position-absolute top-0 start-0 m-2 shadow-sm">New</span>
             </div>
 

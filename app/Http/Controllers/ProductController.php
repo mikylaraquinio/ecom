@@ -173,6 +173,8 @@ class ProductController extends Controller
         $imagePath = $request->file('image')->store('products', 'public');
 
         // Create product
+        $imagePath = $request->file('image')->store('products', 'public');
+
         $product = new Product();
         $product->fill([
             'name' => $request->name,
@@ -182,12 +184,13 @@ class ProductController extends Controller
             'unit' => $request->unit,
             'weight' => $request->weight,
             'min_order_qty' => $request->min_order_qty ?? 1,
-            'image' => $imagePath, // legacy cover column
-            'image_path' => Storage::disk('public')->url($imagePath),
+            'image' => $imagePath,
+            'image_path' => asset('storage/'.$imagePath), // ✅ hostinger safe
             'category_id' => $request->category,
             'user_id' => auth()->id(),
         ]);
         $product->save();
+
 
         // Save gallery[] files (if any)
         if ($request->hasFile('gallery')) {
