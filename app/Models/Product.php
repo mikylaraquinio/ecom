@@ -71,7 +71,7 @@ class Product extends Model
 
     public function getImageUrlAttribute()
     {
-        return asset('storage/products/' . $this->image);
+        return $this->image_path ?? asset('storage/'.$this->image ?? 'assets/products.jpg');
     }
 
 
