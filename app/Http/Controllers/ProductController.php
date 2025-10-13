@@ -169,12 +169,21 @@ class ProductController extends Controller
             'category' => 'required|exists:categories,id',
         ]);
 
-        // Cover image
+        // ✅ Save the image in storage/app/public/products
         $imagePath = $request->file('image')->store('products', 'public');
 
-        // Create product
-        $imagePath = $request->file('image')->store('products', 'public');
+        // ✅ Hostinger workaround: manually copy file to public/storage/
+        $publicPath = public_path('storage/' . $imagePath);
+        $directory = dirname($publicPath);
 
+        if (!file_exists($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        // Copy file so Hostinger can serve it
+        @copy(storage_path('app/public/' . $imagePath), $publicPath);
+
+        // ✅ Save product
         $product = new Product();
         $product->fill([
             'name' => $request->name,
@@ -185,18 +194,19 @@ class ProductController extends Controller
             'weight' => $request->weight,
             'min_order_qty' => $request->min_order_qty ?? 1,
             'image' => $imagePath,
-            'image_path' => asset('storage/'.$imagePath), // ✅ hostinger safe
+            'image_path' => asset('storage/' . $imagePath),
             'category_id' => $request->category,
             'user_id' => auth()->id(),
         ]);
         $product->save();
 
-
-        // Save gallery[] files (if any)
+        // ✅ Also handle gallery images
         if ($request->hasFile('gallery')) {
             $order = 0;
             foreach ($request->file('gallery') as $file) {
                 $path = $file->store('products', 'public');
+                @copy(storage_path('app/public/' . $path), public_path('storage/' . $path));
+
                 ProductImage::create([
                     'product_id' => $product->id,
                     'path' => $path,
@@ -207,6 +217,7 @@ class ProductController extends Controller
 
         return back()->with('success', 'Product added successfully.');
     }
+
 
     public function edit($id)
     {
