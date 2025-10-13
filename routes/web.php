@@ -16,6 +16,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Auth\GoogleController;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Http\Request;
+use App\Models\User;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -166,14 +168,30 @@ Route::post('/xendit/webhook', [CheckoutController::class, 'handleXenditWebhook'
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
 
-Route::get('/test-mail', function () {
-    Mail::raw('This is a test email from FarmSmart.', function ($message) {
-        $message->to('mikylaraquinio097@email.com')
-                ->subject('FarmSmart Mail Test');
-    });
 
-    return 'Test email sent!';
-});
+Route::get('/email/verify', function () {
+    return view('auth.verify-email'); // shows the "please verify your email" page
+})->middleware('auth')->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
+    $user = User::findOrFail($id);
+
+    // Validate the hash in the URL
+    if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
+        abort(403, 'Invalid or expired verification link.');
+    }
+
+    // If already verified
+    if ($user->hasVerifiedEmail()) {
+        return redirect('/login')->with('status', 'Email already verified.');
+    }
+
+    // Mark the email as verified
+    $user->markEmailAsVerified();
+
+    // Redirect after success
+    return redirect('/login')->with('status', 'Email verified successfully!');
+})->name('verification.verify');
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
