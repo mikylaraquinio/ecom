@@ -165,7 +165,5 @@ Route::get('/seller/revenue-data', [SellerController::class, 'revenueData'])->na
 
 
 
-
-
 /* Authentication Routes */
 require __DIR__ . '/auth.php';

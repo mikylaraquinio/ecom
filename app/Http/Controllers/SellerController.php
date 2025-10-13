@@ -20,81 +20,81 @@ class SellerController extends Controller
     }
 
     public function storeSeller(Request $request)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    $validated = $request->validate([
-        'shop_name'            => 'required|string|max:30',
-        'pickup_address'       => 'nullable|string|max:255',
-        'pickup_full_name'     => 'nullable|string|max:255',
-        'pickup_phone'         => 'nullable|string|max:50',
-        'pickup_region_group'  => 'nullable|string|max:100',
-        'pickup_province'      => 'nullable|string|max:100',
-        'pickup_city'          => 'nullable|string|max:100',
-        'pickup_barangay'      => 'nullable|string|max:100',
-        'pickup_postal'        => 'nullable|string|max:16',
-        'pickup_detail'        => 'nullable|string|max:1000',
-        'business_type'        => 'required|string|in:individual,sole,corporation,cooperative',
-        'tax_id'               => 'nullable|string|max:50',
-        'gov_id'               => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-        'rsbsa'                => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-        'mayors_permit'        => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-    ]);
+        $validated = $request->validate([
+            'shop_name' => 'required|string|max:30',
+            'pickup_address' => 'nullable|string|max:255',
+            'pickup_full_name' => 'nullable|string|max:255',
+            'pickup_phone' => 'nullable|string|max:50',
+            'pickup_region_group' => 'nullable|string|max:100',
+            'pickup_province' => 'nullable|string|max:100',
+            'pickup_city' => 'nullable|string|max:100',
+            'pickup_barangay' => 'nullable|string|max:100',
+            'pickup_postal' => 'nullable|string|max:16',
+            'pickup_detail' => 'nullable|string|max:1000',
+            'business_type' => 'required|string|in:individual,sole,corporation,cooperative',
+            'tax_id' => 'nullable|string|max:50',
+            'gov_id' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'rsbsa' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'mayors_permit' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        ]);
 
-    $govPath = $request->file('gov_id')
-        ? $request->file('gov_id')->store('seller_docs', 'public')
-        : optional($user->seller)->gov_id_path;
+        $govPath = $request->file('gov_id')
+            ? $request->file('gov_id')->store('seller_docs', 'public')
+            : optional($user->seller)->gov_id_path;
 
-    $rsbsaPath = $request->file('rsbsa')
-        ? $request->file('rsbsa')->store('seller_docs', 'public')
-        : optional($user->seller)->rsbsa_path;
+        $rsbsaPath = $request->file('rsbsa')
+            ? $request->file('rsbsa')->store('seller_docs', 'public')
+            : optional($user->seller)->rsbsa_path;
 
-    $mayorsPermitPath = $request->file('mayors_permit')
-        ? $request->file('mayors_permit')->store('seller_docs', 'public')
-        : optional($user->seller)->mayors_permit_path;
+        $mayorsPermitPath = $request->file('mayors_permit')
+            ? $request->file('mayors_permit')->store('seller_docs', 'public')
+            : optional($user->seller)->mayors_permit_path;
 
-    $data = [
-        'shop_name'           => $validated['shop_name'],
-        'pickup_address'      => $validated['pickup_address']      ?? null,
-        'pickup_full_name'    => $validated['pickup_full_name']    ?? null,
-        'pickup_phone'        => $validated['pickup_phone']        ?? null,
-        'pickup_region_group' => $validated['pickup_region_group'] ?? null,
-        'pickup_province'     => $validated['pickup_province']     ?? null,
-        'pickup_city'         => $validated['pickup_city']         ?? null,
-        'pickup_barangay'     => $validated['pickup_barangay']     ?? null,
-        'pickup_postal'       => $validated['pickup_postal']       ?? null,
-        'pickup_detail'       => $validated['pickup_detail']       ?? null,
+        $data = [
+            'shop_name' => $validated['shop_name'],
+            'pickup_address' => $validated['pickup_address'] ?? null,
+            'pickup_full_name' => $validated['pickup_full_name'] ?? null,
+            'pickup_phone' => $validated['pickup_phone'] ?? null,
+            'pickup_region_group' => $validated['pickup_region_group'] ?? null,
+            'pickup_province' => $validated['pickup_province'] ?? null,
+            'pickup_city' => $validated['pickup_city'] ?? null,
+            'pickup_barangay' => $validated['pickup_barangay'] ?? null,
+            'pickup_postal' => $validated['pickup_postal'] ?? null,
+            'pickup_detail' => $validated['pickup_detail'] ?? null,
 
-        'business_type'       => $validated['business_type'],
-        'tax_id'              => $validated['tax_id']              ?? null,
-        'gov_id_path'         => $govPath,
-        'rsbsa_path'          => $rsbsaPath,
-        'mayors_permit_path'  => $mayorsPermitPath,
+            'business_type' => $validated['business_type'],
+            'tax_id' => $validated['tax_id'] ?? null,
+            'gov_id_path' => $govPath,
+            'rsbsa_path' => $rsbsaPath,
+            'mayors_permit_path' => $mayorsPermitPath,
 
-        'status'              => 'approved', // or 'pending'
-    ];
+            'status' => 'approved', // or 'pending'
+        ];
 
-    \App\Models\Seller::updateOrCreate(['user_id' => $user->id], $data);
+        \App\Models\Seller::updateOrCreate(['user_id' => $user->id], $data);
 
-    if ($user->role !== 'seller') {
-        $user->role = 'seller';
-        $user->save();
-        Auth::setUser($user->fresh());
+        if ($user->role !== 'seller') {
+            $user->role = 'seller';
+            $user->save();
+            Auth::setUser($user->fresh());
+        }
+
+        // 👇 keep this route in sync with your JS (or change to user_profile if you prefer)
+        $redirect = route('user_profile');
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Seller registration saved!',
+                'redirect_url' => $redirect,
+            ], 200);
+        }
+
+        return redirect($redirect)->with('success', 'Seller registration saved!');
     }
-
-    // 👇 keep this route in sync with your JS (or change to user_profile if you prefer)
-    $redirect = route('user_profile');
-
-    if ($request->expectsJson()) {
-        return response()->json([
-            'success'      => true,
-            'message'      => 'Seller registration saved!',
-            'redirect_url' => $redirect,
-        ], 200);
-    }
-
-    return redirect($redirect)->with('success', 'Seller registration saved!');
-}
 
 
     public function myOrders()
@@ -135,9 +135,9 @@ class SellerController extends Controller
                 $subQuery->where('user_id', auth()->id());
             });
         })
-        ->orderBy('created_at', 'desc')
-        ->with('orderItems.product', 'buyer', 'shippingAddress')
-        ->get();
+            ->orderBy('created_at', 'desc')
+            ->with('orderItems.product', 'buyer', 'shippingAddress')
+            ->get();
 
         // ✅ fix: use auth()->user()
         $user = auth()->user();
@@ -145,7 +145,7 @@ class SellerController extends Controller
 
         // 🔔 Notifications for this page as well (optional but useful)
         $unreadNotifications = $user->unreadNotifications()->latest()->take(10)->get();
-        $allNotifications    = $user->notifications()->latest()->paginate(10);
+        $allNotifications = $user->notifications()->latest()->paginate(10);
 
         // (Optional) Mark order notifications as read when viewing this page:
         // $user->unreadNotifications()
@@ -204,7 +204,7 @@ class SellerController extends Controller
 
         $extra = null;
         if ($newStatus === 'shipped') {
-            $extra = trim(' '.($request->courier ?? '').' '.($request->tracking_no ?? ''));
+            $extra = trim(' ' . ($request->courier ?? '') . ' ' . ($request->tracking_no ?? ''));
         }
         $this->notifyBuyer($order, $extra); // 👈
 
@@ -227,14 +227,14 @@ class SellerController extends Controller
 
         // 🔔 Notifications (Step 6)
         $unreadNotifications = $user->unreadNotifications()->latest()->take(10)->get();
-        $allNotifications    = $user->notifications()->latest()->paginate(10);
+        $allNotifications = $user->notifications()->latest()->paginate(10);
 
         // Fetch seller's orders with optional status filter
         $orders = collect();
         if ($user->role === 'seller') {
             $orders = Order::whereHas('orderItems.product', function ($query) use ($user) {
-                    $query->where('user_id', $user->id);
-                })
+                $query->where('user_id', $user->id);
+            })
                 ->when($request->filled('status'), function ($q) use ($request) {
                     $q->where('status', $request->status);
                 })
@@ -274,8 +274,8 @@ class SellerController extends Controller
         })->where('status', 'pending')->count();
 
         $topProducts = Order::whereHas('orderItems.product', function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })
+            $query->where('user_id', $user->id);
+        })
             ->where('status', 'completed')
             ->with('orderItems.product')
             ->get()
@@ -296,8 +296,8 @@ class SellerController extends Controller
         $lowStockProducts = $user->products()->where('stock', '<=', 5)->get();
 
         $revenueTrends = Order::whereHas('orderItems.product', function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })
+            $query->where('user_id', $user->id);
+        })
             ->where('status', 'completed')
             ->select(
                 DB::raw('MONTH(created_at) as month'),
@@ -326,6 +326,80 @@ class SellerController extends Controller
             'allNotifications',
             'products'
         ));
+    }
+
+    public function revenueData(Request $request)
+    {
+        $user = auth()->user();
+        $type = $request->get('type', 'monthly'); // default monthly
+
+        $query = Order::whereHas('orderItems.product', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })->where('status', 'completed');
+
+        switch ($type) {
+            case 'daily':
+                $data = $query->select(
+                    DB::raw('DATE(updated_at) as label'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                    ->groupBy(DB::raw('DATE(updated_at)'))
+                    ->orderBy('label')
+                    ->pluck('total', 'label');
+                break;
+
+            case 'weekly':
+                $data = $query->select(
+                    DB::raw('YEARWEEK(updated_at) as label'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                    ->groupBy(DB::raw('YEARWEEK(updated_at)'))
+                    ->orderBy('label')
+                    ->pluck('total', 'label');
+                break;
+
+            case 'monthly':
+                $data = $query->select(
+                    DB::raw('YEAR(updated_at) as year'),
+                    DB::raw('MONTH(updated_at) as month'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                    ->groupBy(DB::raw('YEAR(updated_at), MONTH(updated_at)'))
+                    ->orderBy('year')
+                    ->orderBy('month')
+                    ->get()
+                    ->mapWithKeys(fn($row) => [
+                        $row->year . '-' . str_pad($row->month, 2, '0', STR_PAD_LEFT) => $row->total
+                    ]);
+                break;
+
+            case 'quarterly':
+                $data = $query->select(
+                    DB::raw('YEAR(updated_at) as year'),
+                    DB::raw('QUARTER(updated_at) as quarter'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                    ->groupBy(DB::raw('YEAR(updated_at), QUARTER(updated_at)'))
+                    ->orderBy('year')
+                    ->orderBy('quarter')
+                    ->get()
+                    ->mapWithKeys(fn($row) => [
+                        $row->year . ' Q' . $row->quarter => $row->total
+                    ]);
+                break;
+
+            case 'yearly':
+                $data = $query->select(
+                    DB::raw('YEAR(updated_at) as label'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                    ->groupBy(DB::raw('YEAR(updated_at)'))
+                    ->orderBy('label')
+                    ->pluck('total', 'label');
+                break;
+        }
+
+        return response()->json($data);
     }
 
     public function confirmReceipt($id)
@@ -376,6 +450,6 @@ class SellerController extends Controller
         }
     }
 
-    
+
 
 }
