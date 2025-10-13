@@ -190,7 +190,81 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body small">
-          <p>Your terms content goes here…</p>
+          <p>These Terms and Conditions (“Terms”) constitute a legally binding agreement between Farmsmart (“the Platform,” “we,” “our,” or “us”) and the registered user (“Seller,” “you,” or “your”) governing your use of the Farmsmart platform and related services. By clicking “I Agree to the Terms & Conditions” or by continuing to use the platform, you acknowledge that you have read, understood, and agreed to be bound by these Terms.
+
+1. Seller Registration and Obligations
+
+1.1. The Seller agrees to provide complete, current, and accurate information during registration and to promptly update any information that may change.
+
+1.2. The Seller affirms that all business permits, licenses, and certifications submitted are valid and issued by the appropriate government agencies.
+
+1.3. The Seller shall be solely responsible for the products offered, including their legality, quality, safety, and conformity with applicable laws and regulations.
+
+1.4. In the event of any misrepresentation or submission of falsified documents, the Seller shall receive a formal warning from the Platform. Repeated violations or failure to comply after such warning shall result in the suspension or termination of the Seller’s account without further notice.
+
+2. Product Listings
+
+2.1. The Seller agrees to post only lawful and authentic products, with accurate and truthful descriptions, pricing, and images.
+
+2.2. The Platform strictly prohibits the sale of counterfeit, expired, illegal, or restricted items.
+
+3. Transactions and Fulfillment
+
+3.1. The Seller shall process and fulfill all confirmed orders in a timely and professional manner.
+
+3.2. The Seller shall ensure proper packaging, shipment, and delivery of the product to the Buyer.
+
+3.3. Failure to deliver or repeated order cancellations without just cause may result in penalties, suspension, or termination of the Seller’s account.
+
+4. Fees and Payments
+
+4.1. The Platform may impose transaction, service, or administrative fees as part of its operational policies.
+
+4.2. The Platform shall facilitate payment processing through secure and approved channels.
+
+4.3. The Platform reserves the right to withhold or reverse payments in cases involving fraud, disputes, chargebacks, or policy violations.
+
+5. Data Privacy and Confidentiality
+
+5.1. The Platform shall collect, process, and store Seller information in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173) and its implementing rules.
+
+5.2. The Seller authorizes the Platform to use provided information for verification, communication, and transaction purposes.
+
+5.3. The Platform shall exercise due diligence in safeguarding Seller information but shall not be held liable for breaches beyond its reasonable control.
+
+6. Account Suspension and Termination
+
+6.1. The Platform reserves the right to suspend or terminate any Seller account found to be in violation of these Terms or any applicable law.
+
+6.2. The Seller may voluntarily request account termination, subject to settlement of all pending transactions and obligations.
+
+6.3. Termination of the account does not exempt the Seller from liability for past actions or obligations incurred prior to termination.
+
+7. Limitation of Liability
+
+7.1. The Platform shall not be liable for any indirect, incidental, or consequential damages arising from the Seller’s use of the Platform.
+
+7.2. The Seller acknowledges that the Platform acts solely as a facilitator between Sellers and Buyers and is not a party to any direct sale transaction.
+
+7.3. The Seller agrees to indemnify and hold harmless the Platform from any claim, loss, or liability arising from the Seller’s acts, omissions, or product defects.
+
+8. Amendments and Revisions
+
+8.1. The Platform reserves the right to amend or revise these Terms at any time.
+
+8.2. Any significant changes shall be communicated through email, system notifications, or public posting within the Platform.
+
+8.3. Continued use of the Platform after such amendments constitutes acceptance of the revised Terms.
+
+9. Governing Law and Jurisdiction
+
+9.1. These Terms shall be governed by and construed in accordance with the laws of the Republic of the Philippines.
+
+9.2. Any disputes arising out of or relating to these Terms shall be submitted to the proper courts of Pangasinan, to the exclusion of all other venues.
+
+10. Acceptance
+
+By proceeding with registration and clicking “I Agree to the Terms & Conditions”, you acknowledge that you have read, understood, and voluntarily agreed to these Terms and Conditions in their entirety.</p>
         </div>
       </div>
     </div>
