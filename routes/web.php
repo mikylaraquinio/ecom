@@ -160,8 +160,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/chat/data/messages/{receiverId}', [ChatController::class, 'messages'])->name('chat.messages');
 
 Route::get('/seller/revenue-data', [SellerController::class, 'revenueData'])->name('seller.revenueData');
-
-
 Route::get('/invoice', [PaymentController::class, 'createInvoice'])->name('invoice.create');
 Route::post('/xendit/webhook', [CheckoutController::class, 'handleXenditWebhook']);
 

@@ -115,1151 +115,1159 @@
     <div class="bg-white border rounded shadow-sm p-3">
       <div class="tab-content">
         @if(auth()->check() && auth()->user()->role === 'seller')
-          <div class="tab-pane fade show active" id="order-status">
-            {{-- Header: centered title + filter on the right --}}
-            <div class="mb-2 d-grid" style="grid-template-columns: 1fr auto 1fr; align-items: center;">
-              <div></div>
-              <div class="text-center">
-                <h5 class="fw-bold mb-0">Your Orders</h5>
-              </div>
-              <div class="d-flex justify-content-end">
-                <form method="GET" action="{{ url()->current() }}#order-status" class="d-flex align-items-center gap-2">
-                  @foreach(request()->except('status') as $key => $val)
-                    @if(is_array($val))
-                      @foreach($val as $v)
-                        <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
-                      @endforeach
-                    @else
-                      <input type="hidden" name="{{ $key }}" value="{{ $val }}">
-                    @endif
-                  @endforeach
-                  <label class="small text-muted mb-0">Filter:</label>
-                  <select name="status" class="form-select form-select-sm" style="max-width: 220px;"
-                    onchange="this.form.submit()">
-                    <option value="">All statuses</option>
-                    <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="accepted" {{ request('status') === 'accepted' ? 'selected' : '' }}>Accepted</option>
-                    <option value="shipped" {{ request('status') === 'shipped' ? 'selected' : '' }}>Shipped / Ready for
-                      Pickup</option>
-                    <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
-                    <option value="cancel_requested" {{ request('status') === 'cancel_requested' ? 'selected' : '' }}>Cancel
-                      Requested</option>
-                    <option value="denied" {{ request('status') === 'denied' ? 'selected' : '' }}>Denied</option>
-                    <option value="canceled" {{ request('status') === 'canceled' ? 'selected' : '' }}>Canceled</option>
-                  </select>
-                </form>
-              </div>
-            </div>
-
-            <div class="table-responsive shadow-sm rounded bg-white p-3"
-              style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd;">
-              @if(isset($orders) && $orders->count() > 0)
-                <table class="table text-center">
-                  <thead class="table-dark">
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Buyer</th>
-                      <th>Fulfillment</th>
-                      <th>Shipping / Pickup Details</th>
-                      <th>Products</th>
-                      <th>Total Price</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @foreach($orders as $order)
-                      @php $method = $order->fulfillment_method === 'pickup' ? 'pickup' : 'delivery'; @endphp
-                      <tr>
-                        <td>{{ $order->id }}</td>
-                        <td>{{ $order->buyer->name }}</td>
-                        <td>
-                          <span class="badge rounded-pill {{ $method === 'pickup' ? 'bg-warning text-dark' : 'bg-primary' }}">
-                            {{ $method === 'pickup' ? 'Pick up' : 'For delivery' }}
-                          </span>
-                        </td>
-                        <td class="text-start">
-                          @if($method === 'pickup')
-                                      <div class="fw-semibold">Pickup Location</div>
-                                      <div class="text-muted small">
-                                        {{ auth()->user()->farm_address
-                            ?? trim((auth()->user()->address_line1 ?? '') . ' ' . (auth()->user()->barangay ?? '') . ', ' . (auth()->user()->city ?? '') . ', ' . (auth()->user()->province ?? ''))
-                            ?: 'Seller will coordinate pickup details with buyer' }}
-                                      </div>
-                                      <div class="small mt-1">
-                                        <i class="bi bi-info-circle"></i>
-                                        No shipping fee. Mark as “Ready for Pickup” when order is prepared.
-                                      </div>
-                          @else
-                            @if($order->shippingAddress)
-                              <div class="fw-semibold">
-                                {{ $order->shippingAddress->full_name }} — {{ $order->shippingAddress->mobile_number }}
-                              </div>
-                              <div class="text-muted small">
-                                @if($order->shippingAddress->floor_unit_number)
-                                  {{ $order->shippingAddress->floor_unit_number }},
-                                @endif
-                                {{ $order->shippingAddress->barangay }},
-                                {{ $order->shippingAddress->city }},
-                                {{ $order->shippingAddress->province }}
-                              </div>
-                              @if($order->shippingAddress->notes)
-                                <div class="text-muted fst-italic small">{{ $order->shippingAddress->notes }}</div>
-                              @endif
-                            @else
-                              <span class="text-danger">No Shipping Address Provided</span>
-                            @endif
-                          @endif
-                        </td>
-                        <td class="text-start">
-                          <ul class="list-unstyled mb-0 small">
-                            @foreach($order->orderItems as $item)
-                              <li>{{ $item->product->name }} (x{{ $item->quantity }})</li>
-                            @endforeach
-                          </ul>
-                        </td>
-                        <td>₱{{ number_format($order->total_amount, 2) }}</td>
-                        <td>
-                          <span
-                            class="badge text-white
-                                                                                                                                      @if($order->status == 'pending') bg-warning text-dark
-                                                                                                                                      @elseif($order->status == 'accepted') bg-success
-                                                                                                                                      @elseif($order->status == 'denied' || $order->status == 'canceled') bg-danger
-                                                                                                                                      @elseif($order->status == 'shipped') bg-primary
-                                                                                                                                      @elseif($order->status == 'completed') bg-info
-                                                                                                                                      @elseif($order->status == 'cancel_requested') bg-warning
-                                                                                                                                      @else bg-secondary @endif">
-                            {{ ucfirst($order->status) }}
-                          </span>
-                        </td>
-                        <td class="text-center">
-                          @if($order->status == 'pending')
-                            <div class="d-flex justify-content-center gap-2">
-                              <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST"
-                                onsubmit="return confirm('Accept this order?')">
-                                @csrf @method('PATCH')
-                                <input type="hidden" name="status" value="accepted">
-                                <button type="submit" class="btn btn-success btn-sm">Accept</button>
-                              </form>
-                              <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST"
-                                onsubmit="return confirm('Deny this order?')">
-                                @csrf @method('PATCH')
-                                <input type="hidden" name="status" value="denied">
-                                <button type="submit" class="btn btn-danger btn-sm">Deny</button>
-                              </form>
-                            </div>
-                          @elseif($order->status == 'accepted')
-                            <div class="d-flex justify-content-center">
-                              <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
-                                @csrf @method('PATCH')
-                                <input type="hidden" name="status" value="shipped">
-                                <button type="submit" class="btn btn-primary btn-sm">
-                                  {{ $method === 'pickup' ? 'Mark Ready for Pickup' : 'Mark as Shipped' }}
-                                </button>
-                              </form>
-                            </div>
-                          @elseif($order->status == 'shipped')
-                            <div class="d-flex justify-content-center">
-                              <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
-                                @csrf @method('PATCH')
-                                <input type="hidden" name="status" value="completed">
-                                <button type="submit" class="btn btn-success btn-sm">Mark as Completed</button>
-                              </form>
-                            </div>
-                          @elseif($order->status == 'canceled')
-                            <span class="badge bg-danger">Canceled by Buyer</span>
-                          @elseif($order->status == 'cancel_requested')
-                            <div class="d-flex justify-content-center gap-2">
-                              <form action="{{ route('seller.approveCancel', $order->id) }}" method="POST">
-                                @csrf @method('PATCH')
-                                <button type="submit" class="btn btn-danger btn-sm">Approve Cancellation</button>
-                              </form>
-                              <form action="{{ route('seller.denyCancel', $order->id) }}" method="POST">
-                                @csrf @method('PATCH')
-                                <button type="submit" class="btn btn-success btn-sm">Deny Cancellation</button>
-                              </form>
-                            </div>
-                          @endif
-                        </td>
-                      </tr>
-                    @endforeach
-                  </tbody>
-                </table>
-                <div class="d-flex justify-content-center">
-                  {{ $orders->links('pagination::bootstrap-5') }}
+            <div class="tab-pane fade show active" id="order-status">
+              {{-- Header: centered title + filter on the right --}}
+              <div class="mb-2 d-grid" style="grid-template-columns: 1fr auto 1fr; align-items: center;">
+                <div></div>
+                <div class="text-center">
+                  <h5 class="fw-bold mb-0">Your Orders</h5>
                 </div>
-              @else
-                <p class="text-center text-muted">No orders available.</p>
-              @endif
-            </div>
-          </div>
-
-          {{-- ========== My Shop (UNCHANGED LOGIC) ========== --}}
-          <div class="tab-pane fade" id="my-shop">
-            <div class="shop-header bg-white shadow-sm p-1 rounded">
-              <h4 class="fw-bold mb-1">My Products</h4>
-            </div>
-
-            <div class="pt-2">
-              <div class="d-flex align-items-center justify-content-between mt-3 mb-2">
-                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                  <i class="fas fa-plus-circle me-1"></i> Add Product
-                </button>
+                <div class="d-flex justify-content-end">
+                  <form method="GET" action="{{ url()->current() }}#order-status" class="d-flex align-items-center gap-2">
+                    @foreach(request()->except('status') as $key => $val)
+                      @if(is_array($val))
+                        @foreach($val as $v)
+                          <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
+                        @endforeach
+                      @else
+                        <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                      @endif
+                    @endforeach
+                    <label class="small text-muted mb-0">Filter:</label>
+                    <select name="status" class="form-select form-select-sm" style="max-width: 220px;"
+                      onchange="this.form.submit()">
+                      <option value="">All statuses</option>
+                      <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
+                      <option value="accepted" {{ request('status') === 'accepted' ? 'selected' : '' }}>Accepted</option>
+                      <option value="shipped" {{ request('status') === 'shipped' ? 'selected' : '' }}>Shipped / Ready for
+                        Pickup</option>
+                      <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
+                      <option value="cancel_requested" {{ request('status') === 'cancel_requested' ? 'selected' : '' }}>Cancel
+                        Requested</option>
+                      <option value="denied" {{ request('status') === 'denied' ? 'selected' : '' }}>Denied</option>
+                      <option value="canceled" {{ request('status') === 'canceled' ? 'selected' : '' }}>Canceled</option>
+                    </select>
+                  </form>
+                </div>
               </div>
 
-              @php
-                $products = \App\Models\Product::where('user_id', auth()->id())->get();
-              @endphp
-
-              @if($products->isNotEmpty())
-                {{-- Toolbar --}}
-                <form method="GET" action="{{ url()->current() }}#my-shop" class="bg-white border rounded p-2 mb-2">
-                  <div class="row g-2 align-items-center">
-                    <div class="col-12 col-md-6 col-lg-5">
-                      <input type="text" name="q" value="{{ request('q') }}" class="form-control"
-                        placeholder="Search Product Name, ID…">
-                    </div>
-                    <div class="col-6 col-md-3 col-lg-3">
-                      <select name="category" class="form-select">
-                        <option value="">Category</option>
-                        @foreach($mainCategories as $category)
-                          <option value="{{ $category->id }}" {{ (string) request('category') === (string) $category->id ? 'selected' : '' }}>
-                            {{ $category->name }}
-                          </option>
-                          @foreach($category->subcategories as $sub)
-                            <option value="{{ $sub->id }}" {{ (string) request('category') === (string) $sub->id ? 'selected' : '' }}>
-                              └ {{ $sub->name }}
-                            </option>
-                          @endforeach
-                        @endforeach
-                      </select>
-                    </div>
-                    <div class="col-12 col-md-12 col-lg-2 d-flex gap-2 justify-content-start justify-content-lg-end">
-                      <button class="btn btn-outline-danger">Apply</button>
-                      <a href="{{ url()->current() }}#my-shop" class="btn btn-outline-secondary">Reset</a>
-                    </div>
-                  </div>
-                </form>
-
-                {{-- Tabs header --}}
-                <ul class="nav nav-underline small mb-2">
-                  <li class="nav-item"><span class="nav-link active">All</span></li>
-                  <li class="nav-item"><span class="nav-link text-muted">Restock (0)</span></li>
-                  <li class="nav-item"><span class="nav-link text-muted">To Review Listing Detail (1)</span></li>
-                </ul>
-
-                {{-- List --}}
-                <div class="product-list card border-0">
-                  <div class="table-responsive">
-                    <table class="table align-middle mb-0">
-                      <thead class="small text-muted">
+              <div class="table-responsive shadow-sm rounded bg-white p-3"
+                style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd;">
+                @if(isset($orders) && $orders->count() > 0)
+                  <table class="table text-center">
+                    <thead class="table-dark">
+                      <tr>
+                        <th>Order ID</th>
+                        <th>Buyer</th>
+                        <th>Fulfillment</th>
+                        <th>Shipping / Pickup Details</th>
+                        <th>Products</th>
+                        <th>Total Price</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @foreach($orders as $order)
+                        @php $method = $order->fulfillment_method === 'pickup' ? 'pickup' : 'delivery'; @endphp
                         <tr>
-                          <th style="width:44px;">
-                            <input class="form-check-input" type="checkbox" id="selectAllProducts"
-                              onclick="document.querySelectorAll('.row-check').forEach(cb=>cb.checked=this.checked)">
-                          </th>
-                          <th>Product(s)</th>
-                          <th class="text-center" style="width:110px;">Sales</th>
-                          <th class="text-end" style="width:120px;">Price</th>
-                          <th class="text-center" style="width:110px;">Stock</th>
-                          <th class="text-start" style="width:160px;">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @foreach($products as $product)
-                          @php
-                            $thumb = asset('storage/' . $product->image);
-                            $sales = $product->sales_count ?? 0;   // replace with your metric
-                            $issues = 1;                           // replace with your quality logic
-                          @endphp
-                          <tr class="product-row">
-                            <td><input class="form-check-input row-check" type="checkbox"></td>
-
-                            <td>
-                              <div class="d-flex align-items-start gap-2">
-                                <img src="{{ $thumb }}" alt="{{ $product->name }}" class="rounded border"
-                                  style="width:64px;height:64px;object-fit:cover;">
-                                <div>
-                                  <div class="fw-semibold text-truncate" style="max-width: 360px;">
-                                    <a href="#" class="text-decoration-none link-dark" data-bs-toggle="modal"
-                                      data-bs-target="#viewProductModal{{ $product->id }}">
-                                      {{ $product->name }}
-                                    </a>
-                                  </div>
-                                  <div class="text-muted xsmall">Item ID: <span
-                                      class="text-body-secondary">{{ $product->id }}</span></div>
+                          <td>{{ $order->id }}</td>
+                          <td>{{ $order->buyer->name }}</td>
+                          <td>
+                            <span class="badge rounded-pill {{ $method === 'pickup' ? 'bg-warning text-dark' : 'bg-primary' }}">
+                              {{ $method === 'pickup' ? 'Pick up' : 'For delivery' }}
+                            </span>
+                          </td>
+                          <td class="text-start">
+                            @if($method === 'pickup')
+                                        <div class="fw-semibold">Pickup Location</div>
+                                        <div class="text-muted small">
+                                          {{ auth()->user()->farm_address
+                              ?? trim((auth()->user()->address_line1 ?? '') . ' ' . (auth()->user()->barangay ?? '') . ', ' . (auth()->user()->city ?? '') . ', ' . (auth()->user()->province ?? ''))
+                              ?: 'Seller will coordinate pickup details with buyer' }}
+                                        </div>
+                                        <div class="small mt-1">
+                                          <i class="bi bi-info-circle"></i>
+                                          No shipping fee. Mark as “Ready for Pickup” when order is prepared.
+                                        </div>
+                            @else
+                              @if($order->shippingAddress)
+                                <div class="fw-semibold">
+                                  {{ $order->shippingAddress->full_name }} — {{ $order->shippingAddress->mobile_number }}
                                 </div>
+                                <div class="text-muted small">
+                                  @if($order->shippingAddress->floor_unit_number)
+                                    {{ $order->shippingAddress->floor_unit_number }},
+                                  @endif
+                                  {{ $order->shippingAddress->barangay }},
+                                  {{ $order->shippingAddress->city }},
+                                  {{ $order->shippingAddress->province }}
+                                </div>
+                                @if($order->shippingAddress->notes)
+                                  <div class="text-muted fst-italic small">{{ $order->shippingAddress->notes }}</div>
+                                @endif
+                              @else
+                                <span class="text-danger">No Shipping Address Provided</span>
+                              @endif
+                            @endif
+                          </td>
+                          <td class="text-start">
+                            <ul class="list-unstyled mb-0 small">
+                              @foreach($order->orderItems as $item)
+                                <li>{{ $item->product->name }} (x{{ $item->quantity }})</li>
+                              @endforeach
+                            </ul>
+                          </td>
+                          <td>₱{{ number_format($order->total_amount, 2) }}</td>
+                          <td>
+                            <span
+                              class="badge text-white
+                                                                                                                                                                    @if($order->status == 'pending') bg-warning text-dark
+                                                                                                                                                                    @elseif($order->status == 'accepted') bg-success
+                                                                                                                                                                    @elseif($order->status == 'denied' || $order->status == 'canceled') bg-danger
+                                                                                                                                                                    @elseif($order->status == 'shipped') bg-primary
+                                                                                                                                                                    @elseif($order->status == 'completed') bg-info
+                                                                                                                                                                    @elseif($order->status == 'cancel_requested') bg-warning
+                                                                                                                                                                    @else bg-secondary @endif">
+                              {{ ucfirst($order->status) }}
+                            </span>
+                          </td>
+                          <td class="text-center">
+                            @if($order->status == 'pending')
+                              <div class="d-flex justify-content-center gap-2">
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST"
+                                  onsubmit="return confirm('Accept this order?')">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="accepted">
+                                  <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                                </form>
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST"
+                                  onsubmit="return confirm('Deny this order?')">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="denied">
+                                  <button type="submit" class="btn btn-danger btn-sm">Deny</button>
+                                </form>
                               </div>
-                            </td>
-
-                            <td class="text-center text-muted">{{ $sales }}</td>
-                            <td class="text-end">₱{{ number_format($product->price, 2) }}</td>
-                            <td class="text-center">{{ $product->stock }}</td>
-
-                            <td class="text-start">
-                              <div class="d-flex align-items-center gap-2 flex-wrap">
-                                {{-- EDIT uses your modal below --}}
-                                <a href="#" class="link-primary small text-decoration-none" data-bs-toggle="modal"
-                                  data-bs-target="#editProductModal{{ $product->id }}">Edit</a>
-
-
-                                <div class="dropstart">
-                                  <a href="#" class="link-secondary small text-decoration-none"
-                                    data-bs-toggle="dropdown">More</a>
-                                  <ul class="dropdown-menu shadow-sm">
-                                    <li>
-                                      <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                        data-bs-target="#viewProductModal{{ $product->id }}">
-                                        <i class="fas fa-eye me-2"></i> View
-                                      </a>
-                                    </li>
-                                    <li>
-                                      <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
-                                        data-bs-target="#confirmDelete{{ $product->id }}">
-                                        <i class="fas fa-trash me-2"></i> Delete
-                                      </a>
-                                    </li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-
-                          {{-- View Product Modal (aesthetic, mirrors Add/Edit fields) --}}
-                          @php
-                            $viewSlides = [];
-                            if (!empty($product->image))
-                              $viewSlides[] = asset('storage/' . $product->image);
-                            if (isset($product->images) && $product->images->count()) {
-                              foreach ($product->images as $img) {
-                                $viewSlides[] = asset('storage/' . $img->path);
-                              }
-                            }
-                          @endphp
-                          <div class="modal fade" id="viewProductModal{{ $product->id }}" tabindex="-1"
-                            aria-labelledby="viewProductModalLabel{{ $product->id }}" aria-hidden="true">
-                            <div class="modal-dialog modal-xl modal-dialog-centered">
-                              <div class="modal-content border-0">
-                                <div class="modal-header border-0 pb-0">
-                                  <div>
-                                    <h5 class="modal-title fw-bold" id="viewProductModalLabel{{ $product->id }}">
-                                      <i class="fas fa-box-open me-2"></i>{{ $product->name }}
-                                    </h5>
-                                    <div class="text-muted small">Product preview and details</div>
-                                  </div>
-                                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-
-                                <div class="modal-body pt-2">
-                                  <div class="row g-3">
-                                    {{-- LEFT: images / preview --}}
-                                    <div class="col-lg-4">
-                                      <div class="border rounded-3 p-3 h-100">
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                          <div class="fw-bold">Images</div>
-                                          <span class="badge bg-light text-dark">{{ count($viewSlides) }}/9</span>
-                                        </div>
-
-                                        <div id="viewCarousel{{ $product->id }}" class="carousel slide mb-2"
-                                          data-bs-touch="true">
-                                          <div class="carousel-inner ratio ratio-1x1 border rounded bg-light overflow-hidden">
-                                            @if(count($viewSlides))
-                                              @foreach($viewSlides as $i => $src)
-                                                <div class="carousel-item @if($i === 0) active @endif">
-                                                  <img src="{{ $src }}" class="d-block w-100 h-100" style="object-fit:cover;"
-                                                    alt="Image {{ $i + 1 }}">
-                                                </div>
-                                              @endforeach
-                                            @else
-                                              <div
-                                                class="carousel-item active d-flex align-items-center justify-content-center">
-                                                <span class="text-muted">No image</span>
-                                              </div>
-                                            @endif
-                                          </div>
-                                          <button class="carousel-control-prev" type="button"
-                                            data-bs-target="#viewCarousel{{ $product->id }}" data-bs-slide="prev">
-                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                            <span class="visually-hidden">Previous</span>
-                                          </button>
-                                          <button class="carousel-control-next" type="button"
-                                            data-bs-target="#viewCarousel{{ $product->id }}" data-bs-slide="next">
-                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                            <span class="visually-hidden">Next</span>
-                                          </button>
-                                        </div>
-
-                                        <div class="small">
-                                          <div class="text-muted mb-1">Shop</div>
-                                          <div class="form-control form-control-sm bg-light fw-semibold" readonly>
-                                            {{ auth()->user()->farm_name ?? 'Shop Name' }}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {{-- RIGHT: details (read-only, no cards/inputs) --}}
-                                    <div class="col-lg-8">
-                                      <div class="px-lg-1">
-                                        <h6 class="fw-bold mb-3">Basic information</h6>
-
-                                        {{-- Product name --}}
-                                        <div class="mb-2">
-                                          <div class="text-muted small mb-1">Product Name</div>
-                                          <div class="fs-6 fw-semibold">{{ $product->name }}</div>
-                                        </div>
-
-                                        {{-- Description --}}
-                                        <div class="mb-3">
-                                          <div class="text-muted small mb-1">Description</div>
-                                          <div class="text-body" style="white-space:pre-wrap">
-                                            {{ $product->description ?? '—' }}
-                                          </div>
-                                        </div>
-
-                                        {{-- Key facts in two columns --}}
-                                        <dl class="row small mb-0 view-specs">
-                                          <dt class="col-sm-4 text-muted">Price</dt>
-                                          <dd class="col-sm-8 fw-semibold">₱{{ number_format($product->price, 2) }}</dd>
-
-                                          <dt class="col-sm-4 text-muted">Unit</dt>
-                                          <dd class="col-sm-8">{{ $product->unit ?? '—' }}</dd>
-
-                                          <dt class="col-sm-4 text-muted">Stock</dt>
-                                          <dd class="col-sm-8">{{ $product->stock }}</dd>
-
-                                          <dt class="col-sm-4 text-muted">Minimum Order Qty</dt>
-                                          <dd class="col-sm-8">{{ $product->min_order_qty ?? '—' }}</dd>
-
-                                          <dt class="col-sm-4 text-muted">Weight / unit</dt>
-                                          <dd class="col-sm-8">
-                                            {{ isset($product->weight) ? number_format($product->weight, 2) . ' kg' : '—' }}
-                                            <span class="text-muted">· example: 1 mango ≈ 0.25 kg</span>
-                                          </dd>
-
-                                          <dt class="col-sm-4 text-muted">Category</dt>
-                                          <dd class="col-sm-8">{{ $product->category->name ?? 'Uncategorized' }}</dd>
-
-                                          <dt class="col-sm-4 text-muted">Shop</dt>
-                                          <dd class="col-sm-8">{{ auth()->user()->farm_name ?? 'Shop Name' }}</dd>
-                                        </dl>
-                                      </div>
-                                    </div>
-
-                                  </div> {{-- /row --}}
-                                </div>
-
-                                <div class="modal-footer border-0 pt-0">
-                                  <button type="button" class="btn btn-outline-secondary"
-                                    data-bs-dismiss="modal">Close</button>
-                                  <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                                    data-bs-target="#editProductModal{{ $product->id }}" data-bs-dismiss="modal">
-                                    <i class="fas fa-edit me-1"></i> Edit
+                            @elseif($order->status == 'accepted')
+                              <div class="d-flex justify-content-center">
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="shipped">
+                                  <button type="submit" class="btn btn-primary btn-sm">
+                                    {{ $method === 'pickup' ? 'Mark Ready for Pickup' : 'Mark as Shipped' }}
                                   </button>
-                                </div>
+                                </form>
                               </div>
-                            </div>
-                          </div>
+                            @elseif($order->status == 'shipped')
+                              <div class="d-flex justify-content-center">
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="completed">
+                                  <button type="submit" class="btn btn-success btn-sm">Mark as Completed</button>
+                                </form>
+                              </div>
+                            @elseif($order->status == 'canceled')
+                              <span class="badge bg-danger">Canceled by Buyer</span>
+                            @elseif($order->status == 'cancel_requested')
+                              <div class="d-flex justify-content-center gap-2">
+                                <form action="{{ route('seller.approveCancel', $order->id) }}" method="POST">
+                                  @csrf @method('PATCH')
+                                  <button type="submit" class="btn btn-danger btn-sm">Approve Cancellation</button>
+                                </form>
+                                <form action="{{ route('seller.denyCancel', $order->id) }}" method="POST">
+                                  @csrf @method('PATCH')
+                                  <button type="submit" class="btn btn-success btn-sm">Deny Cancellation</button>
+                                </form>
+                              </div>
+                            @endif
+                          </td>
+                        </tr>
+                      @endforeach
+                    </tbody>
+                  </table>
+                  <div class="d-flex justify-content-center">
+                    {{ $orders->links('pagination::bootstrap-5') }}
+                  </div>
+                @else
+                  <p class="text-center text-muted">No orders available.</p>
+                @endif
+              </div>
+            </div>
 
+            {{-- ========== My Shop (UNCHANGED LOGIC) ========== --}}
+            <div class="tab-pane fade" id="my-shop">
+              <div class="shop-header bg-white shadow-sm p-1 rounded">
+                <h4 class="fw-bold mb-1">My Products</h4>
+              </div>
 
-                          {{-- ===== YOUR Edit Product Modal (two-column, scrollable, swipeable) ===== --}}
-                          @php
-                            $existingSlides = [];
-                            if (!empty($product->image))
-                              $existingSlides[] = asset('storage/' . $product->image);
-                            if (isset($product->images) && $product->images->count()) {
-                              foreach ($product->images as $img) {
-                                $existingSlides[] = asset('storage/' . $img->path);
-                              }
-                            }
-                          @endphp
-                          <div class="modal fade edit-product-modal" id="editProductModal{{ $product->id }}"
-                            data-pid="{{ $product->id }}" tabindex="-1" aria-labelledby="editProductLabel{{ $product->id }}"
-                            aria-hidden="true">
-                            <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                              <div class="modal-content">
-                                <div class="modal-header border-0 pb-0">
+              <div class="pt-2">
+                <div class="d-flex align-items-center justify-content-between mt-3 mb-2">
+                  <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                    <i class="fas fa-plus-circle me-1"></i> Add Product
+                  </button>
+                </div>
+
+                @php
+                  $products = \App\Models\Product::where('user_id', auth()->id())->get();
+                @endphp
+
+                @if($products->isNotEmpty())
+                  {{-- Toolbar --}}
+                  <form method="GET" action="{{ url()->current() }}#my-shop" class="bg-white border rounded p-2 mb-2">
+                    <div class="row g-2 align-items-center">
+                      <div class="col-12 col-md-6 col-lg-5">
+                        <input type="text" name="q" value="{{ request('q') }}" class="form-control"
+                          placeholder="Search Product Name, ID…">
+                      </div>
+                      <div class="col-6 col-md-3 col-lg-3">
+                        <select name="category" class="form-select">
+                          <option value="">Category</option>
+                          @foreach($mainCategories as $category)
+                            <option value="{{ $category->id }}" {{ (string) request('category') === (string) $category->id ? 'selected' : '' }}>
+                              {{ $category->name }}
+                            </option>
+                            @foreach($category->subcategories as $sub)
+                              <option value="{{ $sub->id }}" {{ (string) request('category') === (string) $sub->id ? 'selected' : '' }}>
+                                └ {{ $sub->name }}
+                              </option>
+                            @endforeach
+                          @endforeach
+                        </select>
+                      </div>
+                      <div class="col-12 col-md-12 col-lg-2 d-flex gap-2 justify-content-start justify-content-lg-end">
+                        <button class="btn btn-outline-danger">Apply</button>
+                        <a href="{{ url()->current() }}#my-shop" class="btn btn-outline-secondary">Reset</a>
+                      </div>
+                    </div>
+                  </form>
+
+                  {{-- Tabs header --}}
+                  <ul class="nav nav-underline small mb-2">
+                    <li class="nav-item"><span class="nav-link active">All</span></li>
+                    <li class="nav-item"><span class="nav-link text-muted">Restock (0)</span></li>
+                    <li class="nav-item"><span class="nav-link text-muted">To Review Listing Detail (1)</span></li>
+                  </ul>
+
+                  {{-- List --}}
+                  <div class="product-list card border-0">
+                    <div class="table-responsive">
+                      <table class="table align-middle mb-0">
+                        <thead class="small text-muted">
+                          <tr>
+                            <th style="width:44px;">
+                              <input class="form-check-input" type="checkbox" id="selectAllProducts"
+                                onclick="document.querySelectorAll('.row-check').forEach(cb=>cb.checked=this.checked)">
+                            </th>
+                            <th>Product(s)</th>
+                            <th class="text-center" style="width:110px;">Sales</th>
+                            <th class="text-end" style="width:120px;">Price</th>
+                            <th class="text-center" style="width:110px;">Stock</th>
+                            <th class="text-start" style="width:160px;">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @foreach($products as $product)
+                            @php
+                              $thumb = asset('storage/' . $product->image);
+                              $sales = $product->sales_count ?? 0;   // replace with your metric
+                              $issues = 1;                           // replace with your quality logic
+                            @endphp
+                            <tr class="product-row">
+                              <td><input class="form-check-input row-check" type="checkbox"></td>
+
+                              <td>
+                                <div class="d-flex align-items-start gap-2">
+                                  <img src="{{ $thumb }}" alt="{{ $product->name }}" class="rounded border"
+                                    style="width:64px;height:64px;object-fit:cover;">
                                   <div>
-                                    <h5 class="modal-title fw-bold" id="editProductLabel{{ $product->id }}">
-                                      <i class="fas fa-edit me-2"></i> Edit Product
-                                    </h5>
-                                    <div class="text-muted small">Update details on the right and preview on the left.</div>
+                                    <div class="fw-semibold text-truncate" style="max-width: 360px;">
+                                      <a href="#" class="text-decoration-none link-dark" data-bs-toggle="modal"
+                                        data-bs-target="#viewProductModal{{ $product->id }}">
+                                        {{ $product->name }}
+                                      </a>
+                                    </div>
+                                    <div class="text-muted xsmall">Item ID: <span
+                                        class="text-body-secondary">{{ $product->id }}</span></div>
                                   </div>
-                                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
+                              </td>
 
-                                <form id="updateProductForm" action="{{ route('products.update', $product->id) }}"
-                                  method="POST" enctype="multipart/form-data">
-                                  @csrf
-                                  @method('PUT')
+                              <td class="text-center text-muted">{{ $sales }}</td>
+                              <td class="text-end">₱{{ number_format($product->price, 2) }}</td>
+                              <td class="text-center">{{ $product->stock }}</td>
 
+                              <td class="text-start">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                  {{-- EDIT uses your modal below --}}
+                                  <a href="#" class="link-primary small text-decoration-none" data-bs-toggle="modal"
+                                    data-bs-target="#editProductModal{{ $product->id }}">Edit</a>
+
+
+                                  <div class="dropstart">
+                                    <a href="#" class="link-secondary small text-decoration-none"
+                                      data-bs-toggle="dropdown">More</a>
+                                    <ul class="dropdown-menu shadow-sm">
+                                      <li>
+                                        <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                          data-bs-target="#viewProductModal{{ $product->id }}">
+                                          <i class="fas fa-eye me-2"></i> View
+                                        </a>
+                                      </li>
+                                      <li>
+                                        <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                                          data-bs-target="#confirmDelete{{ $product->id }}">
+                                          <i class="fas fa-trash me-2"></i> Delete
+                                        </a>
+                                      </li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+
+                            {{-- View Product Modal (aesthetic, mirrors Add/Edit fields) --}}
+                            @php
+                              $viewSlides = [];
+                              if (!empty($product->image))
+                                $viewSlides[] = asset('storage/' . $product->image);
+                              if (isset($product->images) && $product->images->count()) {
+                                foreach ($product->images as $img) {
+                                  $viewSlides[] = asset('storage/' . $img->path);
+                                }
+                              }
+                            @endphp
+                            <div class="modal fade" id="viewProductModal{{ $product->id }}" tabindex="-1"
+                              aria-labelledby="viewProductModalLabel{{ $product->id }}" aria-hidden="true">
+                              <div class="modal-dialog modal-xl modal-dialog-centered">
+                                <div class="modal-content border-0">
+                                  <div class="modal-header border-0 pb-0">
+                                    <div>
+                                      <h5 class="modal-title fw-bold" id="viewProductModalLabel{{ $product->id }}">
+                                        <i class="fas fa-box-open me-2"></i>{{ $product->name }}
+                                      </h5>
+                                      <div class="text-muted small">Product preview and details</div>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                  </div>
 
                                   <div class="modal-body pt-2">
                                     <div class="row g-3">
-                                      {{-- LEFT: Preview --}}
+                                      {{-- LEFT: images / preview --}}
                                       <div class="col-lg-4">
                                         <div class="border rounded-3 p-3 h-100">
-                                          <div class="fw-bold">Preview</div>
-                                          <div class="text-muted small mb-2">Product detail</div>
+                                          <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <div class="fw-bold">Images</div>
+                                            <span class="badge bg-light text-dark">{{ count($viewSlides) }}/9</span>
+                                          </div>
 
-                                          <div id="editPreviewCarousel{{ $product->id }}" class="carousel slide mb-2"
+                                          <div id="viewCarousel{{ $product->id }}" class="carousel slide mb-2"
                                             data-bs-touch="true">
-                                            <div
-                                              class="carousel-inner ratio ratio-1x1 border rounded bg-light overflow-hidden"
-                                              id="editCarouselInner{{ $product->id }}">
-                                              @if(count($existingSlides))
-                                                @foreach($existingSlides as $idx => $src)
-                                                  <div class="carousel-item @if($idx === 0) active @endif">
+                                            <div class="carousel-inner ratio ratio-1x1 border rounded bg-light overflow-hidden">
+                                              @if(count($viewSlides))
+                                                @foreach($viewSlides as $i => $src)
+                                                  <div class="carousel-item @if($i === 0) active @endif">
                                                     <img src="{{ $src }}" class="d-block w-100 h-100" style="object-fit:cover;"
-                                                      alt="Image {{ $idx + 1 }}">
+                                                      alt="Image {{ $i + 1 }}">
                                                   </div>
                                                 @endforeach
                                               @else
                                                 <div
                                                   class="carousel-item active d-flex align-items-center justify-content-center">
-                                                  <span class="text-muted">No image yet</span>
+                                                  <span class="text-muted">No image</span>
                                                 </div>
                                               @endif
                                             </div>
                                             <button class="carousel-control-prev" type="button"
-                                              data-bs-target="#editPreviewCarousel{{ $product->id }}" data-bs-slide="prev">
+                                              data-bs-target="#viewCarousel{{ $product->id }}" data-bs-slide="prev">
                                               <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                                               <span class="visually-hidden">Previous</span>
                                             </button>
                                             <button class="carousel-control-next" type="button"
-                                              data-bs-target="#editPreviewCarousel{{ $product->id }}" data-bs-slide="next">
+                                              data-bs-target="#viewCarousel{{ $product->id }}" data-bs-slide="next">
                                               <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                               <span class="visually-hidden">Next</span>
                                             </button>
                                           </div>
 
-                                          <div class="mb-3">
+                                          <div class="small">
+                                            <div class="text-muted mb-1">Shop</div>
                                             <div class="form-control form-control-sm bg-light fw-semibold" readonly>
                                               {{ auth()->user()->farm_name ?? 'Shop Name' }}
                                             </div>
                                           </div>
-
-                                          <div>
-                                            <div class="fw-bold mb-2">Details</div>
-                                            <div class="small">
-                                              <div class="d-flex justify-content-between py-1 border-bottom">
-                                                <span class="text-muted">Product:</span>
-                                                <span id="pv_name_{{ $product->id }}"
-                                                  class="fw-semibold">{{ $product->name }}</span>
-                                              </div>
-                                              <div class="d-flex justify-content-between py-1 border-bottom">
-                                                <span class="text-muted">Price:</span>
-                                                <span id="pv_price_{{ $product->id }}"
-                                                  class="fw-semibold">₱{{ number_format($product->price, 2) }}</span>
-                                              </div>
-                                              <div class="d-flex justify-content-between py-1 border-bottom">
-                                                <span class="text-muted">Unit:</span>
-                                                <span id="pv_unit_{{ $product->id }}"
-                                                  class="fw-semibold">{{ $product->unit ?? '—' }}</span>
-                                              </div>
-                                              <div class="d-flex justify-content-between py-1 border-bottom">
-                                                <span class="text-muted">Stock:</span>
-                                                <span id="pv_stock_{{ $product->id }}"
-                                                  class="fw-semibold">{{ $product->stock }}</span>
-                                              </div>
-                                              <div class="d-flex justify-content-between py-1 border-bottom">
-                                                <span class="text-muted">Min order qty:</span>
-                                                <span id="pv_moq_{{ $product->id }}"
-                                                  class="fw-semibold">{{ $product->min_order_qty ?? '—' }}</span>
-                                              </div>
-                                              <div class="d-flex justify-content-between py-1">
-                                                <span class="text-muted">Weight / unit:</span>
-                                                <span id="pv_weight_{{ $product->id }}" class="fw-semibold">
-                                                  @if(isset($product->weight)) {{ number_format($product->weight, 2) }} kg
-                                                  @else — @endif
-                                                </span>
-                                              </div>
-                                            </div>
-                                          </div>
                                         </div>
                                       </div>
 
-                                      {{-- RIGHT: Basic info --}}
+                                      {{-- RIGHT: details (read-only, no cards/inputs) --}}
                                       <div class="col-lg-8">
                                         <div class="px-lg-1">
-                                          <div class="fw-bold">Basic Information</div>
+                                          <h6 class="fw-bold mb-3">Basic information</h6>
 
-                                          {{-- Shopee-style Image Uploader --}}
-                                          <div class="d-flex align-items-center justify-content-between mb-1">
-                                            <div class="fw-semibold">Product images</div>
-                                            <div class="small text-muted">
-                                              <span id="shpCount{{ $product->id }}">{{ count($existingSlides) }}</span>/9
+                                          {{-- Product name --}}
+                                          <div class="mb-2">
+                                            <div class="text-muted small mb-1">Product Name</div>
+                                            <div class="fs-6 fw-semibold">{{ $product->name }}</div>
+                                          </div>
+
+                                          {{-- Description --}}
+                                          <div class="mb-3">
+                                            <div class="text-muted small mb-1">Description</div>
+                                            <div class="text-body" style="white-space:pre-wrap">
+                                              {{ $product->description ?? '—' }}
                                             </div>
                                           </div>
 
-                                          <div id="shpGrid{{ $product->id }}" class="shp-grid">
-                                            {{-- Existing images as tiles (cover = first) --}}
-                                            @php
-                                              $existingList = [];
-                                              // main image (no ID assumed)
-                                              if (!empty($product->image)) {
-                                                $existingList[] = ['id' => null, 'src' => asset('storage/' . $product->image)];
-                                              }
-                                              // gallery images with IDs
-                                              if (isset($product->images) && $product->images->count()) {
-                                                foreach ($product->images as $img) {
-                                                  $existingList[] = ['id' => $img->id, 'src' => asset('storage/' . $img->path)];
-                                                }
-                                              }
-                                            @endphp
+                                          {{-- Key facts in two columns --}}
+                                          <dl class="row small mb-0 view-specs">
+                                            <dt class="col-sm-4 text-muted">Price</dt>
+                                            <dd class="col-sm-8 fw-semibold">₱{{ number_format($product->price, 2) }}</dd>
 
-                                            @foreach($existingList as $idx => $img)
-                                              <div class="shp-item" draggable="true" data-type="existing" @if($img['id'])
-                                              data-existing-id="{{ $img['id'] }}" @endif>
-                                                <img src="{{ $img['src'] }}" alt="Image {{ $idx + 1 }}">
-                                                <button type="button" class="shp-remove" aria-label="Remove">&times;</button>
-                                                @if($idx === 0)
-                                                  <span class="shp-cover">Cover</span>
-                                                @endif
-                                              </div>
-                                            @endforeach
+                                            <dt class="col-sm-4 text-muted">Unit</dt>
+                                            <dd class="col-sm-8">{{ $product->unit ?? '—' }}</dd>
 
-                                            {{-- Add tile --}}
-                                            <label class="shp-add">
-                                              <input id="shpPicker{{ $product->id }}" type="file" accept="image/*" multiple
-                                                hidden>
-                                              <div class="shp-add-inner">
-                                                <div class="shp-plus">+</div>
-                                                <div class="small text-muted">Add</div>
-                                              </div>
-                                            </label>
-                                          </div>
+                                            <dt class="col-sm-4 text-muted">Stock</dt>
+                                            <dd class="col-sm-8">{{ $product->stock }}</dd>
 
-                                          {{-- Hidden mapping to your backend --}}
-                                          <input id="shpMainFile{{ $product->id }}" name="image" type="file" class="d-none">
-                                          {{-- main (first new file) --}}
-                                          <input id="shpGalleryFiles{{ $product->id }}" name="gallery[]" type="file"
-                                            class="d-none" multiple> {{-- remaining new files --}}
-                                          {{-- Track existing re-order (IDs or "main") and removals --}}
-                                          <div id="shpExistingWrap{{ $product->id }}"></div> {{-- will be filled with
-                                          existing_order[] and remove_existing[] --}}
-                                          <input type="hidden" name="remove_existing" class="removeExistingInput" value="[]">
-                                          <div class="form-text">Up to 9 images. Drag to reorder. First image is the Cover.
-                                          </div>
+                                            <dt class="col-sm-4 text-muted">Minimum Order Qty</dt>
+                                            <dd class="col-sm-8">{{ $product->min_order_qty ?? '—' }}</dd>
 
+                                            <dt class="col-sm-4 text-muted">Weight / unit</dt>
+                                            <dd class="col-sm-8">
+                                              {{ isset($product->weight) ? number_format($product->weight, 2) . ' kg' : '—' }}
+                                              <span class="text-muted">· example: 1 mango ≈ 0.25 kg</span>
+                                            </dd>
 
-                                          <label class="form-label fw-semibold">Product Name <span
-                                              class="text-danger">*</span></label>
-                                          <input id="fld_name_{{ $product->id }}" type="text" class="form-control" name="name"
-                                            value="{{ $product->name }}" maxlength="120" required>
-                                          <div class="invalid-feedback">Product name is required.</div>
+                                            <dt class="col-sm-4 text-muted">Category</dt>
+                                            <dd class="col-sm-8">{{ $product->category->name ?? 'Uncategorized' }}</dd>
 
-                                          <label class="form-label fw-semibold mt-3">Description <span
-                                              class="text-danger">*</span></label>
-                                          <textarea id="fld_desc_{{ $product->id }}" class="form-control" name="description"
-                                            rows="4" maxlength="800" required>{{ $product->description }}</textarea>
-                                          <div class="invalid-feedback">Please add a short description.</div>
-
-                                          <div class="row g-3 mt-1">
-                                            <div class="col-md-4">
-                                              <label class="form-label fw-semibold">Price <span
-                                                  class="text-danger">*</span></label>
-                                              <div class="input-group">
-                                                <span class="input-group-text">₱</span>
-                                                <input id="fld_price_{{ $product->id }}" type="number" class="form-control"
-                                                  name="price" step="0.01" min="0.01" value="{{ $product->price }}" required>
-                                              </div>
-                                              <div class="invalid-feedback">Enter a valid price.</div>
-                                            </div>
-                                            <div class="col-md-4">
-                                              <label class="form-label fw-semibold">Unit <span
-                                                  class="text-danger">*</span></label>
-                                              <select id="fld_unit_{{ $product->id }}" class="form-select" name="unit"
-                                                required>
-                                                <option value="" disabled>Select unit</option>
-                                                <option value="kg" {{ ($product->unit ?? '') === 'kg' ? 'selected' : '' }}>
-                                                  Kilogram (kg)</option>
-                                                <option value="piece" {{ ($product->unit ?? '') === 'piece' ? 'selected' : '' }}>Piece</option>
-                                                <option value="bundle" {{ ($product->unit ?? '') === 'bundle' ? 'selected' : '' }}>Bundle</option>
-                                                <option value="sack" {{ ($product->unit ?? '') === 'sack' ? 'selected' : '' }}>
-                                                  Sack</option>
-                                              </select>
-                                              <div class="invalid-feedback">Please choose a unit.</div>
-                                            </div>
-                                            <div class="col-md-4">
-                                              <label class="form-label fw-semibold">Stock <span
-                                                  class="text-danger">*</span></label>
-                                              <input id="fld_stock_{{ $product->id }}" type="number" class="form-control"
-                                                name="stock" min="0" step="1" value="{{ $product->stock }}" required>
-                                              <div class="invalid-feedback">Provide available stock.</div>
-                                            </div>
-                                          </div>
-
-                                          <div class="row g-3">
-                                            <div class="col-md-6 col-lg-5">
-                                              <label class="form-label fw-semibold">Min order quantity</label>
-                                              <input id="fld_moq_{{ $product->id }}" type="number" class="form-control"
-                                                name="min_order_qty" min="1" step="1" value="{{ $product->min_order_qty }}">
-                                            </div>
-                                            <div class="col-md-6 col-lg-5">
-                                              <label class="form-label fw-semibold">Weight per unit <span
-                                                  class="text-danger">*</span></label>
-                                              <div class="input-group">
-                                                <input id="fld_weight_{{ $product->id }}" type="number" class="form-control"
-                                                  name="weight" step="0.01" min="0.01" value="{{ $product->weight }}"
-                                                  required>
-                                                <span class="input-group-text">kg</span>
-                                              </div>
-                                              <small class="text-muted">Example: 1 mango ≈ 0.25 kg</small>
-                                              <div class="invalid-feedback">Enter weight per unit.</div>
-                                            </div>
-                                          </div>
-
-                                          <div class="mt-2">
-                                            <label class="form-label fw-semibold">Category</label>
-                                            <select class="form-select" name="category_id" required>
-                                              <option value="">Select category</option>
-                                              @foreach($mainCategories as $category)
-                                                <optgroup label="{{ $category->name }}">
-                                                  <option value="{{ $category->id }}" {{ $product->category_id == $category->id ? 'selected' : '' }}>
-                                                    {{ $category->name }} (Main)
-                                                  </option>
-                                                  @foreach ($category->subcategories as $subCategory)
-                                                    <option value="{{ $subCategory->id }}" {{ $product->category_id == $subCategory->id ? 'selected' : '' }}>
-                                                      └ {{ $subCategory->name }}
-                                                    </option>
-                                                  @endforeach
-                                                </optgroup>
-                                              @endforeach
-                                            </select>
-                                          </div>
+                                            <dt class="col-sm-4 text-muted">Shop</dt>
+                                            <dd class="col-sm-8">{{ auth()->user()->farm_name ?? 'Shop Name' }}</dd>
+                                          </dl>
                                         </div>
                                       </div>
+
                                     </div> {{-- /row --}}
-                                  </div> {{-- /modal-body --}}
+                                  </div>
 
                                   <div class="modal-footer border-0 pt-0">
                                     <button type="button" class="btn btn-outline-secondary"
-                                      data-bs-dismiss="modal">Cancel</button>
-                                    <button type="submit" class="btn btn-primary">
-                                      <i class="fas fa-save me-1"></i> Update Product
+                                      data-bs-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                                      data-bs-target="#editProductModal{{ $product->id }}" data-bs-dismiss="modal">
+                                      <i class="fas fa-edit me-1"></i> Edit
                                     </button>
                                   </div>
-                                </form>
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {{-- Confirm Delete Modal --}}
-                          <div class="modal fade" id="confirmDelete{{ $product->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-sm modal-dialog-centered">
-                              <div class="modal-content">
-                                <div class="modal-header border-0 pb-0">
-                                  <h6 class="modal-title fw-semibold">Delete product</h6>
-                                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body pt-0">
-                                  <div class="d-flex align-items-start gap-2">
-                                    <i class="fas fa-triangle-exclamation text-danger mt-1"></i>
+
+                            {{-- ===== YOUR Edit Product Modal (two-column, scrollable, swipeable) ===== --}}
+                            @php
+                              $existingSlides = [];
+                              if (!empty($product->image))
+                                $existingSlides[] = asset('storage/' . $product->image);
+                              if (isset($product->images) && $product->images->count()) {
+                                foreach ($product->images as $img) {
+                                  $existingSlides[] = asset('storage/' . $img->path);
+                                }
+                              }
+                            @endphp
+                            <div class="modal fade edit-product-modal" id="editProductModal{{ $product->id }}"
+                              data-pid="{{ $product->id }}" tabindex="-1" aria-labelledby="editProductLabel{{ $product->id }}"
+                              aria-hidden="true">
+                              <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                                <div class="modal-content">
+                                  <div class="modal-header border-0 pb-0">
                                     <div>
-                                      <div class="fw-semibold">{{ $product->name }}</div>
-                                      <div class="text-muted small">This action cannot be undone.</div>
+                                      <h5 class="modal-title fw-bold" id="editProductLabel{{ $product->id }}">
+                                        <i class="fas fa-edit me-2"></i> Edit Product
+                                      </h5>
+                                      <div class="text-muted small">Update details on the right and preview on the left.</div>
                                     </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                   </div>
-                                </div>
-                                <div class="modal-footer border-0 pt-0">
-                                  <button type="button" class="btn btn-outline-secondary btn-sm"
-                                    data-bs-dismiss="modal">Cancel</button>
-                                  <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="ms-1">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+
+                                  <form id="updateProductForm" action="{{ route('products.update', $product->id) }}"
+                                    method="POST" enctype="multipart/form-data">
+                                    @csrf
+                                    @method('PUT')
+
+
+                                    <div class="modal-body pt-2">
+                                      <div class="row g-3">
+                                        {{-- LEFT: Preview --}}
+                                        <div class="col-lg-4">
+                                          <div class="border rounded-3 p-3 h-100">
+                                            <div class="fw-bold">Preview</div>
+                                            <div class="text-muted small mb-2">Product detail</div>
+
+                                            <div id="editPreviewCarousel{{ $product->id }}" class="carousel slide mb-2"
+                                              data-bs-touch="true">
+                                              <div
+                                                class="carousel-inner ratio ratio-1x1 border rounded bg-light overflow-hidden"
+                                                id="editCarouselInner{{ $product->id }}">
+                                                @if(count($existingSlides))
+                                                  @foreach($existingSlides as $idx => $src)
+                                                    <div class="carousel-item @if($idx === 0) active @endif">
+                                                      <img src="{{ $src }}" class="d-block w-100 h-100" style="object-fit:cover;"
+                                                        alt="Image {{ $idx + 1 }}">
+                                                    </div>
+                                                  @endforeach
+                                                @else
+                                                  <div
+                                                    class="carousel-item active d-flex align-items-center justify-content-center">
+                                                    <span class="text-muted">No image yet</span>
+                                                  </div>
+                                                @endif
+                                              </div>
+                                              <button class="carousel-control-prev" type="button"
+                                                data-bs-target="#editPreviewCarousel{{ $product->id }}" data-bs-slide="prev">
+                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Previous</span>
+                                              </button>
+                                              <button class="carousel-control-next" type="button"
+                                                data-bs-target="#editPreviewCarousel{{ $product->id }}" data-bs-slide="next">
+                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Next</span>
+                                              </button>
+                                            </div>
+
+                                            <div class="mb-3">
+                                              <div class="form-control form-control-sm bg-light fw-semibold" readonly>
+                                                {{ auth()->user()->farm_name ?? 'Shop Name' }}
+                                              </div>
+                                            </div>
+
+                                            <div>
+                                              <div class="fw-bold mb-2">Details</div>
+                                              <div class="small">
+                                                <div class="d-flex justify-content-between py-1 border-bottom">
+                                                  <span class="text-muted">Product:</span>
+                                                  <span id="pv_name_{{ $product->id }}"
+                                                    class="fw-semibold">{{ $product->name }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-1 border-bottom">
+                                                  <span class="text-muted">Price:</span>
+                                                  <span id="pv_price_{{ $product->id }}"
+                                                    class="fw-semibold">₱{{ number_format($product->price, 2) }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-1 border-bottom">
+                                                  <span class="text-muted">Unit:</span>
+                                                  <span id="pv_unit_{{ $product->id }}"
+                                                    class="fw-semibold">{{ $product->unit ?? '—' }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-1 border-bottom">
+                                                  <span class="text-muted">Stock:</span>
+                                                  <span id="pv_stock_{{ $product->id }}"
+                                                    class="fw-semibold">{{ $product->stock }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-1 border-bottom">
+                                                  <span class="text-muted">Min order qty:</span>
+                                                  <span id="pv_moq_{{ $product->id }}"
+                                                    class="fw-semibold">{{ $product->min_order_qty ?? '—' }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-1">
+                                                  <span class="text-muted">Weight / unit:</span>
+                                                  <span id="pv_weight_{{ $product->id }}" class="fw-semibold">
+                                                    @if(isset($product->weight)) {{ number_format($product->weight, 2) }} kg
+                                                    @else — @endif
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        {{-- RIGHT: Basic info --}}
+                                        <div class="col-lg-8">
+                                          <div class="px-lg-1">
+                                            <div class="fw-bold">Basic Information</div>
+
+                                            {{-- Shopee-style Image Uploader --}}
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                              <div class="fw-semibold">Product images</div>
+                                              <div class="small text-muted">
+                                                <span id="shpCount{{ $product->id }}">{{ count($existingSlides) }}</span>/9
+                                              </div>
+                                            </div>
+
+                                            <div id="shpGrid{{ $product->id }}" class="shp-grid">
+                                              {{-- Existing images as tiles (cover = first) --}}
+                                              @php
+                                                $existingList = [];
+                                                // main image (no ID assumed)
+                                                if (!empty($product->image)) {
+                                                  $existingList[] = ['id' => null, 'src' => asset('storage/' . $product->image)];
+                                                }
+                                                // gallery images with IDs
+                                                if (isset($product->images) && $product->images->count()) {
+                                                  foreach ($product->images as $img) {
+                                                    $existingList[] = ['id' => $img->id, 'src' => asset('storage/' . $img->path)];
+                                                  }
+                                                }
+                                              @endphp
+
+                                              @foreach($existingList as $idx => $img)
+                                                <div class="shp-item" draggable="true" data-type="existing" @if($img['id'])
+                                                data-existing-id="{{ $img['id'] }}" @endif>
+                                                  <img src="{{ $img['src'] }}" alt="Image {{ $idx + 1 }}">
+                                                  <button type="button" class="shp-remove" aria-label="Remove">&times;</button>
+                                                  @if($idx === 0)
+                                                    <span class="shp-cover">Cover</span>
+                                                  @endif
+                                                </div>
+                                              @endforeach
+
+                                              {{-- Add tile --}}
+                                              <label class="shp-add">
+                                                <input id="shpPicker{{ $product->id }}" type="file" accept="image/*" multiple
+                                                  hidden>
+                                                <div class="shp-add-inner">
+                                                  <div class="shp-plus">+</div>
+                                                  <div class="small text-muted">Add</div>
+                                                </div>
+                                              </label>
+                                            </div>
+
+                                            {{-- Hidden mapping to your backend --}}
+                                            <input id="shpMainFile{{ $product->id }}" name="image" type="file" class="d-none">
+                                            {{-- main (first new file) --}}
+                                            <input id="shpGalleryFiles{{ $product->id }}" name="gallery[]" type="file"
+                                              class="d-none" multiple> {{-- remaining new files --}}
+                                            {{-- Track existing re-order (IDs or "main") and removals --}}
+                                            <div id="shpExistingWrap{{ $product->id }}"></div> {{-- will be filled with
+                                            existing_order[] and remove_existing[] --}}
+                                            <input type="hidden" name="remove_existing" class="removeExistingInput" value="[]">
+                                            <div class="form-text">Up to 9 images. Drag to reorder. First image is the Cover.
+                                            </div>
+
+
+                                            <label class="form-label fw-semibold">Product Name <span
+                                                class="text-danger">*</span></label>
+                                            <input id="fld_name_{{ $product->id }}" type="text" class="form-control" name="name"
+                                              value="{{ $product->name }}" maxlength="120" required>
+                                            <div class="invalid-feedback">Product name is required.</div>
+
+                                            <label class="form-label fw-semibold mt-3">Description <span
+                                                class="text-danger">*</span></label>
+                                            <textarea id="fld_desc_{{ $product->id }}" class="form-control" name="description"
+                                              rows="4" maxlength="800" required>{{ $product->description }}</textarea>
+                                            <div class="invalid-feedback">Please add a short description.</div>
+
+                                            <div class="row g-3 mt-1">
+                                              <div class="col-md-4">
+                                                <label class="form-label fw-semibold">Price <span
+                                                    class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                  <span class="input-group-text">₱</span>
+                                                  <input id="fld_price_{{ $product->id }}" type="number" class="form-control"
+                                                    name="price" step="0.01" min="0.01" value="{{ $product->price }}" required>
+                                                </div>
+                                                <div class="invalid-feedback">Enter a valid price.</div>
+                                              </div>
+                                              <div class="col-md-4">
+                                                <label class="form-label fw-semibold">Unit <span
+                                                    class="text-danger">*</span></label>
+                                                <select id="fld_unit_{{ $product->id }}" class="form-select" name="unit"
+                                                  required>
+                                                  <option value="" disabled>Select unit</option>
+                                                  <option value="kg" {{ ($product->unit ?? '') === 'kg' ? 'selected' : '' }}>
+                                                    Kilogram (kg)</option>
+                                                  <option value="piece" {{ ($product->unit ?? '') === 'piece' ? 'selected' : '' }}>Piece</option>
+                                                  <option value="bundle" {{ ($product->unit ?? '') === 'bundle' ? 'selected' : '' }}>Bundle</option>
+                                                  <option value="sack" {{ ($product->unit ?? '') === 'sack' ? 'selected' : '' }}>
+                                                    Sack</option>
+                                                </select>
+                                                <div class="invalid-feedback">Please choose a unit.</div>
+                                              </div>
+                                              <div class="col-md-4">
+                                                <label class="form-label fw-semibold">Stock <span
+                                                    class="text-danger">*</span></label>
+                                                <input id="fld_stock_{{ $product->id }}" type="number" class="form-control"
+                                                  name="stock" min="0" step="1" value="{{ $product->stock }}" required>
+                                                <div class="invalid-feedback">Provide available stock.</div>
+                                              </div>
+                                            </div>
+
+                                            <div class="row g-3">
+                                              <div class="col-md-6 col-lg-5">
+                                                <label class="form-label fw-semibold">Min order quantity</label>
+                                                <input id="fld_moq_{{ $product->id }}" type="number" class="form-control"
+                                                  name="min_order_qty" min="1" step="1" value="{{ $product->min_order_qty }}">
+                                              </div>
+                                              <div class="col-md-6 col-lg-5">
+                                                <label class="form-label fw-semibold">Weight per unit <span
+                                                    class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                  <input id="fld_weight_{{ $product->id }}" type="number" class="form-control"
+                                                    name="weight" step="0.01" min="0.01" value="{{ $product->weight }}"
+                                                    required>
+                                                  <span class="input-group-text">kg</span>
+                                                </div>
+                                                <small class="text-muted">Example: 1 mango ≈ 0.25 kg</small>
+                                                <div class="invalid-feedback">Enter weight per unit.</div>
+                                              </div>
+                                            </div>
+
+                                            <div class="mt-2">
+                                              <label class="form-label fw-semibold">Category</label>
+                                              <select class="form-select" name="category_id" required>
+                                                <option value="">Select category</option>
+                                                @foreach($mainCategories as $category)
+                                                  <optgroup label="{{ $category->name }}">
+                                                    <option value="{{ $category->id }}" {{ $product->category_id == $category->id ? 'selected' : '' }}>
+                                                      {{ $category->name }} (Main)
+                                                    </option>
+                                                    @foreach ($category->subcategories as $subCategory)
+                                                      <option value="{{ $subCategory->id }}" {{ $product->category_id == $subCategory->id ? 'selected' : '' }}>
+                                                        └ {{ $subCategory->name }}
+                                                      </option>
+                                                    @endforeach
+                                                  </optgroup>
+                                                @endforeach
+                                              </select>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div> {{-- /row --}}
+                                    </div> {{-- /modal-body --}}
+
+                                    <div class="modal-footer border-0 pt-0">
+                                      <button type="button" class="btn btn-outline-secondary"
+                                        data-bs-dismiss="modal">Cancel</button>
+                                      <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i> Update Product
+                                      </button>
+                                    </div>
                                   </form>
                                 </div>
                               </div>
                             </div>
-                          </div>
 
-                        @endforeach
-                      </tbody>
-                    </table>
+                            {{-- Confirm Delete Modal --}}
+                            <div class="modal fade" id="confirmDelete{{ $product->id }}" tabindex="-1" aria-hidden="true">
+                              <div class="modal-dialog modal-sm modal-dialog-centered">
+                                <div class="modal-content">
+                                  <div class="modal-header border-0 pb-0">
+                                    <h6 class="modal-title fw-semibold">Delete product</h6>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                  </div>
+                                  <div class="modal-body pt-0">
+                                    <div class="d-flex align-items-start gap-2">
+                                      <i class="fas fa-triangle-exclamation text-danger mt-1"></i>
+                                      <div>
+                                        <div class="fw-semibold">{{ $product->name }}</div>
+                                        <div class="text-muted small">This action cannot be undone.</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div class="modal-footer border-0 pt-0">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                      data-bs-dismiss="modal">Cancel</button>
+                                    <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="ms-1">
+                                      @csrf @method('DELETE')
+                                      <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                          @endforeach
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              @else
-                <p class="text-center text-muted">No products available.</p>
-              @endif
-            </div>
-          </div>
-
-          <!-- Add Product Modal-->
-          <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
-              <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                  <div>
-                    <h5 class="modal-title fw-bold" id="addProductModalLabel">
-                      <i class="fas fa-plus-circle me-2"></i> Add New Product
-                    </h5>
-                    <div class="text-muted small">Pick images once, preview on the left, edit details on the right.</div>
-                  </div>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-
-                <form class="needs-validation" novalidate method="POST" action="{{ route('products.store') }}"
-                  enctype="multipart/form-data">
-                  @csrf
-
-                  <div class="modal-body pt-2">
-                    <div class="row g-3">
-                      <!-- LEFT: PREVIEW -->
-                      <div class="col-lg-4">
-                        <div class="border rounded-3 p-3 h-100">
-                          <div class="fw-bold">Preview</div>
-                          <div class="text-muted small mb-2">Product detail</div>
-
-                          <!-- Swipeable carousel preview -->
-                          <div id="previewCarousel" class="carousel slide mb-2" data-bs-touch="true">
-                            <div class="carousel-inner ratio ratio-1x1 border rounded bg-light overflow-hidden"
-                              id="carouselInner">
-                              <div class="carousel-item active d-flex align-items-center justify-content-center">
-                                <span class="text-muted">No image yet</span>
-                              </div>
-                            </div>
-                            <button class="carousel-control-prev" type="button" data-bs-target="#previewCarousel"
-                              data-bs-slide="prev">
-                              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                              <span class="visually-hidden">Previous</span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#previewCarousel"
-                              data-bs-slide="next">
-                              <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                              <span class="visually-hidden">Next</span>
-                            </button>
-                          </div>
-
-                          <div class="mb-3">
-                            <div class="form-control form-control-sm bg-light fw-semibold" readonly>
-                              {{ auth()->user()->farm_name ?? 'Shop Name' }}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div class="fw-bold mb-2">Details</div>
-                            <div class="small">
-                              <div class="d-flex justify-content-between py-1 border-bottom">
-                                <span class="text-muted">Product:</span><span id="pv_name" class="fw-semibold">—</span>
-                              </div>
-                              <div class="d-flex justify-content-between py-1 border-bottom">
-                                <span class="text-muted">Price:</span><span id="pv_price" class="fw-semibold">₱0.00</span>
-                              </div>
-                              <div class="d-flex justify-content-between py-1 border-bottom">
-                                <span class="text-muted">Unit:</span><span id="pv_unit" class="fw-semibold">—</span>
-                              </div>
-                              <div class="d-flex justify-content-between py-1 border-bottom">
-                                <span class="text-muted">Stock:</span><span id="pv_stock" class="fw-semibold">0</span>
-                              </div>
-                              <div class="d-flex justify-content-between py-1 border-bottom">
-                                <span class="text-muted">Min order qty:</span><span id="pv_moq"
-                                  class="fw-semibold">—</span>
-                              </div>
-                              <div class="d-flex justify-content-between py-1">
-                                <span class="text-muted">Weight / unit:</span><span id="pv_weight"
-                                  class="fw-semibold">—</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- RIGHT: BASIC INFO -->
-                      <div class="col-lg-8">
-                        <div class="px-lg-1">
-                          <div class="fw-bold">Basic Information</div>
-
-                          {{-- Shopee-style Image Uploader (ADD) --}}
-                          <div class="d-flex align-items-center justify-content-between mb-1">
-                            <div class="fw-semibold">Product images</div>
-                            <div class="small text-muted"><span id="shpAddCount">0</span>/9</div>
-                          </div>
-
-                          <div id="shpAddGrid" class="shp-grid">
-                            {{-- Add tile --}}
-                            <label class="shp-add">
-                              <input id="shpAddPicker" type="file" accept="image/*" multiple hidden>
-                              <div class="shp-add-inner">
-                                <div class="shp-plus">+</div>
-                                <div class="small text-muted">Add</div>
-                              </div>
-                            </label>
-                          </div>
-
-                          {{-- Hidden files mapped to your backend --}}
-                          <input id="shpAddMainFile" name="image" type="file" class="d-none" required>
-                          <input id="shpAddGalleryFiles" name="gallery[]" type="file" class="d-none" multiple>
-                          <div class="form-text">Up to 9 images. Drag to reorder. First image is the Cover.</div>
-                          <div class="invalid-feedback d-block" id="shpAddValidation" style="display:none;">Please select
-                            at least one image.</div>
-
-
-                          <label class="form-label fw-semibold">Product Name <span class="text-danger">*</span></label>
-                          <input id="fld_name" type="text" class="form-control" name="name" maxlength="120" required>
-                          <div class="invalid-feedback">Product name is required.</div>
-
-                          <label class="form-label fw-semibold mt-3">Description <span
-                              class="text-danger">*</span></label>
-                          <textarea id="fld_desc" class="form-control" name="description" rows="4" maxlength="800"
-                            required></textarea>
-                          <div class="invalid-feedback">Please add a short description.</div>
-
-                          <div class="row g-3 mt-1">
-                            <div class="col-md-4">
-                              <label class="form-label fw-semibold">Price <span class="text-danger">*</span></label>
-                              <div class="input-group">
-                                <span class="input-group-text">₱</span>
-                                <input id="fld_price" type="number" class="form-control" name="price" step="0.01"
-                                  min="0.01" required>
-                              </div>
-                              <div class="invalid-feedback">Enter a valid price.</div>
-                            </div>
-                            <div class="col-md-4">
-                              <label class="form-label fw-semibold">Unit <span class="text-danger">*</span></label>
-                              <select id="fld_unit" class="form-select" name="unit" required>
-                                <option value="" disabled selected>Select unit</option>
-                                <option value="kg">Kilogram (kg)</option>
-                                <option value="piece">Piece</option>
-                                <option value="bundle">Bundle</option>
-                                <option value="sack">Sack</option>
-                              </select>
-                              <div class="invalid-feedback">Please choose a unit.</div>
-                            </div>
-                            <div class="col-md-4">
-                              <label class="form-label fw-semibold">Stock <span class="text-danger">*</span></label>
-                              <input id="fld_stock" type="number" class="form-control" name="stock" min="0" step="1"
-                                required>
-                              <div class="invalid-feedback">Provide available stock.</div>
-                            </div>
-                          </div>
-
-                          <div class="row g-3">
-                            <div class="col-md-6 col-lg-5">
-                              <label class="form-label fw-semibold">Min order quantity</label>
-                              <input id="fld_moq" type="number" class="form-control" name="min_order_qty" min="1" step="1"
-                                placeholder="Optional">
-                            </div>
-                            <div class="col-md-6 col-lg-5">
-                              <label class="form-label fw-semibold">Weight per unit <span
-                                  class="text-danger">*</span></label>
-                              <div class="input-group">
-                                <input id="fld_weight" type="number" class="form-control" name="weight" step="0.01"
-                                  min="0.01" required>
-                                <span class="input-group-text">kg</span>
-                              </div>
-                              <small class="text-muted">Example: 1 mango ≈ 0.25 kg</small>
-                              <div class="invalid-feedback">Enter weight per unit.</div>
-                            </div>
-                          </div>
-
-                          <div class="mt-2">
-                            <label class="form-label fw-semibold">Category</label>
-                            <select class="form-select" name="category" required>
-                              <option value="">Select category</option>
-                              @foreach($mainCategories as $category)
-                                <optgroup label="{{ $category->name }}">
-                                  <option value="{{ $category->id }}">
-                                    {{ $category->name }} (Main)
-                                  </option>
-                                  @foreach ($category->subcategories as $subCategory)
-                                    <option value="{{ $subCategory->id }}">
-                                      └ {{ $subCategory->name }}
-                                    </option>
-                                  @endforeach
-                                </optgroup>
-                              @endforeach
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    </div> <!-- /row -->
-                  </div> <!-- /modal-body -->
-
-                  <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">
-                      <i class="fas fa-check-circle me-1"></i> Save Product
-                    </button>
-                  </div>
-                </form>
+                @else
+                  <p class="text-center text-muted">No products available.</p>
+                @endif
               </div>
             </div>
-          </div>
 
-          <style>
-            /* subtle polish + make sure body is comfortably scrollable */
-            #previewCarousel .carousel-inner img {
-              object-fit: cover;
-              width: 100%;
-              height: 100%;
-            }
+            <!-- Add Product Modal-->
+            <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel"
+              aria-hidden="true">
+              <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                  <div class="modal-header border-0 pb-0">
+                    <div>
+                      <h5 class="modal-title fw-bold" id="addProductModalLabel">
+                        <i class="fas fa-plus-circle me-2"></i> Add New Product
+                      </h5>
+                      <div class="text-muted small">Pick images once, preview on the left, edit details on the right.</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
 
-            .modal-dialog-scrollable .modal-body {
-              max-height: 68vh;
-            }
-          </style>
+                  <form class="needs-validation" novalidate method="POST" action="{{ route('products.store') }}"
+                    enctype="multipart/form-data">
+                    @csrf
 
-          <script>
-            document.addEventListener('DOMContentLoaded', function () {
-              // Bootstrap validation
-              document.querySelectorAll('.needs-validation').forEach(function (form) {
-                form.addEventListener('submit', function (event) {
-                  if (!form.checkValidity()) { event.preventDefault(); event.stopPropagation(); }
-                  form.classList.add('was-validated');
-                }, false);
-              });
+                    <div class="modal-body pt-2">
+                      <div class="row g-3">
+                        <!-- LEFT: PREVIEW -->
+                        <div class="col-lg-4">
+                          <div class="border rounded-3 p-3 h-100">
+                            <div class="fw-bold">Preview</div>
+                            <div class="text-muted small mb-2">Product detail</div>
 
-              // Elements
-              const picker = document.getElementById('imagePicker');
-              const mainHidden = document.getElementById('imageMainHidden');
-              const galleryHidden = document.getElementById('imageGalleryHidden');
-              const galleryCount = document.getElementById('galleryCount');
-              const inner = document.getElementById('carouselInner');
+                            <!-- Swipeable carousel preview -->
+                            <div id="previewCarousel" class="carousel slide mb-2" data-bs-touch="true">
+                              <div class="carousel-inner ratio ratio-1x1 border rounded bg-light overflow-hidden"
+                                id="carouselInner">
+                                <div class="carousel-item active d-flex align-items-center justify-content-center">
+                                  <span class="text-muted">No image yet</span>
+                                </div>
+                              </div>
+                              <button class="carousel-control-prev" type="button" data-bs-target="#previewCarousel"
+                                data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                              </button>
+                              <button class="carousel-control-next" type="button" data-bs-target="#previewCarousel"
+                                data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                              </button>
+                            </div>
 
-              // Build carousel slides from selected files
-              function buildCarousel(files) {
-                inner.innerHTML = ''; // clear
-                if (!files || files.length === 0) {
-                  inner.innerHTML = '<div class="carousel-item active d-flex align-items-center justify-content-center"><span class="text-muted">No image yet</span></div>';
-                  return;
-                }
-                Array.from(files).forEach((file, idx) => {
-                  const url = URL.createObjectURL(file);
-                  const item = document.createElement('div');
-                  item.className = 'carousel-item' + (idx === 0 ? ' active' : '');
-                  item.innerHTML = `<img src="${url}" class="d-block w-100 h-100" alt="Preview ${idx + 1}">`;
-                  inner.appendChild(item);
+                            <div class="mb-3">
+                              <div class="form-control form-control-sm bg-light fw-semibold" readonly>
+                                {{ auth()->user()->farm_name ?? 'Shop Name' }}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div class="fw-bold mb-2">Details</div>
+                              <div class="small">
+                                <div class="d-flex justify-content-between py-1 border-bottom">
+                                  <span class="text-muted">Product:</span><span id="pv_name" class="fw-semibold">—</span>
+                                </div>
+                                <div class="d-flex justify-content-between py-1 border-bottom">
+                                  <span class="text-muted">Price:</span><span id="pv_price" class="fw-semibold">₱0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between py-1 border-bottom">
+                                  <span class="text-muted">Unit:</span><span id="pv_unit" class="fw-semibold">—</span>
+                                </div>
+                                <div class="d-flex justify-content-between py-1 border-bottom">
+                                  <span class="text-muted">Stock:</span><span id="pv_stock" class="fw-semibold">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between py-1 border-bottom">
+                                  <span class="text-muted">Min order qty:</span><span id="pv_moq"
+                                    class="fw-semibold">—</span>
+                                </div>
+                                <div class="d-flex justify-content-between py-1">
+                                  <span class="text-muted">Weight / unit:</span><span id="pv_weight"
+                                    class="fw-semibold">—</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- RIGHT: BASIC INFO -->
+                        <div class="col-lg-8">
+                          <div class="px-lg-1">
+                            <div class="fw-bold">Basic Information</div>
+
+                            {{-- Shopee-style Image Uploader (ADD) --}}
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                              <div class="fw-semibold">Product images</div>
+                              <div class="small text-muted"><span id="shpAddCount">0</span>/9</div>
+                            </div>
+
+                            <div id="shpAddGrid" class="shp-grid">
+                              {{-- Add tile --}}
+                              <label class="shp-add">
+                                <input id="shpAddPicker" type="file" accept="image/*" multiple hidden>
+                                <div class="shp-add-inner">
+                                  <div class="shp-plus">+</div>
+                                  <div class="small text-muted">Add</div>
+                                </div>
+                              </label>
+                            </div>
+
+                            {{-- Hidden files mapped to your backend --}}
+                            <input id="shpAddMainFile" name="image" type="file" class="d-none" required>
+                            <input id="shpAddGalleryFiles" name="gallery[]" type="file" class="d-none" multiple>
+                            <div class="form-text">Up to 9 images. Drag to reorder. First image is the Cover.</div>
+                            <div class="invalid-feedback d-block" id="shpAddValidation" style="display:none;">Please select
+                              at least one image.</div>
+
+
+                            <label class="form-label fw-semibold">Product Name <span class="text-danger">*</span></label>
+                            <input id="fld_name" type="text" class="form-control" name="name" maxlength="120" required>
+                            <div class="invalid-feedback">Product name is required.</div>
+
+                            <label class="form-label fw-semibold mt-3">Description <span
+                                class="text-danger">*</span></label>
+                            <textarea id="fld_desc" class="form-control" name="description" rows="4" maxlength="800"
+                              required></textarea>
+                            <div class="invalid-feedback">Please add a short description.</div>
+
+                            <div class="row g-3 mt-1">
+                              <div class="col-md-4">
+                                <label class="form-label fw-semibold">Price <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                  <span class="input-group-text">₱</span>
+                                  <input id="fld_price" type="number" class="form-control" name="price" step="0.01"
+                                    min="0.01" required>
+                                </div>
+                                <div class="invalid-feedback">Enter a valid price.</div>
+                              </div>
+                              <div class="col-md-4">
+                                <label class="form-label fw-semibold">Unit <span class="text-danger">*</span></label>
+                                <select id="fld_unit" class="form-select" name="unit" required>
+                                  <option value="" disabled selected>Select unit</option>
+                                  <option value="kg">Kilogram (kg)</option>
+                                  <option value="piece">Piece</option>
+                                  <option value="bundle">Bundle</option>
+                                  <option value="sack">Sack</option>
+                                </select>
+                                <div class="invalid-feedback">Please choose a unit.</div>
+                              </div>
+                              <div class="col-md-4">
+                                <label class="form-label fw-semibold">Stock <span class="text-danger">*</span></label>
+                                <input id="fld_stock" type="number" class="form-control" name="stock" min="0" step="1"
+                                  required>
+                                <div class="invalid-feedback">Provide available stock.</div>
+                              </div>
+                            </div>
+
+                            <div class="row g-3">
+                              <div class="col-md-6 col-lg-5">
+                                <label class="form-label fw-semibold">Min order quantity</label>
+                                <input id="fld_moq" type="number" class="form-control" name="min_order_qty" min="1" step="1"
+                                  placeholder="Optional">
+                              </div>
+                              <div class="col-md-6 col-lg-5">
+                                <label class="form-label fw-semibold">Weight per unit <span
+                                    class="text-danger">*</span></label>
+                                <div class="input-group">
+                                  <input id="fld_weight" type="number" class="form-control" name="weight" step="0.01"
+                                    min="0.01" required>
+                                  <span class="input-group-text">kg</span>
+                                </div>
+                                <small class="text-muted">Example: 1 mango ≈ 0.25 kg</small>
+                                <div class="invalid-feedback">Enter weight per unit.</div>
+                              </div>
+                            </div>
+
+                            <div class="mt-2">
+                              <label class="form-label fw-semibold">Category</label>
+                              <select class="form-select" name="category" required>
+                                <option value="">Select category</option>
+                                @foreach($mainCategories as $category)
+                                  <optgroup label="{{ $category->name }}">
+                                    <option value="{{ $category->id }}">
+                                      {{ $category->name }} (Main)
+                                    </option>
+                                    @foreach ($category->subcategories as $subCategory)
+                                      <option value="{{ $subCategory->id }}">
+                                        └ {{ $subCategory->name }}
+                                      </option>
+                                    @endforeach
+                                  </optgroup>
+                                @endforeach
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      </div> <!-- /row -->
+                    </div> <!-- /modal-body -->
+
+                    <div class="modal-footer border-0 pt-0">
+                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                      <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check-circle me-1"></i> Save Product
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <style>
+              /* subtle polish + make sure body is comfortably scrollable */
+              #previewCarousel .carousel-inner img {
+                object-fit: cover;
+                width: 100%;
+                height: 100%;
+              }
+
+              .modal-dialog-scrollable .modal-body {
+                max-height: 68vh;
+              }
+            </style>
+
+            <script>
+              document.addEventListener('DOMContentLoaded', function () {
+                // Bootstrap validation
+                document.querySelectorAll('.needs-validation').forEach(function (form) {
+                  form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) { event.preventDefault(); event.stopPropagation(); }
+                    form.classList.add('was-validated');
+                  }, false);
                 });
-              }
 
-              // Map single picker -> hidden main + gallery[] (first is main)
-              function mapFilesToHiddenInputs(files) {
-                const list = Array.from(files || []);
-                const limited = list.slice(0, 9); // cap at 9
-                // counter
-                galleryCount.textContent = `(${limited.length}/9)`;
+                // Elements
+                const picker = document.getElementById('imagePicker');
+                const mainHidden = document.getElementById('imageMainHidden');
+                const galleryHidden = document.getElementById('imageGalleryHidden');
+                const galleryCount = document.getElementById('galleryCount');
+                const inner = document.getElementById('carouselInner');
 
-                // main
-                const mainDT = new DataTransfer();
-                if (limited[0]) mainDT.items.add(limited[0]);
-                mainHidden.files = mainDT.files;
-
-                // gallery = remaining files
-                const galDT = new DataTransfer();
-                limited.slice(1).forEach(f => galDT.items.add(f));
-                galleryHidden.files = galDT.files;
-              }
-
-              if (picker) {
-                picker.addEventListener('change', function () {
-                  const files = this.files || [];
-                  if (files.length > 9) {
-                    alert('Please select up to 9 images.');
-                    // keep first 9 visually + in hidden inputs
-                    const keep = Array.from(files).slice(0, 9);
-                    buildCarousel(keep);
-                    mapFilesToHiddenInputs(keep);
+                // Build carousel slides from selected files
+                function buildCarousel(files) {
+                  inner.innerHTML = ''; // clear
+                  if (!files || files.length === 0) {
+                    inner.innerHTML = '<div class="carousel-item active d-flex align-items-center justify-content-center"><span class="text-muted">No image yet</span></div>';
                     return;
                   }
-                  buildCarousel(files);
-                  mapFilesToHiddenInputs(files);
-                });
-              }
+                  Array.from(files).forEach((file, idx) => {
+                    const url = URL.createObjectURL(file);
+                    const item = document.createElement('div');
+                    item.className = 'carousel-item' + (idx === 0 ? ' active' : '');
+                    item.innerHTML = `<img src="${url}" class="d-block w-100 h-100" alt="Preview ${idx + 1}">`;
+                    inner.appendChild(item);
+                  });
+                }
 
-              // Live preview of basic fields
-              const money = (v) => {
-                const n = parseFloat(v);
-                return isNaN(n) ? '₱0.00' : '₱' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-              };
-              const bind = (id, targetId, parser = (v) => v || '—') => {
-                const el = document.getElementById(id);
-                const tgt = document.getElementById(targetId);
-                if (!el || !tgt) return;
-                const update = () => tgt.textContent = parser(el.value);
-                el.addEventListener('input', update); update();
-              };
-              bind('fld_name', 'pv_name');
-              bind('fld_price', 'pv_price', money);
-              bind('fld_unit', 'pv_unit', v => v || '—');
-              bind('fld_stock', 'pv_stock', v => (v === '' ? '0' : v));
-              bind('fld_moq', 'pv_moq', v => v || '—');
-              bind('fld_weight', 'pv_weight', v => v ? (parseFloat(v).toFixed(2) + ' kg') : '—');
-            });
-          </script>
+                // Map single picker -> hidden main + gallery[] (first is main)
+                function mapFilesToHiddenInputs(files) {
+                  const list = Array.from(files || []);
+                  const limited = list.slice(0, 9); // cap at 9
+                  // counter
+                  galleryCount.textContent = `(${limited.length}/9)`;
 
-          {{-- ========== Analytics (UNCHANGED LOGIC) ========== --}}
-          <div class="tab-pane fade" id="analytics">
-            <h4 class="fw-bold mb-3">Analytics Dashboard</h4>
-            <div class="row">
-              <div class="col-md-3">
-                <div class="card shadow-sm border-0 p-3 bg-success text-white">
-                  <h6>Total Sales (Completed)</h6>
-                  <h4>₱{{ number_format($completedSales, 2) }}</h4>
-                  <h6>Pending Sales</h6>
-                  <h4>₱{{ number_format($pendingSales, 2) }}</h4>
-                  <h6>All Sales (Completed + Pending)</h6>
-                  <h4>₱{{ number_format($totalSales, 2) }}</h4>
+                  // main
+                  const mainDT = new DataTransfer();
+                  if (limited[0]) mainDT.items.add(limited[0]);
+                  mainHidden.files = mainDT.files;
+
+                  // gallery = remaining files
+                  const galDT = new DataTransfer();
+                  limited.slice(1).forEach(f => galDT.items.add(f));
+                  galleryHidden.files = galDT.files;
+                }
+
+                if (picker) {
+                  picker.addEventListener('change', function () {
+                    const files = this.files || [];
+                    if (files.length > 9) {
+                      alert('Please select up to 9 images.');
+                      // keep first 9 visually + in hidden inputs
+                      const keep = Array.from(files).slice(0, 9);
+                      buildCarousel(keep);
+                      mapFilesToHiddenInputs(keep);
+                      return;
+                    }
+                    buildCarousel(files);
+                    mapFilesToHiddenInputs(files);
+                  });
+                }
+
+                // Live preview of basic fields
+                const money = (v) => {
+                  const n = parseFloat(v);
+                  return isNaN(n) ? '₱0.00' : '₱' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                };
+                const bind = (id, targetId, parser = (v) => v || '—') => {
+                  const el = document.getElementById(id);
+                  const tgt = document.getElementById(targetId);
+                  if (!el || !tgt) return;
+                  const update = () => tgt.textContent = parser(el.value);
+                  el.addEventListener('input', update); update();
+                };
+                bind('fld_name', 'pv_name');
+                bind('fld_price', 'pv_price', money);
+                bind('fld_unit', 'pv_unit', v => v || '—');
+                bind('fld_stock', 'pv_stock', v => (v === '' ? '0' : v));
+                bind('fld_moq', 'pv_moq', v => v || '—');
+                bind('fld_weight', 'pv_weight', v => v ? (parseFloat(v).toFixed(2) + ' kg') : '—');
+              });
+            </script>
+
+            {{-- ========== Analytics (UNCHANGED LOGIC) ========== --}}
+            <div class="tab-pane fade" id="analytics">
+              <h4 class="fw-bold mb-3">Analytics Dashboard</h4>
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="card shadow-sm border-0 p-3 bg-success text-white">
+                    <h6>Total Sales (Completed)</h6>
+                    <h4>₱{{ number_format($completedSales, 2) }}</h4>
+                    <h6>Pending Sales</h6>
+                    <h4>₱{{ number_format($pendingSales, 2) }}</h4>
+                    <h6>All Sales (Completed + Pending)</h6>
+                    <h4>₱{{ number_format($totalSales, 2) }}</h4>
+                  </div>
                 </div>
+                <div class="col-md-3">
+                  <div class="card shadow-sm border-0 p-3 bg-primary text-white">
+                    <h6>Total Orders</h6>
+                    <h4>{{ $totalOrders }}</h4>
+                    <small>Completed: {{ $completedOrders }} | Pending: {{ $pendingOrders }}</small>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card shadow-sm border-0 p-3 bg-warning text-dark">
+                    <h6>Top Selling Products</h6>
+                    <h4>
+                      @if($mostSoldProduct)
+                        🏆 {{ $mostSoldProduct['product']->name }}
+                        <small class="text-muted">({{ $mostSoldProduct['total_quantity'] }} sold)</small>
+                      @else
+                        No sales yet
+                      @endif
+                    </h4>
+                    <ul class="list-group list-group-flush mt-3">
+                      @forelse($topProducts as $p)
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                          {{ $p['product']->name }}
+                          <span class="badge bg-success rounded-pill">{{ $p['total_quantity'] }}</span>
+                        </li>
+                      @empty
+                        <li class="list-group-item">No products sold yet</li>
+                      @endforelse
+                    </ul>
+                  </div>
+                </div>
+
+                @if($lowStockProducts->count() > 0)
+                  <div class="mt-3">
+                    <h6>⚠️ Low Stock Products</h6>
+                    <ul class="list-group">
+                      @foreach($lowStockProducts as $prod)
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                          {{ $prod->name }}
+                          <span class="badge bg-danger rounded-pill">{{ $prod->stock }} left</span>
+                        </li>
+                      @endforeach
+                    </ul>
+                  </div>
+                @endif
               </div>
-              <div class="col-md-3">
-                <div class="card shadow-sm border-0 p-3 bg-primary text-white">
-                  <h6>Total Orders</h6>
-                  <h4>{{ $totalOrders }}</h4>
-                  <small>Completed: {{ $completedOrders }} | Pending: {{ $pendingOrders }}</small>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="card shadow-sm border-0 p-3 bg-warning text-dark">
-                  <h6>Top Selling Products</h6>
-                  <h4>
-                    @if($mostSoldProduct)
-                      🏆 {{ $mostSoldProduct['product']->name }}
-                      <small class="text-muted">({{ $mostSoldProduct['total_quantity'] }} sold)</small>
-                    @else
-                      No sales yet
-                    @endif
-                  </h4>
-                  <ul class="list-group list-group-flush mt-3">
-                    @forelse($topProducts as $p)
-                      <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ $p['product']->name }}
-                        <span class="badge bg-success rounded-pill">{{ $p['total_quantity'] }}</span>
-                      </li>
-                    @empty
-                      <li class="list-group-item">No products sold yet</li>
-                    @endforelse
-                  </ul>
-                </div>
-              </div>
 
-              @if($lowStockProducts->count() > 0)
-                <div class="mt-3">
-                  <h6>⚠️ Low Stock Products</h6>
-                  <ul class="list-group">
-                    @foreach($lowStockProducts as $prod)
-                      <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ $prod->name }}
-                        <span class="badge bg-danger rounded-pill">{{ $prod->stock }} left</span>
-                      </li>
-                    @endforeach
-                  </ul>
-                </div>
-              @endif
-            </div>
-
-            <div class="mt-4">
-              <h5 class="fw-bold">Revenue Trends</h5>
-              <canvas id="salesChart"></canvas>
+              <div class="mt-4">
+                <h5 class="fw-bold">Revenue Trends</h5>
+                <select id="filterType" class="form-select w-auto mb-3">
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly" selected>Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+                <canvas id="salesChart"></canvas>
+              </div>
             </div>
           </div>
 
         @else
-          <p class="text-danger">You do not have permission to access this page.</p>
-        @endif
-      </div>
+        <p class="text-danger">You do not have permission to access this page.</p>
+      @endif
     </div>
+  </div>
   </div>
 
   <style>
@@ -1349,27 +1357,64 @@
   {{-- ====== Scripts ====== --}}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    const revenueTrends = @json($revenueTrends);
-    const labels = Object.keys(revenueTrends).map(month => {
-      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-      return months[month - 1];
-    });
-    const data = Object.values(revenueTrends);
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Revenue (₱)',
-          data: data,
-          borderColor: 'rgba(75, 192, 192, 1)',
-          backgroundColor: 'rgba(75, 192, 192, 0.2)',
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
+    document.addEventListener('DOMContentLoaded', function () {
+      const ctx = document.getElementById('salesChart').getContext('2d');
+      const filterSelect = document.getElementById('filterType');
+      let chart;
+
+      // Laravel data → JS (default monthly)
+      const revenueTrends = @json($revenueTrends);
+
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const defaultLabels = Object.keys(revenueTrends).map(m => monthNames[m - 1]);
+      const defaultData = Object.values(revenueTrends);
+
+      // Draw chart
+      function drawChart(labels, data) {
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Revenue (₱)',
+              data: data,
+              borderColor: 'rgba(75, 192, 192, 1)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: true } },
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      }
+
+      // Fetch new data (for daily, weekly, etc.)
+      function fetchRevenueData(type = 'monthly') {
+        fetch(`/seller/revenue-data?type=${type}`)
+          .then(res => res.json())
+          .then(data => {
+            const labels = Object.keys(data);
+            const values = Object.values(data);
+            drawChart(labels, values);
+          })
+          .catch(err => console.error('Fetch revenue data error:', err));
+      }
+
+      // Change filter
+      filterSelect.addEventListener('change', function () {
+        fetchRevenueData(this.value);
+      });
+
+      // Initial render (monthly)
+      drawChart(defaultLabels, defaultData);
     });
   </script>
 
