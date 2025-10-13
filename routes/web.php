@@ -14,6 +14,8 @@ use App\Models\Category;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Auth\GoogleController;
+use Illuminate\Support\Facades\Mail;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -47,7 +49,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::get('/sell', [ProfileController::class, 'sell'])->name('profile.sell');
+    Route::get('/sell', [ProfileController::class, 'sell'])->name('seller.sell');
     Route::post('/profile/picture', [ProfileController::class, 'updatePicture'])
         ->name('profile.picture.update');
 
@@ -163,6 +165,17 @@ Route::get('/seller/revenue-data', [SellerController::class, 'revenueData'])->na
 Route::get('/invoice', [PaymentController::class, 'createInvoice'])->name('invoice.create');
 Route::post('/xendit/webhook', [CheckoutController::class, 'handleXenditWebhook']);
 
+Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('google.redirect');
+Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
+
+Route::get('/test-mail', function () {
+    Mail::raw('This is a test email from FarmSmart.', function ($message) {
+        $message->to('mikylaraquinio097@email.com')
+                ->subject('FarmSmart Mail Test');
+    });
+
+    return 'Test email sent!';
+});
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
