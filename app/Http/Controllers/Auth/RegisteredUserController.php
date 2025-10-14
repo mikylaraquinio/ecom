@@ -37,7 +37,7 @@ class RegisteredUserController extends Controller
                 'max:255',
                 'unique:users,email', // Ensure email is unique
                 function ($attribute, $value, $fail) {
-                    $allowedDomains = ['gmail.com', 'yahoo.com', 'icloud.com'];
+                    $allowedDomains = ['gmail.com', 'yahoo.com', 'icloud.com, phinmaed.com'];
                     $domain = substr(strrchr($value, "@"), 1);
                     if (!in_array($domain, $allowedDomains)) {
                         $fail("Only Gmail, Yahoo, and iCloud emails are allowed.");
