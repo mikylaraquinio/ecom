@@ -178,7 +178,9 @@
                                                     ? asset('storage/' . $product->image)
                                                     : asset('assets/products.jpg');
                                                 $quantity = $orderItem->quantity;
-                                                $total = $product->price * $quantity;
+                                                $subtotal = $product->price * $quantity;
+                                                $shippingFee = $order->shipping_fee ?? 0; // fallback to 0 if not set
+                                                $total = $subtotal + $shippingFee;
                                             @endphp
 
                                             @if($product)
@@ -193,8 +195,12 @@
                                                             <div>
                                                                 <h6 class="mb-1">{{ $product->name }}</h6>
                                                                 <p class="mb-0 small text-muted">₱{{ number_format($product->price, 2) }} × {{ $quantity }}</p>
-                                                                <p class="mb-0 small fw-bold text-dark">Total: ₱{{ number_format($total, 2) }}</p>
-
+                                                                <p class="mb-0 small fw-bold text-dark">
+                                                                    Total: ₱{{ number_format($total, 2) }}
+                                                                </p>
+                                                                <p class="mb-0 small text-muted">
+                                                                    (₱{{ number_format($subtotal, 2) }} + Shipping ₱{{ number_format($shippingFee, 2) }})
+                                                                </p>
                                                                 <!-- Order Dates -->
                                                                 <p class="mb-0 small text-muted">
                                                                     <strong>Ordered:</strong> {{ $order->created_at->format('M d, Y') }}<br>
@@ -256,7 +262,9 @@
                                                     ? asset('storage/' . $product->image)
                                                     : asset('assets/products.jpg');
                                                 $quantity = $orderItem->quantity;
-                                                $total = $product->price * $quantity;
+                                                $subtotal = $product->price * $quantity;
+                                                $shippingFee = $order->shipping_fee ?? 0; // fallback to 0 if not set
+                                                $total = $subtotal + $shippingFee;
                                             @endphp
 
                                             @if($product)
@@ -271,8 +279,12 @@
                                                             <div>
                                                                 <h6 class="mb-1">{{ $product->name }}</h6>
                                                                 <p class="mb-0 small text-muted">₱{{ number_format($product->price, 2) }} × {{ $quantity }}</p>
-                                                                <p class="mb-0 small fw-bold text-dark">Total: ₱{{ number_format($total, 2) }}</p>
-
+                                                                <p class="mb-0 small fw-bold text-dark">
+                                                                    Total: ₱{{ number_format($total, 2) }}
+                                                                </p>
+                                                                <p class="mb-0 small text-muted">
+                                                                    (₱{{ number_format($subtotal, 2) }} + Shipping ₱{{ number_format($shippingFee, 2) }})
+                                                                </p>
                                                                 <!-- Order Dates -->
                                                                 <p class="mb-0 small text-muted">
                                                                     <strong>Ordered:</strong> {{ $order->created_at->format('M d, Y') }}<br>
@@ -329,7 +341,9 @@
                                                     ? asset('storage/' . $product->image)
                                                     : asset('assets/products.jpg');
                                                 $quantity = $orderItem->quantity;
-                                                $total = $product->price * $quantity;
+                                                $subtotal = $product->price * $quantity;
+                                                $shippingFee = $order->shipping_fee ?? 0; // fallback to 0 if not set
+                                                $total = $subtotal + $shippingFee;
                                                 $hasReviewed = $orderItem->review;
                                             @endphp
 
@@ -343,7 +357,12 @@
                                                             <div>
                                                                 <h6 class="mb-1">{{ $product->name }}</h6>
                                                                 <p class="mb-0 small text-muted">₱{{ number_format($product->price, 2) }} × {{ $quantity }}</p>
-                                                                <p class="mb-0 small fw-bold text-dark">Total: ₱{{ number_format($total, 2) }}</p>
+                                                                <p class="mb-0 small fw-bold text-dark">
+                                                                    Total: ₱{{ number_format($total, 2) }}
+                                                                </p>
+                                                                <p class="mb-0 small text-muted">
+                                                                    (₱{{ number_format($subtotal, 2) }} + Shipping ₱{{ number_format($shippingFee, 2) }})
+                                                                </p>
                                                                 <p class="mb-0 small text-muted">
                                                                     <strong>Delivered:</strong>
                                                                     {{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->format('M d, Y') : '—' }}
