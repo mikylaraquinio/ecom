@@ -169,28 +169,24 @@ Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('google.
 Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
 
 
-Route::get('/email/verify', function () {
-    return view('auth.verify-email'); // shows the "please verify your email" page
-})->middleware('auth')->name('verification.notice');
-
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
 
-    // Validate the hash in the URL
     if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
         abort(403, 'Invalid or expired verification link.');
     }
 
-    // If already verified
     if ($user->hasVerifiedEmail()) {
-        return redirect('/login')->with('status', 'Email already verified.');
+        return redirect('/welcome')->with('status', 'Your email is already verified.');
     }
 
-    // Mark the email as verified
+    // ✅ Mark verified
     $user->markEmailAsVerified();
 
-    // Redirect after success
-    return redirect('/login')->with('status', 'Email verified successfully!');
+    // ✅ Refresh login session (important)
+    Auth::login($user);
+
+    return redirect('/welcome')->with('status', 'Your email has been verified successfully!');
 })->name('verification.verify');
 
 /* Authentication Routes */
