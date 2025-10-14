@@ -18,6 +18,7 @@ use App\Http\Controllers\Auth\GoogleController;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Http\Controllers\AIChatController;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -188,6 +189,10 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
     return redirect('/welcome')->with('status', 'Your email has been verified successfully!');
 })->name('verification.verify');
+
+
+Route::post('/chat', [AIChatController::class, 'chat'])->name('chat');
+
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
