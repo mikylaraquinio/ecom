@@ -222,11 +222,11 @@
 
                 <div class="divider">or</div>
 
-                <!-- GOOGLE BUTTON -->
-                <button type="button" class="btn-google" onclick="window.location.href='{{ route('google.redirect') }}'">
+                <a href="{{ route('google.redirect') }}" class="btn-google">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon">
                     Login with Google
-                </button>
+                </a>
+
 
                 <p class="signup-link mt-4">
                     Don’t have an account?
