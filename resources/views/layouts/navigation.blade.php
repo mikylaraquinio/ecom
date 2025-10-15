@@ -116,9 +116,10 @@
 
               <!-- Profile (icon only) -->
               <div class="dropdown">
-                <a href="#" class="icon-link dropdown-toggle d-flex align-items-center" id="userDropdown" data-bs-toggle="dropdown" title="Account">
-                  <img src="{{ $avatar }}" class="rounded-circle border border-success-subtle" style="width:36px; height:36px; object-fit:cover;">
-                </a>
+                <a href="#" class="icon-link dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" title="Account">
+  <i class="bi bi-person-circle fs-5"></i>
+</a>
+
                 <ul class="dropdown-menu dropdown-menu-end user-dropdown shadow-sm" aria-labelledby="userDropdown">
                   <li class="px-3 py-2 border-bottom">
                     <div class="d-flex align-items-center gap-2">
