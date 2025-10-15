@@ -86,10 +86,8 @@
             <div class="col-md-3">
               <h6 class="fw-semibold mb-3 text-uppercase">Follow Us</h6>
               <div class="d-flex gap-3">
-                <a href="#" class="footer-icon"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" class="footer-icon"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="footer-icon"><i class="fab fa-instagram"></i></a>
-                <a href="#" class="footer-icon"><i class="fab fa-youtube"></i></a>
+                <a href="https://www.facebook.com/profile.php?id=61582318643089" class="footer-icon"><i class="fab fa-facebook-f"></i></a>
+                <a href="https://www.youtube.com/@FarmSmart-z1s" class="footer-icon"><i class="fab fa-youtube"></i></a>
               </div>
               <p class="small mt-3">Stay connected for latest product updates!</p>
             </div>

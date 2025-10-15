@@ -27,12 +27,12 @@ Route::get('/', function () {
 });
 
 Route::get('/welcome', function () {
-    return view('welcome'); // ✅ Correct
-})->middleware(['auth', 'verified'])->name('welcome');
+    return view('welcome');
+})->name('welcome');
 
 // Shop Page
 
-Route::get('/shop', [ProductController::class, 'index'])->middleware(['auth', 'verified'])->name('shop');
+Route::get('/shop', [ProductController::class, 'index'])->name('shop');
 Route::get('/myshop', [SellerController::class, 'index'])->name('myshop');
 Route::put('/shop/{shop}', [SellerController::class, 'update'])->name('shop.update');
 // Show the create shop form
