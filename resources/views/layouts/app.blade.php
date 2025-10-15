@@ -7,7 +7,6 @@
     <title>FarmSmart</title>
     <link rel="icon" type="image/png" href="{{ asset('assets/fs_icon.png') }}">
 
-
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -39,13 +38,8 @@
         {{ $slot }}
 
         @include('partials.ai-chat')
-
-       <!-- Floating Chat Widget 
-        @unless($isChatView)
-          @include('partials.chat-widget')
-        @endunless-->
+        {{-- Chat widget removed --}}
       </main>
-
 
       @unless($isChatView)
       <footer class="footer mt-auto text-white">
