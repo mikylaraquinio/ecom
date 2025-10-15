@@ -206,5 +206,57 @@
     .notifications-menu, .chat-dropdown, .user-dropdown { border-radius: 1rem; overflow: hidden; }
     .chat-dropdown { width: min(600px, 90vw); height: min(70vh, 700px); }
     .chat-iframe { border: none; width: 100%; height: 100%; }
+
+    .search-pill {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 520px; /* smaller and balanced */
+    border-radius: 50px;
+    overflow: hidden;
+    border: 1px solid #dfe6e1;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+
+  .search-pill .input-group-text {
+    background: transparent;
+    border: none;
+    color: #7a8a97;
+    padding: 0 0.75rem;
+  }
+
+  .search-pill .form-control {
+    border: none;
+    box-shadow: none;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .search-pill .form-control:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .search-pill .btn {
+    background: #2f6a2f;
+    border: none;
+    border-radius: 0;
+    padding: 0.6rem 0.9rem;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+  }
+
+  .search-pill .btn:hover {
+    background: #398f39;
+  }
+
+  .search-pill:focus-within {
+    border-color: #68b13a;
+    box-shadow: 0 0 0 3px rgba(104,177,58,.14);
+  }
   </style>
 </header>
