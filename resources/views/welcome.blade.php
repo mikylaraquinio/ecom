@@ -150,40 +150,4 @@
     });
   </script>
 
-  <div class="chat-container" style="max-width:600px;margin:auto;padding:20px;">
-    <div id="chatBox" style="border:1px solid #ccc;padding:15px;height:300px;overflow-y:auto;border-radius:10px;background:white;">
-        <div><strong>FarmSmart AI:</strong> Hello! How can I help your farm today? 🌱</div>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-top:10px;">
-        <input type="text" id="userMessage" placeholder="Ask about livestock, crops, etc..." style="flex:1;padding:10px;border-radius:8px;border:1px solid #bbb;">
-        <button onclick="sendMessage()" style="background:#71b127;color:white;border:none;padding:10px 20px;border-radius:8px;">Send</button>
-    </div>
-</div>
-
-<script>
-async function sendMessage() {
-    const input = document.getElementById('userMessage');
-    const chatBox = document.getElementById('chatBox');
-    const message = input.value.trim();
-    if (!message) return;
-
-    chatBox.innerHTML += `<div><strong>You:</strong> ${message}</div>`;
-    input.value = '';
-
-    const response = await fetch("{{ route('chat') }}", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({ message })
-    });
-
-    const data = await response.json();
-    chatBox.innerHTML += `<div><strong>FarmSmart AI:</strong> ${data.reply}</div>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-</script>
-
 </x-app-layout>

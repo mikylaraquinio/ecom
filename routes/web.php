@@ -191,7 +191,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 })->name('verification.verify');
 
 
-Route::post('/chat', [AIChatController::class, 'chat'])->name('chat');
+Route::post('/ai-chat', [AIChatController::class, 'chat'])->name('ai.chat');
 
 
 /* Authentication Routes */

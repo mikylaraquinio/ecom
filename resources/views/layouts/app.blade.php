@@ -31,22 +31,22 @@
   <body class="font-sans antialiased">
     <div class="min-h-screen bg-gray-100 dark:bg-gray-900 d-flex flex-column">
 
-      {{-- ===== NAVBAR ===== --}}
       @unless($isChatView)
         @include('layouts.navigation')
       @endunless
 
-      {{-- ===== MAIN CONTENT ===== --}}
       <main class="page-main flex-grow-1 {{ $isChatView ? '' : 'has-navbar' }}">
         {{ $slot }}
 
-        {{-- Floating Chat Widget --}}
+        @include('partials.ai-chat')
+
+       <!-- Floating Chat Widget 
         @unless($isChatView)
           @include('partials.chat-widget')
-        @endunless
+        @endunless-->
       </main>
 
-      {{-- ===== FOOTER ===== --}}
+
       @unless($isChatView)
       <footer class="footer mt-auto text-white">
         <div class="container py-5">
