@@ -8,73 +8,98 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Address;
 use App\Helpers\ShippingHelper;
+use App\Models\Seller;
+
 
 class CartController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
+        $user = auth()->user();
 
-        if (!$user) {
-            return redirect()->route('login')->with('error', 'Please log in to view your cart.');
-        }
-
-        $cartItems = Cart::where('user_id', $user->id)
-            ->with(['product.user', 'product.category']) // include category
+        // ✅ Get all cart items with product, user, and seller
+        $cartItems = Cart::with(['product.user.seller', 'product.category'])
+            ->where('user_id', $user->id)
             ->get();
 
-        // ✅ Group by seller for shipping
+        // ✅ Get user's address
+        $address = Address::where('user_id', $user->id)->first();
+
         $shippingBySeller = [];
-        foreach ($cartItems as $item) {
-            if (!$item->product || !$item->product->user)
-                continue;
-
-            $seller = $item->product->user;
-            $sellerId = $seller->id;
-
-            $buyerTown = $user->town ?? 'default_town';
-            $sellerTown = $seller->town ?? 'default_town';
-
-            if (!isset($shippingBySeller[$sellerId])) {
-                $shippingBySeller[$sellerId] = [
-                    'seller' => $seller,
-                    'buyerTown' => $buyerTown,
-                    'sellerTown' => $sellerTown,
-                    'weight' => 0,
-                    'hasLivestock' => false,
-                    'shippingFee' => 0,
-                ];
-            }
-
-            // ✅ detect livestock
-            if ($item->product->category && $item->product->category->name === 'Livestock') {
-                $shippingBySeller[$sellerId]['hasLivestock'] = true;
-            }
-
-            $shippingBySeller[$sellerId]['weight'] += ($item->product->weight ?? 0) * $item->quantity;
-        }
-
-        // ✅ calculate shipping
         $totalShipping = 0;
-        foreach ($shippingBySeller as $sid => $info) {
-            $fee = ShippingHelper::calculate(
-                $info['buyerTown'],
-                $info['sellerTown'],
-                $info['weight'],
-                $info['hasLivestock'],
-                $user->address ?? null,
-                $info['seller']->farm_address ?? null
-            );
-            $shippingBySeller[$sid]['shippingFee'] = $fee;
-            $totalShipping += $fee;
+        $subtotal = 0;
+
+        if ($cartItems->count() > 0) {
+            $groups = $cartItems->filter(fn($i) => $i->product)
+                ->groupBy(fn($i) => $i->product->user_id);
+
+            foreach ($groups as $sellerId => $items) {
+                $sellerSubtotal = 0;
+                $weight = 0;
+                $hasLivestock = false;
+
+                foreach ($items as $item) {
+                    $product = $item->product;
+                    $sellerSubtotal += $product->price * $item->quantity;
+                    $weight += ($product->weight ?? 0) * $item->quantity;
+
+                    // ✅ detect livestock
+                    if ($product->category && $product->category->name === 'Livestock') {
+                        $hasLivestock = true;
+                    }
+                }
+
+                $subtotal += $sellerSubtotal;
+
+                $shippingFee = 0;
+
+                if ($address) {
+                    $seller = $items->first()->product->user->seller ?? null;
+                    $sellerCity = $seller?->pickup_city ?? null;
+                    $buyerCity = $address->city ?? null;
+
+                    \Log::info('Seller/Buyer debug', [
+                        'sellerId' => $sellerId,
+                        'sellerCity' => $sellerCity,
+                        'buyerCity' => $buyerCity,
+                        'sellerShop' => $seller?->shop_name ?? 'no seller',
+                        'buyerName' => $user->name,
+                    ]);
+
+
+                    // ✅ Only calculate if both buyer & seller cities exist
+                    if ($sellerCity && $buyerCity) {
+                        $shippingFee = ShippingHelper::calculate(
+                            $buyerCity,
+                            $sellerCity,
+                            $weight,
+                            $hasLivestock,
+                            $address->address ?? null,
+                            $seller->pickup_address ?? null
+                        );
+                    } else {
+                        // fallback if missing
+                        $shippingFee = ShippingHelper::calculate(null, null, $weight);
+                    }
+                }
+
+                $shippingBySeller[$sellerId] = [
+                    'shippingFee' => $shippingFee,
+                    'weight' => $weight,
+                ];
+
+                $totalShipping += $shippingFee;
+            }
         }
 
-        $totalPrice = $cartItems->sum(fn($item) => $item->product ? $item->product->price * $item->quantity : 0);
-        $grandTotal = $totalPrice + $totalShipping;
+        $grandTotal = $subtotal + $totalShipping;
+        \Log::info("Cart Shipping Debug", compact('totalShipping', 'shippingBySeller', 'subtotal', 'grandTotal'));
 
-        return view('cart', compact('cartItems', 'shippingBySeller', 'totalPrice', 'totalShipping', 'grandTotal'));
+        return view('cart', compact('cartItems', 'shippingBySeller', 'totalShipping', 'grandTotal'));
     }
+
 
 
 
@@ -188,8 +213,30 @@ class CartController extends Controller
             $product = $cartItem->product;
             $sellerId = $product->user_id;
 
-            $buyerTown = $user->town ?? 'default';
-            $sellerTown = $product->user->town ?? 'default';
+            $address = Address::where('user_id', $user->id)->first();
+            $seller = $product->user->seller ?? null;
+
+            $buyerTown = $address?->city ?? 'default';
+            $sellerTown = $seller?->pickup_city ?? 'default';
+
+            if (!isset($perSeller[$sellerId])) {
+                $perSeller[$sellerId] = [
+                    'weight' => 0,
+                    'fee' => 0,
+                ];
+            }
+
+            // accumulate weight
+            $perSeller[$sellerId]['weight'] += ($product->weight ?? 0) * $qty;
+
+            // calculate fee for this seller’s total weight
+            $perSeller[$sellerId]['fee'] = \App\Helpers\ShippingHelper::calculate(
+                $buyerTown,
+                $sellerTown,
+                $perSeller[$sellerId]['weight']
+            );
+
+
 
             if (!isset($perSeller[$sellerId])) {
                 $perSeller[$sellerId] = [
