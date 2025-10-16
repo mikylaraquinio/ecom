@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Http\Controllers\AIChatController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\ReportController;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -152,12 +154,12 @@ Route::middleware('auth')->group(function () {
 });
 
 /* Chat */
-    Route::get('/chat/{receiverId?}', [ChatController::class, 'index'])->name('chat');   // optional (kept for safety)
-    Route::post('/chat/send/{receiverId}', [ChatController::class, 'store'])->name('chat.send');
+Route::get('/chat/{receiverId?}', [ChatController::class, 'index'])->name('chat');   // optional (kept for safety)
+Route::post('/chat/send/{receiverId}', [ChatController::class, 'store'])->name('chat.send');
 
-    // NEW: lightweight data endpoints for the widget (JSON)
-    Route::get('/chat/data/conversations', [ChatController::class, 'conversations'])->name('chat.conversations');
-    Route::get('/chat/data/messages/{receiverId}', [ChatController::class, 'messages'])->name('chat.messages');
+// NEW: lightweight data endpoints for the widget (JSON)
+Route::get('/chat/data/conversations', [ChatController::class, 'conversations'])->name('chat.conversations');
+Route::get('/chat/data/messages/{receiverId}', [ChatController::class, 'messages'])->name('chat.messages');
 
 Route::get('/seller/revenue-data', [SellerController::class, 'revenueData'])->name('seller.revenueData');
 Route::get('/invoice', [PaymentController::class, 'createInvoice'])->name('invoice.create');
@@ -170,7 +172,7 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
 
-    if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
+    if (!hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
         abort(403, 'Invalid or expired verification link.');
     }
 
@@ -189,6 +191,36 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
 
 Route::post('/ai-chat', [AIChatController::class, 'chat'])->name('ai.chat');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/dashboard', function () {
+        return view('admin.dashboard');
+    })->name('admin.dashboard');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/sellers/pending', [AdminController::class, 'pendingSellers'])->name('admin.sellers.pending');
+    Route::patch('/admin/sellers/{id}/approve', [AdminController::class, 'approveSeller'])->name('admin.sellers.approve');
+    Route::patch('/admin/sellers/{id}/deny', [AdminController::class, 'denySeller'])->name('admin.sellers.deny');
+});
+
+
+// For users
+Route::middleware(['auth'])->group(function () {
+    Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::patch('/admin/reports/{id}/status', [ReportController::class, 'updateStatus'])
+        ->name('admin.reports.update');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/dashboard', function () {
+        $reports = \App\Models\Report::with('user')->latest()->get();
+        return view('admin.dashboard', compact('reports'));
+    })->name('admin.dashboard');
+});
 
 
 /* Authentication Routes */
