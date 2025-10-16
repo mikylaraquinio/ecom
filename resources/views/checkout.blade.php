@@ -204,8 +204,8 @@
                                 <div class="card-body payment-methods">
                                     <label class="form-check d-flex align-items-center justify-content-between mb-2">
                                         <div class="d-flex align-items-center gap-2">
-                                            <input class="form-check-input" type="radio" name="payment_method" id="pm_gcash"
-                                                   value="gcash" required>
+                                            <input class="form-check-input" type="radio" name="payment_method" id="onlinePayment"
+                                                   value="online" required>
                                             <span>Online Payment</span>
                                         </div>
                                     </label>

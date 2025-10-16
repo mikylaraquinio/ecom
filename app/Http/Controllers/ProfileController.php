@@ -31,40 +31,32 @@ class ProfileController extends Controller
      * Update the user's profile information.
      */
     public function update(Request $request): RedirectResponse
-    {
-
-        if (!Auth::check()) {
-            abort(403, 'Unauthorized action. You must be logged in.');
-        }
-
-        $user = Auth::user();
-
-        $request->validate([
-            'username' => 'required|string|max:255',
-            'phone' => 'required|string|max:15',
-            'birthdate' => 'required|date',
-            'name' => 'required|string|max:255',
-            'gender' => 'required|string|in:male,female',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-        ]);
-
-
-        if (!$user instanceof User) {
-            abort(500, 'User instance not found.');
-        }
-
-
-        $user->update([
-            'username' => $request->username,
-            'phone' => $request->phone,
-            'birthdate' => $request->birthdate,
-            'name' => $request->name,
-            'gender' => $request->gender,
-            'email' => $request->email,
-        ]);
-
-        return Redirect::route('user_profile')->with('status', 'Profile updated successfully!');
+{
+    if (!Auth::check()) {
+        abort(403, 'Unauthorized action. You must be logged in.');
     }
+
+    $user = Auth::user();
+
+    $request->validate([
+        'username' => 'required|string|max:255',
+        'phone' => 'nullable|string|max:15',
+        'birthdate' => 'nullable|date',
+        'gender' => 'nullable|string|in:male,female',
+        'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+    ]);
+
+    $user->update([
+        'username' => $request->username,
+        'phone' => $request->phone,
+        'birthdate' => $request->birthdate,
+        'gender' => $request->gender,
+        'email' => $request->email,
+    ]);
+
+    return Redirect::route('user_profile')->with('status', 'Profile updated successfully!');
+}
+
 
 
 
@@ -148,17 +140,17 @@ class ProfileController extends Controller
 
         $ordersToShip = $user->orders()
             ->whereIn('status', ['pending', 'accepted'])
-            ->with('orderItems.product.seller') // include seller
+            ->with('orderItems.product.seller', 'address') // include seller
             ->get();
 
         $ordersToReceive = $user->orders()
             ->where('status', 'shipped')
-            ->with('orderItems.product.seller') // include seller
+            ->with('orderItems.product.seller', 'address') // include seller
             ->get();
 
         $ordersToReview = $user->orders()
             ->where('status', 'completed')
-            ->with('orderItems.product.seller') // include seller
+            ->with('orderItems.product.seller', 'address') // include seller
             ->get();
 
         $wishlistItems = $user->wishlist()

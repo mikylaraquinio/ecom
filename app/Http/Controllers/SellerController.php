@@ -164,7 +164,10 @@ class SellerController extends Controller
     public function approveOrder($id)
     {
         $order = Order::findOrFail($id);
-        $order->update(['status' => 'accepted']);
+        $order->update([
+            'status' => 'accepted',
+            'accepted_at' => now(),
+        ]);
 
         return redirect()->route('myshop')->with('success', 'Order approved successfully!');
     }

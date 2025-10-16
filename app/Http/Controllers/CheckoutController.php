@@ -281,7 +281,7 @@ public function process(Request $request)
 {
     // ✅ Validation
     $request->validate([
-        'payment_method'      => 'required|in:gcash,online,cod',
+        'payment_method'      => 'required|in:online,cod',
         'fulfillment_method'  => 'required|in:delivery,pickup',
         'address_id'          => 'required_if:fulfillment_method,delivery|nullable|exists:addresses,id',
     ]);
@@ -414,7 +414,7 @@ public function process(Request $request)
     }
 
     // ✅ Handle Online or GCash Payments
-    if (in_array($request->payment_method, ['gcash', 'online'])) {
+    if (in_array($request->payment_method, ['online'])) {
         try {
             // ✅ Fix for "Only variables should be passed by reference"
             $config = \Xendit\Configuration::getDefaultConfiguration();

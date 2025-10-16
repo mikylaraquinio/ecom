@@ -62,9 +62,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/products/store', [ProductController::class, 'store'])->name('products.store');
 });
-Route::middleware(['auth'])->group(function () {
-    Route::post('/profile/update-picture', [ProfileController::class, 'updateProfilePicture'])->name('profile.updatePicture');
-});
+Route::post('/profile/update-picture', [ProfileController::class, 'updatePicture'])
+    ->name('profile.updatePicture');
+
 Route::get('/user_profile', [ProfileController::class, 'showProfile'])->middleware(['auth', 'verified'])->name('user_profile');
 Route::patch('/buyer/order/{id}/cancel', [ProfileController::class, 'cancelOrder'])->name('buyer.cancelOrder');
 

@@ -11,7 +11,7 @@ class Order extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'address_id', 'payment_method', 'total_amount', 'status', 'shipping_address_id','fulfillment_method','shipping_fee', ];
+    protected $fillable = ['user_id', 'address_id', 'payment_method', 'total_amount', 'status', 'shipping_address_id','fulfillment_method','shipping_fee', 'address_id'];
 
     // Define constants for statuses
     const STATUS_PENDING = 'pending';
@@ -44,6 +44,10 @@ class Order extends Model
     }
 
     public function shippingAddress()
+    {
+        return $this->belongsTo(Address::class, 'address_id');
+    }
+       public function address()
     {
         return $this->belongsTo(Address::class, 'address_id');
     }
