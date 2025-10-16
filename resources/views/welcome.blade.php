@@ -149,4 +149,5 @@
       loadProducts(shopRoute);
     });
   </script>
+
 </x-app-layout>

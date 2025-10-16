@@ -27,15 +27,12 @@
   <body class="font-sans antialiased">
     <div class="min-h-screen bg-gray-100 dark:bg-gray-900 d-flex flex-column">
 
-      {{-- ===== NAVBAR ===== --}}
       @include('layouts.navigation')
 
-      {{-- ===== MAIN CONTENT ===== --}}
       <main class="page-main flex-grow-1 has-navbar d-flex flex-column justify-content-center align-items-center">
         {{ $slot }}
       </main>
 
-      {{-- ===== FOOTER ===== --}}
       <footer class="footer mt-auto text-white">
         <div class="container py-5">
           <div class="row gy-4">
@@ -73,10 +70,8 @@
             <div class="col-md-3">
               <h6 class="fw-semibold mb-3 text-uppercase">Follow Us</h6>
               <div class="d-flex gap-3">
-                <a href="#" class="footer-icon"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" class="footer-icon"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="footer-icon"><i class="fab fa-instagram"></i></a>
-                <a href="#" class="footer-icon"><i class="fab fa-youtube"></i></a>
+                <a href="https://www.facebook.com/profile.php?id=61582318643089" class="footer-icon"><i class="fab fa-facebook-f"></i></a>
+                <a href="https://www.youtube.com/@FarmSmart-z1s" class="footer-icon"><i class="fab fa-youtube"></i></a>
               </div>
               <p class="small mt-3">Stay connected for updates!</p>
             </div>
@@ -90,7 +85,6 @@
       </footer>
     </div>
 
-    {{-- ===== INLINE STYLES (copied from app layout) ===== --}}
     <style>
       html, body {
         height: 100%;

@@ -18,6 +18,7 @@ use App\Http\Controllers\Auth\GoogleController;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Http\Controllers\AIChatController;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -26,12 +27,12 @@ Route::get('/', function () {
 });
 
 Route::get('/welcome', function () {
-    return view('welcome'); // ✅ Correct
-})->middleware(['auth', 'verified'])->name('welcome');
+    return view('welcome');
+})->name('welcome');
 
 // Shop Page
 
-Route::get('/shop', [ProductController::class, 'index'])->middleware(['auth', 'verified'])->name('shop');
+Route::get('/shop', [ProductController::class, 'index'])->name('shop');
 Route::get('/myshop', [SellerController::class, 'index'])->name('myshop');
 Route::put('/shop/{shop}', [SellerController::class, 'update'])->name('shop.update');
 // Show the create shop form
@@ -188,6 +189,10 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
     return redirect('/welcome')->with('status', 'Your email has been verified successfully!');
 })->name('verification.verify');
+
+
+Route::post('/ai-chat', [AIChatController::class, 'chat'])->name('ai.chat');
+
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
