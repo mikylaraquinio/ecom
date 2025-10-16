@@ -11,13 +11,20 @@ use Illuminate\Support\Str;
 class CategoryController extends Controller
 {
     public function index()
-    {
-        // Fetch main categories, including all subcategories and sub-subcategories
-        $mainCategories = Category::whereNull('parent_id')->with('allChildren.allChildren')->get();
-        
-        return view('myshop', compact('mainCategories'));
+{
+    // Load top-level categories and their subcategories
+    $mainCategories = \App\Models\Category::mainCategories()
+        ->with('subcategories.subcategories')
+        ->get();
 
-    }
+    // Load latest or featured products (optional)
+    $latestProducts = \App\Models\Product::latest()->take(8)->get();
+
+    // Send data to the 'welcome' view
+    return view('welcome', compact('mainCategories', 'latestProducts'));
+}
+
+
 
     public function create()
     {

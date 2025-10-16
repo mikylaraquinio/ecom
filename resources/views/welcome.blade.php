@@ -11,41 +11,102 @@
   <section id="home-layout" class="mt-4 mb-5">
     <div class="container px-3 px-lg-4">
       <div class="row g-4">
+{{-- LEFT COLUMN: Dynamic Categories --}}
+<div class="col-lg-3">
+  <div class="card section-shadow border-0 rounded-4 overflow-hidden h-100">
+    <div class="card-header bg-success text-white fw-semibold py-3">
+      Shop by Categories
+    </div>
 
-        {{-- LEFT COLUMN: Categories --}}
-        <div class="col-lg-3">
-          <div class="card section-shadow border-0 rounded-4 overflow-hidden h-100">
-            <div class="card-header bg-success text-white fw-semibold py-3">
-              <i class="bi bi-list me-2"></i> Shop by Categories
-            </div>
-            <div class="list-group list-group-flush small py-2">
-              {{-- LIVESTOCK --}}
-              <a href="{{ route('shop', ['group'=>'livestock','category'=>'cattle']) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 category-link">
-                <i class="bi bi-cow"></i> Cattle (Baka)
-              </a>
-              <a href="{{ route('shop', ['group'=>'livestock','category'=>'carabao']) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 category-link">
-                <i class="bi bi-shield-check"></i> Carabao (Kalabaw)
-              </a>
-              <a href="{{ route('shop', ['group'=>'livestock','category'=>'goat']) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 category-link">
-                <i class="bi bi-emoji-sunglasses"></i> Goat (Kambing)
-              </a>
-              <a href="{{ route('shop', ['group'=>'livestock','category'=>'swine']) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 category-link">
-                <i class="bi bi-piggy-bank"></i> Swine (Baboy)
-              </a>
+    <div class="list-group list-group-flush small py-2">
+      @php
+        // Group categories by keyword
+        $livestock = $mainCategories->filter(fn($cat) => in_array(strtolower($cat->name), [
+          'cattle / cow', 'pig / hog', 'goat', 'chicken', 'duck', 'sheep', 'carabao / water buffalo', 'rabbit', 'fish & aquatic'
+        ]));
 
-              <div class="px-3 pt-3 text-muted text-uppercase small fw-semibold">Produce</div>
-              <a href="{{ route('shop', ['group'=>'produce','category'=>'rice']) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 category-link">
-                <i class="bi bi-basket"></i> Rice (Bigas/Palay)
-              </a>
-              <a href="{{ route('shop', ['group'=>'produce','category'=>'mango']) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 category-link">
-                <i class="bi bi-brightness-alt-high"></i> Mango (Carabao Mango)
-              </a>
-              <a href="{{ route('shop', ['group'=>'produce','category'=>'vegetables']) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 category-link">
-                <i class="bi bi-flower1"></i> Vegetables
-              </a>
-            </div>
-          </div>
+        $produce = $mainCategories->filter(fn($cat) => in_array(strtolower($cat->name), [
+          'fruits', 'vegetables', 'root crops', 'grains & rice', 'legumes', 'herbs & spices', 'processed produce', 'feeds & farm inputs', 'farm equipment & tools', 'farm services'
+        ]));
+      @endphp
+
+      {{-- 🐄 LIVESTOCK SECTION --}}
+      @if ($livestock->count())
+        <div class="px-3 pt-2 text-muted text-uppercase small fw-semibold border-bottom pb-1">
+          Livestock
         </div>
+        @foreach ($livestock as $main)
+          <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#cat-{{ $main->id }}"
+                  aria-expanded="false"
+                  aria-controls="cat-{{ $main->id }}">
+            <span>{{ $main->name }}</span>
+            <i class="bi bi-caret-down-fill small"></i>
+          </button>
+
+          <div class="collapse ps-3" id="cat-{{ $main->id }}">
+            @foreach ($main->subcategories as $sub)
+              <a href="{{ route('shop', ['category' => \Illuminate\Support\Str::slug($sub->name)]) }}"
+                 class="list-group-item list-group-item-action border-0 small">
+                {{ $sub->name }}
+              </a>
+
+              @if ($sub->subcategories->count())
+                <div class="ps-3">
+                  @foreach ($sub->subcategories as $child)
+                    <a href="{{ route('shop', ['category' => \Illuminate\Support\Str::slug($child->name)]) }}"
+                       class="list-group-item list-group-item-action border-0 small text-muted">
+                      — {{ $child->name }}
+                    </a>
+                  @endforeach
+                </div>
+              @endif
+            @endforeach
+          </div>
+        @endforeach
+      @endif
+
+      {{-- 🌾 FARM PRODUCE SECTION --}}
+      @if ($produce->count())
+        <div class="px-3 pt-3 mt-2 text-muted text-uppercase small fw-semibold border-bottom pb-1">
+          Farm Produce
+        </div>
+        @foreach ($produce as $main)
+          <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#cat-{{ $main->id }}"
+                  aria-expanded="false"
+                  aria-controls="cat-{{ $main->id }}">
+            <span>{{ $main->name }}</span>
+            <i class="bi bi-caret-down-fill small"></i>
+          </button>
+
+          <div class="collapse ps-3" id="cat-{{ $main->id }}">
+            @foreach ($main->subcategories as $sub)
+              <a href="{{ route('shop', ['category_slug' => \Illuminate\Support\Str::slug($sub->name)]) }}"
+                 class="list-group-item list-group-item-action border-0 small">
+                {{ $sub->name }}
+              </a>
+
+              @if ($sub->subcategories->count())
+                <div class="ps-3">
+                  @foreach ($sub->subcategories as $child)
+                    <a href="{{ route('shop', ['category' => \Illuminate\Support\Str::slug($child->name)]) }}"
+                       class="list-group-item list-group-item-action border-0 small text-muted">
+                      — {{ $child->name }}
+                    </a>
+                  @endforeach
+                </div>
+              @endif
+            @endforeach
+          </div>
+        @endforeach
+      @endif
+    </div>
+  </div>
+</div>
+
 
         {{-- RIGHT COLUMN: Carousel + Products --}}
         <div class="col-lg-9 d-flex flex-column gap-4">

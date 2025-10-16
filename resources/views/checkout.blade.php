@@ -206,7 +206,7 @@
                                         <div class="d-flex align-items-center gap-2">
                                             <input class="form-check-input" type="radio" name="payment_method" id="pm_gcash"
                                                    value="gcash" required>
-                                            <span>GCash</span>
+                                            <span>Online Payment</span>
                                         </div>
                                     </label>
                                     <label class="form-check d-flex align-items-center justify-content-between">

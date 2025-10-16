@@ -22,13 +22,10 @@ use App\Http\Controllers\AIChatController;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [CategoryController::class, 'index'])->name('welcome');
 
-Route::get('/welcome', function () {
-    return view('welcome');
-})->name('welcome');
+// Optional alias for /welcome — loads the same controller
+Route::get('/welcome', [CategoryController::class, 'index']);
 
 // Shop Page
 
