@@ -41,6 +41,7 @@ class SellerController extends Controller
             'mayors_permit' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
         ]);
 
+        // Handle document uploads
         $govPath = $request->file('gov_id')
             ? $request->file('gov_id')->store('seller_docs', 'public')
             : optional($user->seller)->gov_id_path;
@@ -71,30 +72,26 @@ class SellerController extends Controller
             'rsbsa_path' => $rsbsaPath,
             'mayors_permit_path' => $mayorsPermitPath,
 
-            'status' => 'approved', // or 'pending'
+            'status' => 'pending', // 👈 mark as pending until admin approves
         ];
 
-        \App\Models\Seller::updateOrCreate(['user_id' => $user->id], $data);
+        Seller::updateOrCreate(['user_id' => $user->id], $data);
 
-        if ($user->role !== 'seller') {
-            $user->role = 'seller';
-            $user->save();
-            Auth::setUser($user->fresh());
-        }
+        // 🚫 Don't set role to seller yet — wait for admin approval
 
-        // 👇 keep this route in sync with your JS (or change to user_profile if you prefer)
         $redirect = route('user_profile');
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Seller registration saved!',
+                'message' => 'Seller registration submitted for admin approval.',
                 'redirect_url' => $redirect,
             ], 200);
         }
 
-        return redirect($redirect)->with('success', 'Seller registration saved!');
+        return redirect($redirect)->with('success', 'Your seller registration has been submitted and is now pending admin approval.');
     }
+
 
 
     public function myOrders()

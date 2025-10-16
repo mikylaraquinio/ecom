@@ -45,8 +45,14 @@ class AuthenticatedSessionController extends Controller
         Auth::login($user, $request->filled('remember'));
         $request->session()->regenerate();
 
-        return redirect()->intended(route('welcome'));
+        // ✅ Redirect based on role
+        if ($user->is_admin) {
+            return redirect()->intended('/admin/dashboard');
+        }
+
+        return redirect()->intended('welcome');
     }
+
 
     /**
      * Destroy an authenticated session.
