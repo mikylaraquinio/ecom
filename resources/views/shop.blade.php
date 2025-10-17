@@ -1,30 +1,30 @@
 <x-app-layout>
     {{-- ===========================
-         HEADER BANNER
+    HEADER BANNER
     ============================ --}}
     <section class="header-banner position-relative text-center">
         <div style="height: 300px; overflow: hidden;">
-            <img src="{{ asset('assets/shop-bg2.jpg') }}" 
-                 alt="Shop Banner"
-                 class="w-100 h-100 object-fit-cover" 
-                 style="filter: brightness(55%);">
+            <img src="{{ asset('assets/shop-bg2.jpg') }}" alt="Shop Banner" class="w-100 h-100 object-fit-cover"
+                style="filter: brightness(55%);">
         </div>
         <div class="banner-overlay"></div>
         <div class="banner-text position-absolute top-50 start-50 translate-middle text-center">
             <p class="fw-semibold" style="color:#ffcc00; font-family:'Pacifico', cursive; font-size:1.4rem;">
                 "Supporting farmers by providing a fair marketplace for their products"
             </p>
-            <h1 class="fw-bold text-white" style="font-family:'Fredoka One', sans-serif; font-size:3rem; text-shadow:2px 2px 8px rgba(0,0,0,0.5);">
+            <h1 class="fw-bold text-white"
+                style="font-family:'Fredoka One', sans-serif; font-size:3rem; text-shadow:2px 2px 8px rgba(0,0,0,0.5);">
                 SHOP PRODUCTS
             </h1>
-            <div class="mx-auto" style="width:120px; height:5px; background-color:#ffcc00; border-radius:10px; margin-top:10px;"></div>
+            <div class="mx-auto"
+                style="width:120px; height:5px; background-color:#ffcc00; border-radius:10px; margin-top:10px;"></div>
         </div>
     </section>
 
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Fredoka+One&display=swap" rel="stylesheet">
 
     {{-- ===========================
-         SEARCH + FILTERS
+    SEARCH + FILTERS
     ============================ --}}
     <section class="py-4 bg-light border-bottom">
         <div class="container px-4 px-lg-5">
@@ -42,7 +42,7 @@
                 <div class="col-md-6">
                     <div class="dropdown">
                         <button class="btn btn-outline-success w-100 rounded-pill dropdown-toggle" type="button"
-                                id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             Filters
                         </button>
                         <div class="dropdown-menu p-3 w-100 shadow border-0">
@@ -64,8 +64,8 @@
                                     <div class="d-flex">
                                         <input type="number" name="min_price" class="form-control me-2"
                                             placeholder="Min" value="{{ request('min_price') }}">
-                                        <input type="number" name="max_price" class="form-control"
-                                            placeholder="Max" value="{{ request('max_price') }}">
+                                        <input type="number" name="max_price" class="form-control" placeholder="Max"
+                                            value="{{ request('max_price') }}">
                                     </div>
                                 </div>
 
@@ -73,7 +73,8 @@
                                     <label class="form-label fw-semibold">Stock Availability</label>
                                     <select name="stock" class="form-select">
                                         <option value="">All</option>
-                                        <option value="in_stock" {{ request('stock') == 'in_stock' ? 'selected' : '' }}>In Stock</option>
+                                        <option value="in_stock" {{ request('stock') == 'in_stock' ? 'selected' : '' }}>In
+                                            Stock</option>
                                         <option value="out_of_stock" {{ request('stock') == 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
                                     </select>
                                 </div>
@@ -84,11 +85,13 @@
                                         <option value="">Default</option>
                                         <option value="low_to_high" {{ request('sort_by') == 'low_to_high' ? 'selected' : '' }}>Price: Low to High</option>
                                         <option value="high_to_low" {{ request('sort_by') == 'high_to_low' ? 'selected' : '' }}>Price: High to Low</option>
-                                        <option value="newest" {{ request('sort_by') == 'newest' ? 'selected' : '' }}>Newest First</option>
+                                        <option value="newest" {{ request('sort_by') == 'newest' ? 'selected' : '' }}>
+                                            Newest First</option>
                                     </select>
                                 </div>
 
-                                <button type="submit" class="btn btn-success w-100 rounded-pill mt-2">Apply Filters</button>
+                                <button type="submit" class="btn btn-success w-100 rounded-pill mt-2">Apply
+                                    Filters</button>
                             </form>
                         </div>
                     </div>
@@ -98,7 +101,7 @@
     </section>
 
     {{-- ===========================
-         PRODUCT GRID
+    PRODUCT GRID
     ============================ --}}
     <section class="py-5">
         <div class="container px-4 px-lg-5">
@@ -109,7 +112,7 @@
     </section>
 
     {{-- ===========================
-         RECOMMENDED PRODUCTS
+    RECOMMENDED PRODUCTS
     ============================ --}}
     <section class="py-5" style="background-color:#f9f7f2;">
         <div class="container px-4 px-lg-5">
@@ -124,31 +127,45 @@
     </section>
 
     {{-- ===========================
-         CUSTOM STYLES
+    WISHLIST ALERT (top-right floating message)
+    ============================ --}}
+    <div id="wishlistAlert" class="alert alert-success text-center"
+        style="display:none; position:fixed; top:20px; right:20px; z-index:9999; border-radius:10px; min-width:220px;">
+    </div>
+
+
+
+    {{-- ===========================
+    CUSTOM STYLES
     ============================ --}}
     <style>
-        body { background: #f8f9f7; }
+        body {
+            background: #f8f9f7;
+        }
 
         /* Banner overlay */
         .banner-overlay {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
         }
 
         /* Product Grid (Shopee-style) */
-        #product-list .product-card, 
+        #product-list .product-card,
         #recommended-products .product-card {
             background: #fff;
             border-radius: 12px;
             overflow: hidden;
             transition: all .25s ease-in-out;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         }
 
         .product-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
         }
 
         .product-card img {
@@ -182,12 +199,16 @@
         }
 
         @media (max-width: 768px) {
-            .product-card img { height: 180px; }
+            .product-card img {
+                height: 180px;
+            }
         }
     </style>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     {{-- ===========================
-         SCRIPTS (unchanged)
+    SCRIPTS (unchanged)
     ============================ --}}
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -205,13 +226,13 @@
                     method: "GET",
                     headers: { "X-Requested-With": "XMLHttpRequest" }
                 })
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById("product-list").innerHTML = data.trim() || "<p>No products found.</p>";
-                    window.history.pushState({}, '', shopRoute + "?" + queryString);
-                    attachAddToCartListeners();
-                })
-                .catch(error => console.error("Error fetching filtered products:", error));
+                    .then(response => response.text())
+                    .then(data => {
+                        document.getElementById("product-list").innerHTML = data.trim() || "<p>No products found.</p>";
+                        window.history.pushState({}, '', shopRoute + "?" + queryString);
+                        attachAddToCartListeners();
+                    })
+                    .catch(error => console.error("Error fetching filtered products:", error));
             }
 
             searchBox.addEventListener("keypress", function (event) {
@@ -235,17 +256,17 @@
                             },
                             body: JSON.stringify({ quantity: 1 })
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                alert("Product added to cart!");
-                                let modal = document.getElementById(`productModal${productId}`);
-                                let modalInstance = bootstrap.Modal.getInstance(modal);
-                                if (modalInstance) modalInstance.hide();
-                            } else {
-                                alert(data.message);
-                            }
-                        });
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert("Product added to cart!");
+                                    let modal = document.getElementById(`productModal${productId}`);
+                                    let modalInstance = bootstrap.Modal.getInstance(modal);
+                                    if (modalInstance) modalInstance.hide();
+                                } else {
+                                    alert(data.message);
+                                }
+                            });
                     });
                 });
             }
@@ -253,4 +274,81 @@
             attachAddToCartListeners();
         });
     </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const token = document.querySelector('meta[name="csrf-token"]').content;
+
+            document.body.addEventListener('click', async function (e) {
+                const btn = e.target.closest('.wishlist-btn');
+                if (!btn) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const productId = btn.dataset.productId;
+                const icon = btn.querySelector('i');
+
+                try {
+                    const res = await fetch(`/wishlist/toggle/${productId}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    const data = await res.json();
+
+                    if (res.status === 401 || data.status === 'unauthenticated') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Login Required',
+                            text: 'Please log in to add items to your wishlist 💚',
+                            confirmButtonColor: '#71b127'
+                        });
+                        return;
+                    }
+
+                    if (data.status === 'added') {
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Added!',
+                            text: 'Item added to wishlist ❤️',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    } else if (data.status === 'removed') {
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+
+                        // Remove card only if on wishlist page
+                        if (window.location.pathname.includes('/wishlist')) {
+                            const productCard = btn.closest('.product-card');
+                            if (productCard) productCard.remove();
+                        }
+
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Removed',
+                            text: 'Item removed from wishlist 💔',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    }
+
+                } catch (err) {
+                    console.error('Wishlist toggle error:', err);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops!',
+                        text: 'Something went wrong while updating your wishlist.',
+                    });
+                }
+            });
+        });
+    </script>
+
 </x-app-layout>

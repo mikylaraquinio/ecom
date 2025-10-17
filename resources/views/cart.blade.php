@@ -37,7 +37,15 @@
               </div>
 
               <div class="list-group list-group-flush">
-                @foreach($items as $cartItem)
+                @php
+                  // Sort so in-stock items appear first
+                  $sortedItems = $items->sortBy(function ($cartItem) {
+                    return ($cartItem->product->stock ?? 0) <= 0 ? 1 : 0;
+                  });
+                @endphp
+
+                @foreach($sortedItems as $cartItem)
+
                   @php
                     $p = $cartItem->product;
                     $price = (float) $p->price;
@@ -45,17 +53,21 @@
                     $img = $p->image ? asset('storage/' . $p->image) : asset('assets/products.jpg');
                   @endphp
 
-                  <div class="list-group-item py-3" id="cart-item-{{ $cartItem->id }}" data-id="{{ $cartItem->id }}"
-                    data-seller-id="{{ $p->user_id }}">
+                  <div class="list-group-item py-3 {{ ($p->stock ?? 0) <= 0 ? 'bg-light text-muted' : '' }}"
+                    id="cart-item-{{ $cartItem->id }}" data-id="{{ $cartItem->id }}" data-seller-id="{{ $p->user_id }}">
                     <div class="row align-items-center g-2">
                       <div class="col-auto">
                         <input type="checkbox" name="selected_items[]" value="{{ $cartItem->id }}"
                           class="form-check-input product-checkbox" data-price="{{ $price }}"
-                          data-product-id="{{ $cartItem->id }}" data-product-name="{{ $p->name }}">
+                          data-product-id="{{ $cartItem->id }}" data-product-name="{{ $p->name }}" {{ ($p->stock ?? 0) <= 0 ? 'disabled' : '' }}>
                       </div>
 
-                      <div class="col-auto">
-                        <img src="{{ $img }}" alt="{{ $p->name }}" class="cart-thumb rounded">
+                      <div class="col-auto position-relative">
+                        <img src="{{ $img }}" alt="{{ $p->name }}"
+                          class="cart-thumb rounded {{ ($p->stock ?? 0) <= 0 ? 'opacity-50' : '' }}">
+                        @if(($p->stock ?? 0) <= 0)
+                          <span class="badge bg-secondary position-absolute top-0 start-0 m-1">Out of Stock</span>
+                        @endif
                       </div>
 
                       <div class="col">
@@ -66,16 +78,26 @@
                             <span class="text-muted">/ {{ $p->unit }}</span>
                           @endif
                         </div>
+                        @if(($p->stock ?? 0) <= 0)
+                          <div class="small text-danger mt-1">This item is no longer available.</div>
+                        @endif
                       </div>
 
                       <div class="col-auto">
+                        @php
+                          $availableStock = $p->stock ?? 0;
+                          $displayQty = ($availableStock <= 0) ? 0 : min($cartItem->quantity, $availableStock);
+                        @endphp
+
                         <div class="input-group input-group-sm qty-group">
-                          <button type="button" class="btn btn-outline-secondary decrement-btn"
-                            data-id="{{ $cartItem->id }}">−</button>
-                          <input type="text" class="form-control text-center quantity-input" value="{{ $cartItem->quantity }}"
-                            data-id="{{ $cartItem->id }}" readonly>
-                          <button type="button" class="btn btn-outline-secondary increment-btn"
-                            data-id="{{ $cartItem->id }}">+</button>
+                          <button type="button" class="btn btn-outline-secondary decrement-btn" data-id="{{ $cartItem->id }}"
+                            {{ $availableStock <= 0 ? 'disabled' : '' }}>−</button>
+
+                          <input type="text" class="form-control text-center quantity-input" value="{{ $displayQty }}"
+                            data-id="{{ $cartItem->id }}" readonly {{ $availableStock <= 0 ? 'disabled' : '' }}>
+
+                          <button type="button" class="btn btn-outline-secondary increment-btn" data-id="{{ $cartItem->id }}"
+                            {{ $availableStock <= 0 ? 'disabled' : '' }}>+</button>
                         </div>
                       </div>
 
@@ -303,14 +325,20 @@
             });
         }
 
-        // MASTER SELECT (top & bottom)
         [selectAllTop, selectAllBottom].forEach(sel => {
           sel?.addEventListener("change", function () {
-            $$(".product-checkbox").forEach(cb => cb.checked = this.checked);
-            $$(".shop-checkbox").forEach(sb => sb.checked = this.checked);
+            const check = this.checked;
+
+            $$(".product-checkbox").forEach(cb => {
+              if (!cb.disabled) cb.checked = this.checked;
+            });
+
+            $$(".shop-checkbox").forEach(sb => sb.checked = check);
+
             updateTotal();
           });
         });
+
 
         // Shop-level checkbox
         document.addEventListener("change", function (e) {

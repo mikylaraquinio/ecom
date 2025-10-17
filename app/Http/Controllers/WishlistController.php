@@ -10,10 +10,26 @@ class WishlistController extends Controller
 {
     public function toggle($productId)
     {
-        $user = Auth::user();
-        $product = Product::findOrFail($productId);
+        // ✅ If not logged in, return JSON response instead of breaking
+        if (!Auth::check()) {
+            return response()->json([
+                'status' => 'unauthenticated',
+                'message' => 'You must be logged in to use the wishlist.'
+            ], 401);
+        }
 
-        // Check if product is already in the wishlist
+        $user = Auth::user();
+        $product = Product::find($productId);
+
+        // ✅ Handle invalid product ID
+        if (!$product) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Product not found.'
+            ], 404);
+        }
+
+        // ✅ Toggle wishlist
         if ($user->wishlist()->where('product_id', $productId)->exists()) {
             $user->wishlist()->detach($productId);
             return response()->json(['status' => 'removed']);

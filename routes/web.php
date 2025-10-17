@@ -75,10 +75,6 @@ Route::patch('/orders/{id}/confirm-receipt', [ProfileController::class, 'confirm
     ->middleware('auth');
 
 
-
-
-
-
 /* Farmers (Seller Registration) */
 Route::middleware(['auth'])->group(function () {
     Route::get('/farmers/sell', [SellerController::class, 'sell'])->name('farmers.sell');
@@ -138,8 +134,10 @@ Route::get('/my-orders', [SellerController::class, 'myOrders'])->name('buyer.ord
 Route::patch('/seller/orders/{id}/update', [SellerController::class, 'updateOrderStatus'])->name('seller.updateOrderStatus');
 Route::get('/orders/{id}/confirm', [SellerController::class, 'confirmReceipt'])->name('buyer.confirm-receipt');
 
-Route::middleware('auth')->post('/wishlist/toggle/{id}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
-Route::post('/wishlist/toggle/{productId}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+Route::middleware(['auth'])->group(function () {
+    Route::post('/wishlist/toggle/{product}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+});
+
 Route::post('/cart/add/{productId}', [CartController::class, 'add'])->name('cart.add');
 
 
