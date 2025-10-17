@@ -9,7 +9,7 @@
             <div class="text-muted small">{{ auth()->user()->email ?? 'sellers email' }}</div>
           </div>
         </div>
-        <a href="#" class="btn btn-outline-dark btn-sm fw-semibold">View Shop</a>
+        <a href="{{ route('shop') }}" class="btn btn-outline-dark btn-sm fw-semibold">View Shop</a>
       </div>
     </div>
 

@@ -99,4 +99,14 @@ class User extends Authenticatable
         return $this->hasMany(Message::class, 'receiver_id');
     }
 
+    public function followers()
+    {
+        return $this->hasMany(Follow::class, 'seller_id');
+    }
+
+    public function following()
+    {
+        return $this->hasMany(Follow::class, 'follower_id');
+    }
+
 }

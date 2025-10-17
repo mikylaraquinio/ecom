@@ -32,10 +32,9 @@
 
         <div>
             @if($user->role !== 'seller')
-                <a class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ModalCreate">
-                    <i class="fas fa-store me-1"></i> Start Selling
+                <a class="btn btn-outline-success" data-toggle="modal" data-target="#ModalCreate">
+                    <i class="fas fa-store mr-1"></i> Start Selling
                 </a>
-
             @else
                 <a href="{{ route('myshop') }}" class="btn btn-outline-dark">
                     <i class="fas fa-store mr-1"></i> My Shop
@@ -48,59 +47,59 @@
     <div class="row">
         <!-- LEFT COLUMN: ORDERS -->
         <div class="col-md-7 mb-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0"><i class="fas fa-box-open mr-2"></i>Your Orders 
-                        <span class="badge badge-light text-success">{{ $ordersCount }}</span>
-                    </h6>
-                    <select id="orderFilter" class="form-control form-control-sm w-auto">
-                        <option value="all">All</option>
-                        <option value="pending">Pending</option>
-                        <option value="accepted">Accepted</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="completed">Completed</option>
-                        <option value="canceled">Canceled</option>
-                    </select>
+            <div class="card border-0 shadow-sm overflow-hidden">
+                <!-- Header -->
+                <div class="card-header bg-white border-0 border-bottom d-flex justify-content-between align-items-center py-3 px-4">
+                <h5 class="fw-bold mb-0 text-success">
+                    <i class="fas fa-box-open me-2"></i>Your Orders
+                    <span class="badge bg-success text-white">{{ $ordersCount }}</span>
+                </h5>
+                <select id="orderFilter" class="form-select form-select-sm w-auto">
+                    <option value="all">All</option>
+                    <option value="pending">Pending</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="completed">Completed</option>
+                    <option value="canceled">Canceled</option>
+                </select>
                 </div>
 
-                <div class="card-body" id="orderList">
-                    @forelse($user->orders()->with('orderItems.product')->latest()->get() as $order)
-                        @foreach($order->orderItems as $item)
-                            @php
-                                $product = $item->product;
-                                $imageUrl = $product && $product->image ? asset('storage/' . $product->image) : asset('assets/products.jpg');
-                                $subtotal = $product->price * $item->quantity;
-                                $shippingFee = $order->shipping_fee ?? 0;
-                                $total = $subtotal + $shippingFee;
-                            @endphp
+                <!-- Orders List -->
+                <div class="card-body bg-light" id="orderList">
+                @forelse($user->orders()->with('orderItems.product')->latest()->get() as $order)
+                    @foreach($order->orderItems as $item)
+                    @php
+                        $product = $item->product;
+                        $imageUrl = $product && $product->image ? asset('storage/' . $product->image) : asset('assets/products.jpg');
+                        $shippingFee = $order->shipping_fee ?? 0;
+                        $total = ($product->price * $item->quantity) + $shippingFee;
+                    @endphp
 
-                            <div class="order-card mb-3 p-3 border rounded" 
-                                 data-status="{{ strtolower($order->status) }}" 
-                                 data-toggle="modal" 
-                                 data-target="#orderModal-{{ $order->id }}" 
-                                 style="cursor:pointer;">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="d-flex align-items-center">
-                                        <img src="{{ $imageUrl }}" width="60" height="60" class="rounded mr-3" style="object-fit:cover;">
-                                        <div>
-                                            <h6 class="mb-1 font-weight-bold">{{ $product->name }}</h6>
-                                            <small class="text-muted">₱{{ number_format($product->price,2) }} × {{ $item->quantity }}</small><br>
-                                            <small class="text-muted">Shipping ₱{{ number_format($shippingFee,2) }}</small>
-                                        </div>
-                                    </div>
-                                    <span class="badge badge-{{ 
-                                        $order->status === 'pending' ? 'warning' :
-                                        ($order->status === 'accepted' ? 'info' :
-                                        ($order->status === 'shipped' ? 'primary' :
-                                        ($order->status === 'completed' ? 'success' : 'danger')))
-                                    }}">
-                                        {{ ucfirst($order->status) }}
-                                    </span>
-                                </div>
+                    <div class="order-card shadow-sm bg-white rounded-3 p-3 mb-3 border position-relative"
+                        data-status="{{ strtolower($order->status) }}"
+                        data-bs-toggle="modal"
+                        data-bs-target="#orderModal-{{ $order->id }}"
+                        style="cursor:pointer; transition: all 0.2s ease;">
+                        <div class="d-flex justify-content-between align-items-start">
+                        <div class="d-flex align-items-center">
+                            <img src="{{ $imageUrl }}" width="70" height="70" class="rounded me-3 border" style="object-fit:cover;">
+                            <div>
+                            <h6 class="fw-semibold text-dark mb-1">{{ $product->name }}</h6>
+                            <div class="text-muted small">
+                                ₱{{ number_format($product->price,2) }} × {{ $item->quantity }}  
+                                <span class="mx-1">•</span>  
+                                Shipping ₱{{ number_format($shippingFee,2) }}
                             </div>
+                            <div class="fw-semibold mt-1 text-danger">₱{{ number_format($total,2) }}</div>
+                            </div>
+                        </div>
+                        <span class="order-status-badge {{ strtolower($order->status) }}">
+                            {{ ucfirst($order->status) }}
+                        </span>
+                        </div>
+                    </div>
 
-                            <!-- ===================== ORDER MODAL ===================== -->
-                            <div class="modal fade" id="orderModal-{{ $order->id }}" tabindex="-1">
+                    <div class="modal fade" id="orderModal-{{ $order->id }}" tabindex="-1">
                                 <div class="modal-dialog modal-dialog-centered modal-lg">
                                     <div class="modal-content">
                                         <div class="modal-header bg-success text-white">
@@ -181,13 +180,13 @@
                                     </div>
                                 </div>
                             </div>
-                        @endforeach
-                    @empty
-                        <p class="text-muted">No orders found.</p>
-                    @endforelse
+                    @endforeach
+                @empty
+                    <p class="text-center text-muted py-5 mb-0">No orders found yet.</p>
+                @endforelse
                 </div>
             </div>
-        </div>
+            </div>
 
         <!-- RIGHT COLUMN -->
         <div class="col-md-5 mb-4">
@@ -329,7 +328,7 @@
 
 <!-- SCRIPTS -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>

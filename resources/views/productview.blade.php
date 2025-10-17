@@ -231,7 +231,7 @@
           <a href="{{ route('chat', ['receiverId' => $seller->id]) }}" class="btn btn-outline-success">
             <i class="fa-regular fa-comments me-1"></i> Chat Now
           </a>
-          <a href="{{ route('shop') }}?seller={{ $seller->id }}" class="btn btn-outline-secondary">
+          <a href="{{ route('shop.view', $seller->id) }}" class="btn btn-outline-secondary">
             <i class="fa-regular fa-store me-1"></i> View Shop
           </a>
         </div>

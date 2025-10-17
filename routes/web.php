@@ -21,6 +21,8 @@ use App\Models\User;
 use App\Http\Controllers\AIChatController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ShopController;
+use App\Http\Controllers\FollowController;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -220,6 +222,11 @@ Route::middleware(['auth'])->group(function () {
     })->name('admin.dashboard');
 });
 
+// Product view page
+Route::get('/product/{product}', [ProductController::class, 'show'])->name('product.show');
+
+// Seller shop page
+Route::get('/shop/{seller}', [ShopController::class, 'view'])->name('shop.view');
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
