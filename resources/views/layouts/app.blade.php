@@ -97,17 +97,6 @@
       @endunless
     </div>
 
-    {{-- === Global Report Modal === --}}
-    @include('partials.ReportModal')
-
-    {{-- Helper for setting report target dynamically --}}
-    <script>
-      function setReportTarget(id, type) {
-        document.getElementById('reportTargetId').value = id || '';
-        document.getElementById('reportTargetType').value = type || 'general';
-      }
-    </script>
-
     <style>
       html, body {
         height: 100%;

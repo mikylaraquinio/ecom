@@ -351,6 +351,22 @@
 
   </div> {{-- /container --}}
 
+  {{-- === Global Report Modal (local include only for this page) === --}}
+  @include('partials.ReportModal')
+
+  {{-- Helper for setting report target dynamically --}}
+  <script>
+    function setReportTarget(id, type) {
+      const targetId = document.getElementById('reportTargetId');
+      const targetType = document.getElementById('reportTargetType');
+      if (targetId && targetType) {
+        targetId.value = id || '';
+        targetType.value = type || 'general';
+      }
+    }
+  </script>
+
+
   {{-- =================== STYLES =================== --}}
   <style>
     :root {
