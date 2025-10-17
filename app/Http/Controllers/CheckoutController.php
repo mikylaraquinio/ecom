@@ -3,39 +3,37 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Address;
 use App\Models\Product;
 use App\Models\User;
-use App\Notifications\NewOrderForSeller;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Services\XenditService;
-
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\NewOrderForSeller;
+use Xendit\Configuration;
+use Xendit\Invoice\InvoiceApi;
+use Xendit\Invoice\CreateInvoiceRequest;
 
 class CheckoutController extends Controller
 {
-
-    // ✅ FIXED prepareCheckout
+    /**
+     * Prepare checkout (from cart or Buy Now)
+     */
     public function prepareCheckout(Request $request)
     {
-        // If coming from cart (selected items)
         $selectedItems = $request->input('selected_items', []);
 
+        // From cart
         if (!empty($selectedItems)) {
             session(['selected_items' => $selectedItems]);
             return response()->json(['redirect_url' => route('checkout.show')]);
         }
 
-        // If coming from Buy Now (single product)
+        // From Buy Now
         if ($request->has('product_id')) {
-            $productId = $request->input('product_id');
-            $quantity = max(1, (int) $request->input('quantity', 1)); // 👈 force int
-
-            $product = \App\Models\Product::findOrFail($productId);
+            $product = Product::findOrFail($request->product_id);
+            $quantity = max(1, (int)$request->input('quantity', 1));
 
             if ($product->stock < $quantity) {
                 return redirect()->back()->with('error', 'Not enough stock available.');
@@ -45,7 +43,7 @@ class CheckoutController extends Controller
                 'selected_items' => [
                     [
                         'product_id' => $product->id,
-                        'quantity' => (int) $quantity, // 👈 force int
+                        'quantity' => $quantity,
                         'buy_now' => true,
                     ]
                 ]
@@ -57,49 +55,40 @@ class CheckoutController extends Controller
         return response()->json(['error' => 'No items selected.'], 400);
     }
 
-
-
+    /**
+     * Show checkout page
+     */
     public function showCheckout()
     {
         $user = Auth::user();
-
-        if (!$user) {
-            return redirect()->route('login');
-        }
+        if (!$user) return redirect()->route('login');
 
         $selectedItems = session('selected_items', []);
-
         if (empty($selectedItems)) {
             return redirect()->route('shop')->with('error', 'No items selected for checkout.');
         }
 
         $cartItems = collect();
 
+        // --- BUY NOW ---
         if (isset($selectedItems[0]['product_id'])) {
-            // ✅ Buy Now flow
             foreach ($selectedItems as $item) {
-                // ⭐ CHANGE #1: eager-load seller profile too
-                $product = \App\Models\Product::with('user.seller')->findOrFail($item['product_id']);
-                if ($product) {
-                    // Create a "fake" cart item so checkout page can still use same blade
-                    $fakeCart = new \App\Models\Cart([
-                        'id'         => 0, // fake ID (not in DB)
-                        'user_id'    => $user->id,
-                        'product_id' => $product->id,
-                        'quantity'   => (int) ($item['quantity'] ?? 1),
-                    ]);
-                    $fakeCart->setRelation('product', $product);
-                    $cartItems->push($fakeCart);
-                }
+                $product = Product::with('user.seller')->findOrFail($item['product_id']);
+                $fake = new Cart([
+                    'id' => 0,
+                    'user_id' => $user->id,
+                    'product_id' => $product->id,
+                    'quantity' => (int)$item['quantity'],
+                ]);
+                $fake->setRelation('product', $product);
+                $cartItems->push($fake);
             }
-        } else {
-            // ✅ Cart Checkout flow
-            $cartIds = array_map('intval', $selectedItems);
-
-            // ⭐ CHANGE #2: eager-load seller profile too
-            $cartItems = \App\Models\Cart::where('user_id', $user->id)
+        } 
+        // --- CART CHECKOUT ---
+        else {
+            $cartItems = Cart::where('user_id', $user->id)
                 ->whereIn('id', $selectedItems)
-                ->with('product.user.seller')   // add .seller here
+                ->with('product.user.seller')
                 ->get();
         }
 
@@ -107,431 +96,206 @@ class CheckoutController extends Controller
             return redirect()->route('shop')->with('error', 'Your cart is empty.');
         }
 
-        // ✅ Subtotal
-        $subtotal = $cartItems->sum(
-            fn($item) => $item->product ? $item->product->price * (int) $item->quantity : 0
-        );
+        // --- SUBTOTAL ---
+        $subtotal = $cartItems->sum(fn($item) => $item->product->price * $item->quantity);
 
-        // Get addresses early to know the buyer's city
+        // --- ADDRESS ---
         $addresses = $user->addresses;
         $selectedAddressId = session('selected_address_id');
-        $selectedAddr = $selectedAddressId
-            ? $addresses->firstWhere('id', (int) $selectedAddressId)
-            : $addresses->first();
+        $selectedAddr = $addresses->firstWhere('id', $selectedAddressId) ?? $addresses->first();
+        $buyerCity = optional($selectedAddr)->city ?? $user->city ?? '';
 
-        $buyerCity = optional($selectedAddr)->city
-            ?? ($user->city ?? $user->town ?? '');
-
-
-        // ✅ Shipping by seller (city → city)
+        // --- SHIPPING (mock ₱50 per seller) ---
         $shippingBySeller = [];
-        foreach ($cartItems as $item) {
-            if (!$item->product || !$item->product->user) continue;
+        $shippingFeePerSeller = 50;
+        $uniqueSellers = $cartItems->pluck('product.user_id')->unique()->count();
+        $totalShipping = $uniqueSellers * $shippingFeePerSeller;
 
-            $sellerUser = $item->product->user;        // has ->seller eager-loaded
-            $seller     = $sellerUser->seller;
-
-            // Prefer seller pickup city; fall back to seller user city/town
-            $sellerCity = optional($seller)->pickup_city
-                    ?? ($sellerUser->city ?? $sellerUser->town ?? '');
-
-            $sid = $sellerUser->id;
-
-            if (!isset($shippingBySeller[$sid])) {
-                $shippingBySeller[$sid] = [
-                    'seller'      => $sellerUser,
-                    'buyer_city'  => $buyerCity,
-                    'seller_city' => $sellerCity,
-                    'weight'      => 0,
-                    'shippingFee' => 0,
-                ];
-            }
-
-            $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int) $item->quantity;
-        }
-
-        // ✅ Calculate shipping fees using distance rate (₱16 + ₱12/km)
-        $totalShipping = 0;
-        foreach ($shippingBySeller as $sid => $info) {
-            $fee = \App\Helpers\ShippingHelper::calculate(
-                $info['buyer_city'],
-                $info['seller_city'],
-                $info['weight'] // not used by the new table but kept for signature
-            );
-            $shippingBySeller[$sid]['shippingFee'] = $fee;
-            $totalShipping += $fee;
-        }
-
-        // ✅ Grand total
-        $grandTotal = $subtotal + $totalShipping;
-
-        $addresses = $user->addresses;
-
-        // ⭐ NEW BLOCK (#3): build per-seller pickup addresses (AFTER $cartItems is ready)
+        // --- Pickup Addresses by Seller ---
         $pickupBySeller = [];
         foreach ($cartItems as $item) {
-            $sellerUser = optional($item->product)->user;
-            if (!$sellerUser) continue;
+            $seller = optional($item->product)->user;
+            if (!$seller) continue;
+            $sid = $seller->id;
+            if (isset($pickupBySeller[$sid])) continue;
 
-            $sid = $sellerUser->id;
-            if (isset($pickupBySeller[$sid])) continue; // only once per seller
-
-            $sp = optional($sellerUser->seller);
-
-            // One-line address (prefer the pre-composed column if you saved it; otherwise assemble)
+            $sp = optional($seller->seller);
             $addressLine = $sp?->pickup_address
                 ?: collect([
                     $sp?->pickup_detail,
                     $sp?->pickup_barangay,
                     $sp?->pickup_city,
                     $sp?->pickup_province,
-                    $sp?->pickup_region_group,
-                    $sp?->pickup_postal,
                 ])->filter()->implode(', ');
 
+            if (empty($addressLine)) {
+                $addressLine = collect([
+                    $seller->barangay,
+                    $seller->city ?? $seller->town,
+                    $seller->province,
+                ])->filter()->implode(', ');
+            }
+
+            if (empty($addressLine)) {
+                $addressLine = $seller->name;
+            }
+
             $pickupBySeller[$sid] = [
-                'name'         => $sellerUser->name ?? $sellerUser->username ?? 'Seller',
-                'phone'        => $sp?->pickup_phone,
+                'name' => $seller->name,
+                'phone' => $sp?->pickup_phone ?? $seller->phone ?? '',
                 'address_line' => $addressLine,
             ];
         }
 
+        $grandTotal = $subtotal + $totalShipping;
+
         return view('checkout', compact(
-            'cartItems',
             'user',
+            'cartItems',
             'addresses',
             'subtotal',
             'totalShipping',
             'grandTotal',
             'shippingBySeller',
-            'pickupBySeller' // ⭐ pass to Blade
+            'pickupBySeller'
         ));
     }
 
-
-
-
-
-
-    // Save New Address
-    public function saveAddress(Request $request)
+    /**
+     * Process checkout
+     */
+    public function process(Request $request)
     {
-    $validated = $request->validate([
-            'full_name'         => 'required|string|max:255',
-            'mobile_number'     => 'required|string|max:20',   // align with updateAddress
-            'floor_unit_number' => 'nullable|string|max:255',  // was required -> nullable
-            'province'          => 'required|string|max:255',
-            'city'              => 'required|string|max:255',
-            'barangay'          => 'required|string|max:255',
-            'notes'             => 'nullable|string|max:500',
-        ]);
-
-        $address = auth()->user()->addresses()->create($validated);
-        return response()->json(['success' => true, 'address' => $address]);
-    }
-
-    // Update Existing Address
-    public function updateAddress(Request $request, $addressId)
-    {
-        $user = auth()->user();
-
-        // Validate input fields
+        // ✅ Validation
         $request->validate([
-            'full_name' => 'required|string|max:255',
-            'mobile_number' => 'required|string|max:20',
-            'floor_unit_number' => 'nullable|string|max:255',
-            'province' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'barangay' => 'required|string|max:255',
-            'notes' => 'nullable|string|max:500',
+            'payment_method'     => 'required|in:online,cod',
+            'fulfillment_method' => 'required|in:delivery,pickup',
+            'address_id'         => 'nullable|required_if:fulfillment_method,delivery|exists:addresses,id',
         ]);
 
-        // Find the address belonging to the authenticated user
-        $address = $user->addresses()->find($addressId);
-
-        if (!$address) {
-            return response()->json(['success' => false, 'message' => 'Address not found.'], 404);
+        $user = Auth::user();
+        $selectedItems = $request->selected_items ?? session('selected_items', []);
+        if (empty($selectedItems)) {
+            return response()->json(['success' => false, 'message' => 'No items selected.']);
         }
 
-        // Update the address fields
-        $address->update([
-            'full_name' => $request->input('full_name'),
-            'mobile_number' => $request->input('mobile_number'),
-            'floor_unit_number' => $request->input('floor_unit_number'),
-            'province' => $request->input('province'),
-            'city' => $request->input('city'),
-            'barangay' => $request->input('barangay'),
-            'notes' => $request->input('notes'),
+        // Build Cart Items
+        $cartItems = collect();
+        if (isset($selectedItems[0]['product_id'])) {
+            foreach ($selectedItems as $item) {
+                $product = Product::with('user')->findOrFail($item['product_id']);
+                $cartItems->push((object)[
+                    'product' => $product,
+                    'quantity' => (int)$item['quantity'],
+                    'id' => 0,
+                ]);
+            }
+        } else {
+            $cartItems = Cart::where('user_id', $user->id)
+                ->whereIn('id', $selectedItems)
+                ->with('product.user')
+                ->get();
+        }
+
+        if ($cartItems->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'No valid items found.']);
+        }
+
+        // Totals
+        $subtotal = $cartItems->sum(fn($i) => $i->product->price * $i->quantity);
+        $fulfillment = $request->input('fulfillment_method', 'delivery');
+        $totalShipping = $fulfillment === 'pickup' ? 0 : 50 * $cartItems->pluck('product.user_id')->unique()->count();
+        $grandTotal = $subtotal + $totalShipping;
+
+        // Create Order
+        $order = Order::create([
+            'user_id'            => $user->id,
+            'address_id'         => $fulfillment === 'delivery' ? $request->address_id : null,
+            'payment_method'     => $request->payment_method,
+            'fulfillment_method' => $fulfillment,
+            'status'             => 'pending',
+            'total_amount'       => $grandTotal,
+            'shipping_fee'       => $totalShipping,
         ]);
 
-        return response()->json(['success' => true, 'message' => 'Address updated successfully!', 'address' => $address]);
-    }
+        foreach ($cartItems as $cartItem) {
+            $order->orderItems()->create([
+                'product_id' => $cartItem->product->id,
+                'quantity'   => $cartItem->quantity,
+                'price'      => $cartItem->product->price,
+            ]);
+            if ($cartItem->id != 0) $cartItem->delete();
+        }
 
-    public function checkout()
-    {
-        $user = auth()->user();
-        $addresses = $user->addresses; // Get all addresses
-        $defaultAddress = $addresses->first(); // Get the first/default address
+        // Notify Sellers
+        $order->load('orderItems.product.user');
+        $itemsBySeller = $order->orderItems->groupBy(fn($i) => $i->product->user_id);
+        foreach ($itemsBySeller as $sellerId => $items) {
+            if ($seller = User::find($sellerId)) {
+                Notification::send($seller, new NewOrderForSeller($order, $items));
+            }
+        }
 
-        return view('checkout', compact('addresses', 'defaultAddress'));
-    }
+        // ✅ Handle Payment
+        if ($request->payment_method === 'online') {
+            try {
+                $config = Configuration::getDefaultConfiguration();
+                $config->setApiKey(env('XENDIT_SECRET_KEY'));
+                $api = new InvoiceApi(null, $config);
 
+                $params = new CreateInvoiceRequest([
+                    'external_id' => 'order-' . $order->id,
+                    'payer_email' => $user->email ?? 'customer@example.com',
+                    'description' => 'Payment for Order #' . $order->id,
+                    'amount' => (float)$grandTotal,
+                    'success_redirect_url' => route('checkout.success'),
+                    'failure_redirect_url' => route('checkout.show'),
+                    'payment_methods' => ['GCASH', 'GRABPAY', 'PAYMAYA', 'QRPH', 'CARD'],
+                ]);
 
-public function process(Request $request)
-{
-    // ✅ Validation
-    $request->validate([
-        'payment_method'      => 'required|in:online,cod',
-        'fulfillment_method'  => 'required|in:delivery,pickup',
-        'address_id'          => 'required_if:fulfillment_method,delivery|nullable|exists:addresses,id',
-    ]);
+                $invoice = $api->createInvoice($params);
+                $order->update([
+                    'payment_reference' => $invoice->getId(),
+                    'invoice_url' => $invoice->getInvoiceUrl(),
+                ]);
 
-    $user = auth()->user();
-    $selectedItems = $request->selected_items ?? session('selected_items', []);
-
-    if (empty($selectedItems)) {
-        return response()->json(['success' => false, 'message' => 'No items selected.']);
-    }
-
-    // ✅ Build cart items
-    $cartItems = collect();
-    if (isset($selectedItems[0]['product_id'])) {
-        // Buy Now flow
-        foreach ($selectedItems as $item) {
-            $product = Product::with('user')->findOrFail($item['product_id']);
-            if ($product->stock < (int)$item['quantity']) {
+                return response()->json([
+                    'success' => true,
+                    'redirect_url' => $invoice->getInvoiceUrl(),
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Xendit Invoice Error: ' . $e->getMessage());
                 return response()->json([
                     'success' => false,
-                    'message' => "Not enough stock for {$product->name}"
-                ], 400);
+                    'message' => 'Failed to create Xendit invoice.',
+                ], 500);
             }
-
-            $fakeCart = new Cart([
-                'id'         => 0,
-                'user_id'    => $user->id,
-                'product_id' => $product->id,
-                'quantity'   => (int)$item['quantity'],
-            ]);
-            $fakeCart->setRelation('product', $product);
-            $cartItems->push($fakeCart);
-        }
-    } else {
-        // Cart checkout flow
-        $cartItems = Cart::where('user_id', $user->id)
-            ->whereIn('id', $selectedItems)
-            ->with('product.user')
-            ->get();
-    }
-
-    if ($cartItems->isEmpty()) {
-        return response()->json(['success' => false, 'message' => 'No valid items found.']);
-    }
-
-    // ✅ Compute totals
-    $subtotal = $cartItems->sum(fn($item) => $item->product ? $item->product->price * (int)$item->quantity : 0);
-    $fulfillment = $request->input('fulfillment_method', 'delivery');
-    $totalShipping = 0;
-
-    if ($fulfillment === 'delivery') {
-        $buyerCity = null;
-        if ($request->filled('address_id')) {
-            $addr = Address::where('id', $request->address_id)
-                ->where('user_id', $user->id)
-                ->first();
-            $buyerCity = optional($addr)->city;
-        }
-        $buyerCity = $buyerCity ?? ($user->city ?? $user->town ?? '');
-
-        $shippingBySeller = [];
-        foreach ($cartItems as $item) {
-            if (!$item->product || !$item->product->user) continue;
-
-            $sellerUser = $item->product->user;
-            $seller     = $sellerUser->seller;
-            $sellerCity = optional($seller)->pickup_city
-                ?? ($sellerUser->city ?? $sellerUser->town ?? '');
-
-            $sid = $sellerUser->id;
-
-            if (!isset($shippingBySeller[$sid])) {
-                $shippingBySeller[$sid] = [
-                    'weight'      => 0,
-                    'buyer_city'  => $buyerCity,
-                    'seller_city' => $sellerCity,
-                    'fee'         => 0,
-                ];
-            }
-
-            $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int)$item->quantity;
-
-            $shippingBySeller[$sid]['fee'] = \App\Helpers\ShippingHelper::calculate(
-                $shippingBySeller[$sid]['buyer_city'],
-                $shippingBySeller[$sid]['seller_city'],
-                $shippingBySeller[$sid]['weight']
-            );
         }
 
-        $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
-    }
-
-    $grandTotal = $subtotal + $totalShipping;
-
-    // ✅ Create Order
-    $order = Order::create([
-        'user_id'            => $user->id,
-        'address_id'         => $fulfillment === 'delivery' ? $request->address_id : null,
-        'payment_method'     => $request->payment_method,
-        'fulfillment_method' => $fulfillment,
-        'status'             => 'pending',
-        'total_amount'       => $grandTotal,
-        'shipping_fee'       => $totalShipping,
-    ]);
-
-    foreach ($cartItems as $cartItem) {
-        $order->orderItems()->create([
-            'product_id' => $cartItem->product_id,
-            'quantity'   => (int)$cartItem->quantity,
-            'price'      => $cartItem->product->price
+        // ✅ COD Fallback
+        return response()->json([
+            'success' => true,
+            'message' => 'Order placed successfully!',
+            'redirect_url' => route('checkout.success'),
         ]);
-
-        if ($cartItem->id != 0) {
-            $cartItem->delete();
-        }
     }
 
-    $order->load('orderItems.product.user');
-
-    // ✅ Notify sellers
-    $itemsBySeller = $order->orderItems
-        ->filter(fn($oi) => optional($oi->product)->user_id)
-        ->groupBy(fn($oi) => $oi->product->user_id);
-
-    foreach ($itemsBySeller as $sellerId => $itemsForSeller) {
-        $seller = User::find($sellerId);
-        if ($seller) {
-            Notification::send($seller, new \App\Notifications\NewOrderForSeller($order, $itemsForSeller));
-        }
-    }
-
-    // ✅ Handle Online or GCash Payments
-    if (in_array($request->payment_method, ['online'])) {
-        try {
-            // ✅ Fix for "Only variables should be passed by reference"
-            $config = \Xendit\Configuration::getDefaultConfiguration();
-            $config->setApiKey(env('XENDIT_SECRET_KEY'));
-
-            $apiInstance = new \Xendit\Invoice\InvoiceApi(null, $config);
-
-            $amount = (float) $grandTotal; // assign variable first
-
-            $invoiceParams = new \Xendit\Invoice\CreateInvoiceRequest([
-                'external_id' => 'order-' . $order->id,
-                'payer_email' => $user->email ?? 'customer@example.com',
-                'description' => 'Payment for Order #' . $order->id,
-                'amount' => $amount,
-                'success_redirect_url' => route('checkout.success'),
-                'failure_redirect_url' => route('checkout.show'),
-                'payment_methods' => ['GCASH', 'GRABPAY', 'PAYMAYA', 'QRPH', 'CARD', 'OVER_THE_COUNTER'],
-            ]);
-
-            $invoice = $apiInstance->createInvoice($invoiceParams);
-
-            $order->update([
-                'payment_reference' => $invoice->getId() ?? null,
-                'invoice_url' => $invoice->getInvoiceUrl() ?? null,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'redirect_url' => $invoice['invoice_url'],
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Xendit Invoice Error: ' . $e->getMessage());
-            if (method_exists($e, 'getResponseBody')) {
-                \Log::error('Response Body: ' . json_encode($e->getResponseBody()));
-            }
-            if (method_exists($e, 'getResponseHeaders')) {
-                \Log::error('Response Headers: ' . json_encode($e->getResponseHeaders()));
-            }
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create Xendit invoice. Please try again.',
-            ], 500);
-        }
-    }
-
-    // ✅ COD fallback
-    return response()->json([
-        'success' => true,
-        'message' => 'Order placed successfully!',
-        'redirect_url' => route('checkout.success'),
-    ]);
-}
-
-
-
-
-
-
-    public function saveSelectedAddress(Request $request)
-    {
-        $request->validate([
-            'address_id' => 'required|exists:addresses,id'
-        ]);
-
-        session(['selected_address_id' => $request->address_id]);
-
-        return response()->json(['success' => true]);
-    }
-
-
+    /**
+     * Success Page
+     */
     public function success()
     {
-        $products = Product::latest()->take(6)->get(); // Get latest 6 products
+        $products = Product::latest()->take(6)->get();
         return view('checkout.success', compact('products'));
     }
 
-    public function handleXenditWebhook(Request $request)
+    /**
+     * Save Selected Address
+     */
+    public function saveSelectedAddress(Request $request)
     {
-        $data = $request->all();
-
-        if (!isset($data['external_id'])) {
-            return response()->json(['error' => 'Invalid payload'], 400);
-        }
-
-        $orderId = (int) str_replace('order-', '', $data['external_id']);
-        $order = \App\Models\Order::with('orderItems.product.user.seller')->find($orderId);
-
-        if (!$order) {
-            return response()->json(['error' => 'Order not found'], 404);
-        }
-
-        if (($data['status'] ?? '') === 'PAID') {
-            $order->update(['status' => 'paid']);
-
-            $xendit = app(\App\Services\XenditService::class);
-
-            foreach ($order->orderItems as $item) {
-                $seller = $item->product->user->seller ?? null;
-                if (!$seller || !$seller->xendit_account_id) continue;
-
-                $amount = $item->price * $item->quantity;
-                $platformFee = $amount * 0.05; // Example: 5% commission
-                $payout = $amount - $platformFee;
-
-                try {
-                    $xendit->transferToSeller([
-                        'seller_id' => $seller->xendit_account_id,
-                        'amount' => $payout,
-                        'reference' => 'order-' . $order->id . '-' . $seller->id,
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::error('Xendit Payout Error: ' . $e->getMessage());
-                }
-            }
-        }
-
+        $request->validate(['address_id' => 'required|exists:addresses,id']);
+        session(['selected_address_id' => $request->address_id]);
         return response()->json(['success' => true]);
     }
-
 }
