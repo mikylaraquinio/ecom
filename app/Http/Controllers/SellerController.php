@@ -20,77 +20,82 @@ class SellerController extends Controller
     }
 
     public function storeSeller(Request $request)
-    {
-        $user = Auth::user();
+{
+    $user = Auth::user();
 
-        $validated = $request->validate([
-            'shop_name' => 'required|string|max:30',
-            'pickup_address' => 'nullable|string|max:255',
-            'pickup_full_name' => 'nullable|string|max:255',
-            'pickup_phone' => 'nullable|string|max:50',
-            'pickup_region_group' => 'nullable|string|max:100',
-            'pickup_province' => 'nullable|string|max:100',
-            'pickup_city' => 'nullable|string|max:100',
-            'pickup_barangay' => 'nullable|string|max:100',
-            'pickup_postal' => 'nullable|string|max:16',
-            'pickup_detail' => 'nullable|string|max:1000',
-            'business_type' => 'required|string|in:individual,sole,corporation,cooperative',
-            'tax_id' => 'nullable|string|max:50',
-            'gov_id' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-            'rsbsa' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-            'mayors_permit' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-        ]);
+    $validated = $request->validate([
+        'shop_name'            => 'required|string|max:30',
+        'pickup_address'       => 'nullable|string|max:255',
+        'pickup_full_name'     => 'nullable|string|max:255',
+        'pickup_phone'         => 'nullable|string|max:50',
+        'pickup_region_group'  => 'nullable|string|max:100',
+        'pickup_province'      => 'nullable|string|max:100',
+        'pickup_city'          => 'nullable|string|max:100',
+        'pickup_barangay'      => 'nullable|string|max:100',
+        'pickup_postal'        => 'nullable|string|max:16',
+        'pickup_detail'        => 'nullable|string|max:1000',
+        'business_type'        => 'required|string|in:individual,sole,corporation,cooperative',
+        'tax_id'               => 'nullable|string|max:50',
+        'gov_id'               => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        'rsbsa'                => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        'mayors_permit'        => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+    ]);
 
-        // Handle document uploads
-        $govPath = $request->file('gov_id')
-            ? $request->file('gov_id')->store('seller_docs', 'public')
-            : optional($user->seller)->gov_id_path;
+    $govPath = $request->file('gov_id')
+        ? $request->file('gov_id')->store('seller_docs', 'public')
+        : optional($user->seller)->gov_id_path;
 
-        $rsbsaPath = $request->file('rsbsa')
-            ? $request->file('rsbsa')->store('seller_docs', 'public')
-            : optional($user->seller)->rsbsa_path;
+    $rsbsaPath = $request->file('rsbsa')
+        ? $request->file('rsbsa')->store('seller_docs', 'public')
+        : optional($user->seller)->rsbsa_path;
 
-        $mayorsPermitPath = $request->file('mayors_permit')
-            ? $request->file('mayors_permit')->store('seller_docs', 'public')
-            : optional($user->seller)->mayors_permit_path;
+    $mayorsPermitPath = $request->file('mayors_permit')
+        ? $request->file('mayors_permit')->store('seller_docs', 'public')
+        : optional($user->seller)->mayors_permit_path;
 
-        $data = [
-            'shop_name' => $validated['shop_name'],
-            'pickup_address' => $validated['pickup_address'] ?? null,
-            'pickup_full_name' => $validated['pickup_full_name'] ?? null,
-            'pickup_phone' => $validated['pickup_phone'] ?? null,
-            'pickup_region_group' => $validated['pickup_region_group'] ?? null,
-            'pickup_province' => $validated['pickup_province'] ?? null,
-            'pickup_city' => $validated['pickup_city'] ?? null,
-            'pickup_barangay' => $validated['pickup_barangay'] ?? null,
-            'pickup_postal' => $validated['pickup_postal'] ?? null,
-            'pickup_detail' => $validated['pickup_detail'] ?? null,
+    $data = [
+        'shop_name'           => $validated['shop_name'],
+        'pickup_address'      => $validated['pickup_address']      ?? null,
+        'pickup_full_name'    => $validated['pickup_full_name']    ?? null,
+        'pickup_phone'        => $validated['pickup_phone']        ?? null,
+        'pickup_region_group' => $validated['pickup_region_group'] ?? null,
+        'pickup_province'     => $validated['pickup_province']     ?? null,
+        'pickup_city'         => $validated['pickup_city']         ?? null,
+        'pickup_barangay'     => $validated['pickup_barangay']     ?? null,
+        'pickup_postal'       => $validated['pickup_postal']       ?? null,
+        'pickup_detail'       => $validated['pickup_detail']       ?? null,
 
-            'business_type' => $validated['business_type'],
-            'tax_id' => $validated['tax_id'] ?? null,
-            'gov_id_path' => $govPath,
-            'rsbsa_path' => $rsbsaPath,
-            'mayors_permit_path' => $mayorsPermitPath,
+        'business_type'       => $validated['business_type'],
+        'tax_id'              => $validated['tax_id']              ?? null,
+        'gov_id_path'         => $govPath,
+        'rsbsa_path'          => $rsbsaPath,
+        'mayors_permit_path'  => $mayorsPermitPath,
 
-            'status' => 'pending', // 👈 mark as pending until admin approves
-        ];
+        'status'              => 'approved', // or 'pending'
+    ];
 
-        Seller::updateOrCreate(['user_id' => $user->id], $data);
+    \App\Models\Seller::updateOrCreate(['user_id' => $user->id], $data);
 
-        // 🚫 Don't set role to seller yet — wait for admin approval
-
-        $redirect = route('user_profile');
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Seller registration submitted for admin approval.',
-                'redirect_url' => $redirect,
-            ], 200);
-        }
-
-        return redirect($redirect)->with('success', 'Your seller registration has been submitted and is now pending admin approval.');
+    if ($user->role !== 'seller') {
+        $user->role = 'seller';
+        $user->save();
+        Auth::setUser($user->fresh());
     }
+
+    // 👇 keep this route in sync with your JS (or change to user_profile if you prefer)
+    $redirect = route('user_profile');
+
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success'      => true,
+            'message'      => 'Seller registration saved!',
+            'redirect_url' => $redirect,
+        ], 200);
+    }
+
+    return redirect($redirect)->with('success', 'Seller registration saved!');
+}
 
 
 
