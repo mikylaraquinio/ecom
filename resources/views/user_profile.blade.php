@@ -32,9 +32,10 @@
 
         <div>
             @if($user->role !== 'seller')
-                <a class="btn btn-outline-success" data-toggle="modal" data-target="#ModalCreate">
-                    <i class="fas fa-store mr-1"></i> Start Selling
+                <a class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ModalCreate">
+                    <i class="fas fa-store me-1"></i> Start Selling
                 </a>
+
             @else
                 <a href="{{ route('myshop') }}" class="btn btn-outline-dark">
                     <i class="fas fa-store mr-1"></i> My Shop
@@ -328,7 +329,7 @@
 
 <!-- SCRIPTS -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>

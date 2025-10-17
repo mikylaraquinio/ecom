@@ -9,8 +9,18 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'price', 'stock', 'image', 'image_path', 'category_id', 'user_id', 'unit',
-    'min_order_qty',];
+    protected $fillable = [
+        'name',
+        'description',
+        'price',
+        'stock',
+        'image',
+        'image_path',
+        'category_id',
+        'user_id',
+        'unit',
+        'min_order_qty',
+    ];
 
     // Optional if you have a custom primary key
     protected $primaryKey = 'id';
@@ -51,8 +61,10 @@ class Product extends Model
 
     public function wishlistedBy()
     {
-        return $this->belongsToMany(User::class, 'wishlists')->withTimestamps();
+        return $this->belongsToMany(User::class, 'wishlists', 'product_id', 'user_id')
+            ->withTimestamps();
     }
+
 
     // In Product.php
     public function seller()
@@ -62,16 +74,17 @@ class Product extends Model
 
     public function reviews()
     {
-        return $this->hasMany(Review::class); 
+        return $this->hasMany(Review::class);
     }
 
-    public function images() {
+    public function images()
+    {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function getImageUrlAttribute()
     {
-        return $this->image_path ?? asset('storage/'.$this->image ?? 'assets/products.jpg');
+        return $this->image_path ?? asset('storage/' . $this->image ?? 'assets/products.jpg');
     }
 
 

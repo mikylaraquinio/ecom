@@ -129,34 +129,47 @@
           </dl>
 
           {{-- Quantity + Actions --}}
-          <div class="d-flex align-items-center mb-4">
-            <span class="me-3 text-muted">Quantity</span>
-            <div class="qty-group qty-sm">
-              <button class="qty-btn" type="button" id="decQty" aria-label="Decrease">−</button>
-              <input type="number" class="qty-input" id="qtyInput" min="{{ (int) ($product->min_order_qty ?? 1) }}"
-                max="{{ (int) ($product->stock ?? 9999) }}" value="{{ (int) ($product->min_order_qty ?? 1) }}"
-                inputmode="numeric" aria-live="polite">
-              <button class="qty-btn" type="button" id="incQty" aria-label="Increase">+</button>
+          @if(($product->stock ?? 0) > 0)
+            <div class="d-flex align-items-center mb-4">
+              <span class="me-3 text-muted">Quantity</span>
+              <div class="qty-group qty-sm">
+                <button class="qty-btn" type="button" id="decQty" aria-label="Decrease">−</button>
+                <input type="number" class="qty-input" id="qtyInput" min="{{ (int) ($product->min_order_qty ?? 1) }}"
+                  max="{{ (int) ($product->stock ?? 9999) }}" value="{{ (int) ($product->min_order_qty ?? 1) }}"
+                  inputmode="numeric">
+                <button class="qty-btn" type="button" id="incQty" aria-label="Increase">+</button>
+              </div>
             </div>
-          </div>
+          @endif
+
 
           <div class="d-flex flex-wrap gap-2">
-            <form id="addToCartForm" method="POST" action="{{ route('cart.add', $product->id) }}">
-              @csrf
-              <input type="hidden" name="quantity" id="qtyField" value="{{ (int) ($product->min_order_qty ?? 1) }}">
-              <button type="submit" class="btn btn-outline-danger btn-lg px-4">
-                <i class="fas fa-cart-plus me-1"></i> Add To Cart
+            @if(($product->stock ?? 0) > 0)
+              {{-- Add to Cart --}}
+              <form id="addToCartForm" method="POST" action="{{ route('cart.add', $product->id) }}">
+                @csrf
+                <input type="hidden" name="quantity" id="qtyField" value="{{ (int) ($product->min_order_qty ?? 1) }}">
+                <button type="submit" class="btn btn-outline-danger btn-lg px-4">
+                  <i class="fas fa-cart-plus me-1"></i> Add To Cart
+                </button>
+              </form>
+
+              {{-- Buy Now --}}
+              <form method="POST" action="{{ route('checkout.prepare') }}"
+                onsubmit="document.getElementById('buyNowQty').value = document.getElementById('qtyInput').value;">
+                @csrf
+                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                <input type="hidden" id="buyNowQty" name="quantity" value="{{ (int) ($product->min_order_qty ?? 1) }}">
+                <button class="btn btn-danger btn-lg px-4">Buy Now</button>
+              </form>
+            @else
+              {{-- SOLD OUT --}}
+              <button class="btn btn-secondary btn-lg px-4" disabled>
+                <i class="fa-solid fa-ban me-1"></i> Sold Out
               </button>
-            </form>
+            @endif
 
-            <form method="POST" action="{{ route('checkout.prepare') }}"
-              onsubmit="document.getElementById('buyNowQty').value = document.getElementById('qtyInput').value;">
-              @csrf
-              <input type="hidden" name="product_id" value="{{ $product->id }}">
-              <input type="hidden" id="buyNowQty" name="quantity" value="{{ (int) ($product->min_order_qty ?? 1) }}">
-              <button class="btn btn-danger btn-lg px-4">Buy Now</button>
-            </form>
-
+            {{-- Wishlist --}}
             @auth
               <form method="POST" action="{{ route('wishlist.toggle', $product->id) }}">
                 @csrf
@@ -167,6 +180,7 @@
               </form>
             @endauth
           </div>
+
 
           {{-- Trust bar --}}
           <div class="trust-bar d-flex flex-wrap gap-3 mt-4 border-top pt-3 small">
@@ -350,6 +364,22 @@
     </div>
 
   </div> {{-- /container --}}
+
+  {{-- === Global Report Modal (local include only for this page) === --}}
+  @include('partials.ReportModal')
+
+  {{-- Helper for setting report target dynamically --}}
+  <script>
+    function setReportTarget(id, type) {
+      const targetId = document.getElementById('reportTargetId');
+      const targetType = document.getElementById('reportTargetType');
+      if (targetId && targetType) {
+        targetId.value = id || '';
+        targetType.value = type || 'general';
+      }
+    }
+  </script>
+
 
   {{-- =================== STYLES =================== --}}
   <style>
