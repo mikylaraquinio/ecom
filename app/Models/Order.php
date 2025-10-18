@@ -11,7 +11,18 @@ class Order extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'address_id', 'payment_method', 'total_amount', 'status', 'shipping_address_id','fulfillment_method','shipping_fee', 'address_id'];
+   protected $fillable = [
+    'user_id',
+    'address_id',
+    'payment_method',
+    'fulfillment_method',
+    'status',
+    'total_amount',
+    'shipping_fee',
+    'payment_reference',
+    'invoice_url',
+    'payment_status',
+];
 
     // Define constants for statuses
     const STATUS_PENDING = 'pending';

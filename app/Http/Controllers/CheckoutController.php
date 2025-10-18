@@ -350,20 +350,6 @@ public function process(Request $request)
         foreach ($cartItems as $item) {
             if (!$item->product || !$item->product->user) continue;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             $sellerUser = $item->product->user;
             $seller     = $sellerUser->seller;
             $sellerCity = optional($seller)->pickup_city
@@ -381,52 +367,12 @@ public function process(Request $request)
             }
 
             $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int)$item->quantity;
-
-
-
-
             $shippingBySeller[$sid]['fee'] = \App\Helpers\ShippingHelper::calculate(
                 $shippingBySeller[$sid]['buyer_city'],
                 $shippingBySeller[$sid]['seller_city'],
                 $shippingBySeller[$sid]['weight']
             );
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
     }
@@ -471,53 +417,50 @@ public function process(Request $request)
             Notification::send($seller, new \App\Notifications\NewOrderForSeller($order, $itemsForSeller));
         }
     }
+if (in_array($request->payment_method, ['online', 'xendit', 'gcash'])) {
+    try {
+        $config = \Xendit\Configuration::getDefaultConfiguration();
+        $config->setApiKey(env('XENDIT_SECRET_KEY'));
+        $apiInstance = new \Xendit\Invoice\InvoiceApi(null, $config);
 
-    // ✅ Handle Online or GCash Payments
-    if (in_array($request->payment_method, ['gcash', 'online'])) {
-        try {
-            // ✅ Fix for "Only variables should be passed by reference"
-            $config = \Xendit\Configuration::getDefaultConfiguration();
-            $config->setApiKey(env('XENDIT_SECRET_KEY'));
+        $amount = (float) $grandTotal;
 
-            $apiInstance = new \Xendit\Invoice\InvoiceApi(null, $config);
+        $invoiceParams = new \Xendit\Invoice\CreateInvoiceRequest([
+            'external_id' => 'order-' . $order->id,
+            'payer_email' => $user->email ?? 'customer@example.com',
+            'description' => 'Payment for Order #' . $order->id,
+            'amount' => $amount,
+            'success_redirect_url' => route('checkout.success'),
+            'failure_redirect_url' => route('checkout.show'),
+            'payment_methods' => ['GCASH', 'GRABPAY', 'PAYMAYA', 'QRPH', 'CARD', 'OVER_THE_COUNTER'],
+        ]);
 
-            $amount = (float) $grandTotal; // assign variable first
+        $invoice = $apiInstance->createInvoice($invoiceParams);
 
-            $invoiceParams = new \Xendit\Invoice\CreateInvoiceRequest([
-                'external_id' => 'order-' . $order->id,
-                'payer_email' => $user->email ?? 'customer@example.com',
-                'description' => 'Payment for Order #' . $order->id,
-                'amount' => $amount,
-                'success_redirect_url' => route('checkout.success'),
-                'failure_redirect_url' => route('checkout.show'),
-                'payment_methods' => ['GCASH', 'GRABPAY', 'PAYMAYA', 'QRPH', 'CARD', 'OVER_THE_COUNTER'],
-            ]);
+        // Log the response for debugging
+        \Log::info('Xendit invoice response:', (array) $invoice);
 
-            $invoice = $apiInstance->createInvoice($invoiceParams);
+        // Update order
+        $order->payment_reference = $invoice->getId();
+        $order->invoice_url = $invoice->getInvoiceUrl();
+        $order->save();
 
-            $order->update([
-                'payment_reference' => $invoice->getId() ?? null,
-                'invoice_url' => $invoice->getInvoiceUrl() ?? null,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'redirect_url' => $invoice['invoice_url'],
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Xendit Invoice Error: ' . $e->getMessage());
-            if (method_exists($e, 'getResponseBody')) {
-                \Log::error('Response Body: ' . json_encode($e->getResponseBody()));
-            }
-            if (method_exists($e, 'getResponseHeaders')) {
-                \Log::error('Response Headers: ' . json_encode($e->getResponseHeaders()));
-            }
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create Xendit invoice. Please try again.',
-            ], 500);
+        return response()->json([
+            'success' => true,
+            'redirect_url' => $invoice->getInvoiceUrl(),
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Xendit Invoice Error: ' . $e->getMessage());
+        if (method_exists($e, 'getResponseBody')) {
+            \Log::error('Response Body: ' . json_encode($e->getResponseBody()));
         }
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create Xendit invoice. Please try again.',
+        ], 500);
     }
+}
+
 
     // ✅ COD fallback
     return response()->json([
