@@ -15,48 +15,41 @@
 
     <div class="row g-3 mb-3">
       <div class="col-lg-6">
-  <div class="bg-white border rounded shadow-sm p-3">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <div class="fw-bold fs-6">Order Status</div>
-      <a class="text-decoration-none small fw-semibold" href="#order-status">View All ></a>
-    </div>
+        <div class="bg-white border rounded shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="fw-bold">Order Status</div>
+            <a class="text-decoration-none small fw-semibold" href="#analytics" data-target="analytics">View Sales
+              History ></a>
+          </div>
 
-    <div class="d-flex flex-wrap gap-2">
-      {{-- To Ship / Pending --}}
-      <a href="{{ url()->current() }}?status=pending#order-status" class="flex-fill text-decoration-none">
-        <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
-          <div class="fw-bold fs-5 text-primary">{{ $orderCounts['pending'] ?? 0 }}</div>
-          <div class="small text-muted">To Ship</div>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url()->current() }}?status=pending#order-status" class="text-decoration-none">
+              <div class="border rounded p-2 text-center" style="width:110px;">
+                <div class="fw-bold">0</div>
+                <div class="small text-muted">To ship</div>
+              </div>
+            </a>
+            <a href="{{ url()->current() }}?status=canceled#order-status" class="text-decoration-none">
+              <div class="border rounded p-2 text-center" style="width:110px;">
+                <div class="fw-bold">0</div>
+                <div class="small text-muted">Cancelled</div>
+              </div>
+            </a>
+            <a href="{{ url()->current() }}?status=denied#order-status" class="text-decoration-none">
+              <div class="border rounded p-2 text-center" style="width:110px;">
+                <div class="fw-bold">0</div>
+                <div class="small text-muted">Return</div>
+              </div>
+            </a>
+            <a href="{{ url()->current() }}?status=completed#order-status" class="text-decoration-none">
+              <div class="border rounded p-2 text-center" style="width:110px;">
+                <div class="fw-bold">0</div>
+                <div class="small text-muted">Review</div>
+              </div>
+            </a>
+          </div>
         </div>
-      </a>
-
-      {{-- Cancelled --}}
-      <a href="{{ url()->current() }}?status=canceled#order-status" class="flex-fill text-decoration-none">
-        <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
-          <div class="fw-bold fs-5 text-danger">{{ $orderCounts['canceled'] ?? 0 }}</div>
-          <div class="small text-muted">Cancelled</div>
-        </div>
-      </a>
-
-      {{-- Denied / Return --}}
-      <a href="{{ url()->current() }}?status=denied#order-status" class="flex-fill text-decoration-none">
-        <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
-          <div class="fw-bold fs-5 text-warning">{{ $orderCounts['denied'] ?? 0 }}</div>
-          <div class="small text-muted">Return</div>
-        </div>
-      </a>
-
-      {{-- Completed / Review --}}
-      <a href="{{ url()->current() }}?status=completed#order-status" class="flex-fill text-decoration-none">
-        <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
-          <div class="fw-bold fs-5 text-success">{{ $orderCounts['completed'] ?? 0 }}</div>
-          <div class="small text-muted">Completed</div>
-        </div>
-      </a>
-    </div>
-  </div>
-</div>
-
+      </div>
 
       <div class="col-lg-3 d-flex">
         <div class="bg-white border rounded shadow-sm p-3 flex-fill">
@@ -158,182 +151,161 @@
                 </div>
               </div>
 
-              <div class="table-responsive shadow-sm rounded bg-white p-3 border" 
-     style="max-height: 600px; overflow-y: auto;">
+              <div class="table-responsive shadow-sm rounded bg-white p-3"
+                style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd;">
+                @if(isset($orders) && $orders->count() > 0)
+                  <table class="table text-center">
+                    <thead class="table-dark">
+                      <tr>
+                        <th>Order ID</th>
+                        <th>Buyer</th>
+                        <th>Fulfillment</th>
+                        <th>Shipping / Pickup Details</th>
+                        <th>Products</th>
+                        <th>Total Price</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @foreach($orders as $order)
+                        @php $method = $order->fulfillment_method === 'pickup' ? 'pickup' : 'delivery'; @endphp
+                        <tr>
+                          <td>{{ $order->id }}</td>
+                          <td>{{ $order->buyer->name }}</td>
+                          <td>
+                            <span class="badge rounded-pill {{ $method === 'pickup' ? 'bg-warning text-dark' : 'bg-primary' }}">
+                              {{ $method === 'pickup' ? 'Pick up' : 'For delivery' }}
+                            </span>
+                          </td>
+                          <td class="text-start">
+                            @if($method === 'pickup')
+                                        <div class="fw-semibold">Pickup Location</div>
+                                        <div class="text-muted small">
+                                          {{ auth()->user()->farm_address
+                              ?? trim((auth()->user()->address_line1 ?? '') . ' ' . (auth()->user()->barangay ?? '') . ', ' . (auth()->user()->city ?? '') . ', ' . (auth()->user()->province ?? ''))
+                              ?: 'Seller will coordinate pickup details with buyer' }}
+                                        </div>
+                                        <div class="small mt-1">
+                                          <i class="bi bi-info-circle"></i>
+                                          No shipping fee. Mark as “Ready for Pickup” when order is prepared.
+                                        </div>
+                            @else
+                              @if($order->shippingAddress)
+                                <div class="fw-semibold">
+                                  {{ $order->shippingAddress->full_name }} — {{ $order->shippingAddress->mobile_number }}
+                                </div>
+                                <div class="text-muted small">
+                                  @if($order->shippingAddress->floor_unit_number)
+                                    {{ $order->shippingAddress->floor_unit_number }},
+                                  @endif
+                                  {{ $order->shippingAddress->barangay }},
+                                  {{ $order->shippingAddress->city }},
+                                  {{ $order->shippingAddress->province }}
+                                </div>
+                                @if($order->shippingAddress->notes)
+                                  <div class="text-muted fst-italic small">{{ $order->shippingAddress->notes }}</div>
+                                @endif
+                              @else
+                                <span class="text-danger">No Shipping Address Provided</span>
+                              @endif
+                            @endif
+                          </td>
+                          <td class="text-start">
+                            <ul class="list-unstyled mb-0 small">
+                              @foreach($order->orderItems as $item)
+                                <li>{{ $item->product->name }} (x{{ $item->quantity }})</li>
+                              @endforeach
+                            </ul>
+                          </td>
+                          <td>₱{{ number_format($order->total_amount, 2) }}</td>
+                          <td class="text-start">
+                            <div><strong>Method:</strong> {{ ucfirst($order->payment_method ?? '—') }}</div>
+                            <div><strong>Ref:</strong> {{ $order->payment_reference ?? '—' }}</div>
 
-  @if(isset($orders) && $orders->count() > 0)
-    <table class="table align-middle text-center table-hover">
-      <thead class="table-success text-dark sticky-top">
-        <tr>
-          <th>#</th>
-          <th>Buyer</th>
-          <th>Products</th>
-          <th>Fulfillment</th>
-          <th>Shipping / Pickup</th>
-          <th>Total</th>
-          <th>Payment</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        @foreach($orders as $order)
-        @php 
-          $method = $order->fulfillment_method === 'pickup' ? 'pickup' : 'delivery';
-        @endphp
-
-        <tr>
-          <td class="fw-semibold">#{{ $order->id }}</td>
-
-          {{-- Buyer --}}
-          <td>
-            <div class="fw-bold text-dark">{{ $order->buyer->name }}</div>
-            <div class="small text-muted">
-              {{ $order->buyer->email ?? '—' }}
+                            @if($order->invoice_url)
+                              <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-1">
+                                <i class="fas fa-file-invoice me-1"></i> View Invoice
+                              </a>
+                            @else
+                              <span class="text-muted small">No invoice</span>
+                            @endif
+                          </td>
+                          <td>
+                            <span
+                              class="badge text-white
+                                                                                                                                                                    @if($order->status == 'pending') bg-warning text-dark
+                                                                                                                                                                    @elseif($order->status == 'accepted') bg-success
+                                                                                                                                                                    @elseif($order->status == 'denied' || $order->status == 'canceled') bg-danger
+                                                                                                                                                                    @elseif($order->status == 'shipped') bg-primary
+                                                                                                                                                                    @elseif($order->status == 'completed') bg-info
+                                                                                                                                                                    @elseif($order->status == 'cancel_requested') bg-warning
+                                                                                                                                                                    @else bg-secondary @endif">
+                              {{ ucfirst($order->status) }}
+                            </span>
+                          </td>
+                          <td class="text-center">
+                            @if($order->status == 'pending')
+                              <div class="d-flex justify-content-center gap-2">
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST"
+                                  onsubmit="return confirm('Accept this order?')">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="accepted">
+                                  <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                                </form>
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST"
+                                  onsubmit="return confirm('Deny this order?')">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="denied">
+                                  <button type="submit" class="btn btn-danger btn-sm">Deny</button>
+                                </form>
+                              </div>
+                            @elseif($order->status == 'accepted')
+                              <div class="d-flex justify-content-center">
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="shipped">
+                                  <button type="submit" class="btn btn-primary btn-sm">
+                                    {{ $method === 'pickup' ? 'Mark Ready for Pickup' : 'Mark as Shipped' }}
+                                  </button>
+                                </form>
+                              </div>
+                            @elseif($order->status == 'shipped')
+                              <div class="d-flex justify-content-center">
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="completed">
+                                  <button type="submit" class="btn btn-success btn-sm">Mark as Completed</button>
+                                </form>
+                              </div>
+                            @elseif($order->status == 'canceled')
+                              <span class="badge bg-danger">Canceled by Buyer</span>
+                            @elseif($order->status == 'cancel_requested')
+                              <div class="d-flex justify-content-center gap-2">
+                                <form action="{{ route('seller.approveCancel', $order->id) }}" method="POST">
+                                  @csrf @method('PATCH')
+                                  <button type="submit" class="btn btn-danger btn-sm">Approve Cancellation</button>
+                                </form>
+                                <form action="{{ route('seller.denyCancel', $order->id) }}" method="POST">
+                                  @csrf @method('PATCH')
+                                  <button type="submit" class="btn btn-success btn-sm">Deny Cancellation</button>
+                                </form>
+                              </div>
+                            @endif
+                          </td>
+                        </tr>
+                      @endforeach
+                    </tbody>
+                  </table>
+                  <div class="d-flex justify-content-center">
+                    {{ $orders->links('pagination::bootstrap-5') }}
+                  </div>
+                @else
+                  <p class="text-center text-muted">No orders available.</p>
+                @endif
+              </div>
             </div>
-          </td>
-
-          {{-- Products --}}
-          <td class="text-start">
-            <ul class="list-unstyled mb-0 small">
-              @foreach($order->orderItems as $item)
-                <li>
-                  <i class="bi bi-box"></i>
-                  {{ $item->product->name }} 
-                  <span class="text-muted">×{{ $item->quantity }}</span>
-                </li>
-              @endforeach
-            </ul>
-          </td>
-
-          {{-- Fulfillment --}}
-          <td>
-            <span class="badge rounded-pill {{ $method === 'pickup' ? 'bg-warning text-dark' : 'bg-primary' }}">
-              {{ ucfirst($method) }}
-            </span>
-          </td>
-
-          {{-- Shipping / Pickup --}}
-          <td class="text-start small">
-            @if($method === 'pickup')
-              <div><i class="bi bi-geo-alt"></i> 
-                {{ auth()->user()->farm_address 
-                    ?? auth()->user()->address_line1 
-                    ?? 'Pickup details will be coordinated' }}
-              </div>
-            @else
-              @if($order->shippingAddress)
-                <div class="fw-semibold">{{ $order->shippingAddress->full_name }}</div>
-                <div class="text-muted">{{ $order->shippingAddress->city }}, {{ $order->shippingAddress->province }}</div>
-                <div class="text-muted">{{ $order->shippingAddress->mobile_number }}</div>
-              @else
-                <span class="text-danger">No Address</span>
-              @endif
-            @endif
-          </td>
-
-          {{-- Total --}}
-          <td>
-            <div class="fw-bold text-success">₱{{ number_format($order->total_amount, 2) }}</div>
-            <small class="text-muted">Shipping: ₱{{ number_format($order->shipping_fee, 2) }}</small>
-          </td>
-
-          {{-- Payment --}}
-          <td class="text-start small">
-            <div><strong>Method:</strong> {{ strtoupper($order->payment_method ?? '—') }}</div>
-            <div><strong>Ref:</strong> {{ $order->payment_reference ?? '—' }}</div>
-            @if($order->invoice_url)
-              <a href="{{ $order->invoice_url }}" target="_blank" 
-                 class="btn btn-outline-success btn-sm mt-1 px-2 py-1">
-                <i class="bi bi-receipt"></i> View Invoice
-              </a>
-            @else
-              <span class="text-muted">No invoice</span>
-            @endif
-          </td>
-
-          {{-- Status --}}
-          <td>
-            <span class="badge 
-              @if($order->status == 'pending') bg-warning text-dark
-              @elseif($order->status == 'accepted') bg-success
-              @elseif($order->status == 'denied' || $order->status == 'canceled') bg-danger
-              @elseif($order->status == 'shipped') bg-primary
-              @elseif($order->status == 'completed') bg-info text-dark
-              @elseif($order->status == 'cancel_requested') bg-secondary
-              @else bg-light text-dark @endif">
-              {{ ucfirst($order->status) }}
-            </span>
-          </td>
-
-          {{-- Actions --}}
-          <td class="text-center">
-            @if($order->status == 'pending')
-              <div class="d-flex justify-content-center gap-1">
-                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
-                  @csrf @method('PATCH')
-                  <input type="hidden" name="status" value="accepted">
-                  <button class="btn btn-success btn-sm px-2 py-1">
-                    <i class="bi bi-check2-circle"></i>
-                  </button>
-                </form>
-                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
-                  @csrf @method('PATCH')
-                  <input type="hidden" name="status" value="denied">
-                  <button class="btn btn-danger btn-sm px-2 py-1">
-                    <i class="bi bi-x-circle"></i>
-                  </button>
-                </form>
-              </div>
-            @elseif($order->status == 'accepted')
-              <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
-                @csrf @method('PATCH')
-                <input type="hidden" name="status" value="shipped">
-                <button class="btn btn-primary btn-sm">
-                  <i class="bi bi-truck"></i> {{ $method === 'pickup' ? 'Ready for Pickup' : 'Ship' }}
-                </button>
-              </form>
-            @elseif($order->status == 'shipped')
-              <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST">
-                @csrf @method('PATCH')
-                <input type="hidden" name="status" value="completed">
-                <button class="btn btn-success btn-sm">
-                  <i class="bi bi-box-seam"></i> Completed
-                </button>
-              </form>
-            @elseif($order->status == 'canceled')
-              <span class="badge bg-danger">Canceled</span>
-            @elseif($order->status == 'cancel_requested')
-              <div class="d-flex justify-content-center gap-1">
-                <form action="{{ route('seller.approveCancel', $order->id) }}" method="POST">
-                  @csrf @method('PATCH')
-                  <button class="btn btn-danger btn-sm px-2 py-1">
-                    <i class="bi bi-check"></i>
-                  </button>
-                </form>
-                <form action="{{ route('seller.denyCancel', $order->id) }}" method="POST">
-                  @csrf @method('PATCH')
-                  <button class="btn btn-success btn-sm px-2 py-1">
-                    <i class="bi bi-x"></i>
-                  </button>
-                </form>
-              </div>
-            @endif
-          </td>
-        </tr>
-        @endforeach
-      </tbody>
-    </table>
-
-    <div class="d-flex justify-content-center mt-3">
-      {{ $orders->links('pagination::bootstrap-5') }}
-    </div>
-  @else
-    <p class="text-center text-muted my-4">No orders available.</p>
-  @endif
-</div>
-
 
             {{-- ========== My Shop (UNCHANGED LOGIC) ========== --}}
             <div class="tab-pane fade" id="my-shop">
@@ -1364,12 +1336,6 @@
     .dropdown-item.active {
       font-weight: 600;
     }
-    .hover-shadow:hover {
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-  transform: translateY(-2px);
-  transition: all 0.2s ease-in-out;
-}
-
   </style>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
