@@ -168,11 +168,10 @@ Route::post('/xendit/webhook', [CheckoutController::class, 'handleXenditWebhook'
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
 
-
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
 
-    if (!hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
+    if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
         abort(403, 'Invalid or expired verification link.');
     }
 
@@ -188,7 +187,6 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
     return redirect('/welcome')->with('status', 'Your email has been verified successfully!');
 })->name('verification.verify');
-
 
 Route::post('/ai-chat', [AIChatController::class, 'chat'])->name('ai.chat');
 

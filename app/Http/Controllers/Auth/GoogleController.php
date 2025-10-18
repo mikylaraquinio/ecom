@@ -31,11 +31,6 @@ class GoogleController extends Controller
 
         Auth::login($user);
 
-         // ✅ If not verified, show the verify page
-        if (! $user->hasVerifiedEmail()) {
-            return redirect()->route('verification.notice');
-        }
-
         return redirect('/welcome');
     }
 }
