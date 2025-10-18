@@ -57,7 +57,7 @@ class RegisteredUserController extends Controller
 
         Auth::login($user); // ✅ Automatically logs in user
 
-        return redirect()->route('welcome'); // ✅ Redirect after registration
+        return redirect()->route('verification.notice'); // ✅ Redirect after registration
     }
 
 }
