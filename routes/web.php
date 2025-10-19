@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\FollowController;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -168,26 +169,6 @@ Route::post('/xendit/webhook', [CheckoutController::class, 'handleXenditWebhook'
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
 
-Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
-    $user = User::findOrFail($id);
-
-    if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
-        abort(403, 'Invalid or expired verification link.');
-    }
-
-    if ($user->hasVerifiedEmail()) {
-        return redirect('/welcome')->with('status', 'Your email is already verified.');
-    }
-
-    // ✅ Mark verified
-    $user->markEmailAsVerified();
-
-    // ✅ Refresh login session (important)
-    Auth::login($user);
-
-    return redirect('/welcome')->with('status', 'Your email has been verified successfully!');
-})->name('verification.verify');
-
 Route::post('/ai-chat', [AIChatController::class, 'chat'])->name('ai.chat');
 
 Route::middleware(['auth'])->group(function () {
@@ -225,6 +206,31 @@ Route::get('/product/{product}', [ProductController::class, 'show'])->name('prod
 
 // Seller shop page
 Route::get('/shop/{seller}', [ShopController::class, 'view'])->name('shop.view');
+
+/*
+|--------------------------------------------------------------------------
+| Email Verification Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/email/verify', function () {
+    return view('auth.verify-email'); // show the verify page
+})->middleware('auth')->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill(); // mark email as verified
+    return redirect('/welcome')->with('status', 'Your email has been verified successfully!');
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+Route::post('/email/verification-notification', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('message', 'Verification link sent!');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+
+Route::get('/verify-notice', function () {
+    return view('auth.verify-notice');
+})->name('verify.notice.guest');
+
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';

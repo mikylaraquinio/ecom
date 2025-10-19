@@ -101,7 +101,6 @@
             text-decoration: underline;
         }
 
-        /* Main login button */
         .btn-login {
             background: linear-gradient(90deg, #71b127, #9feb47);
             color: white;
@@ -121,7 +120,6 @@
             transform: translateY(-1px);
         }
 
-        /* Google button */
         .btn-google {
             margin-top: 1rem;
             width: 100%;
@@ -149,7 +147,6 @@
             background: #f3f4f6;
         }
 
-        /* Divider line */
         .divider {
             display: flex;
             align-items: center;
@@ -168,7 +165,6 @@
             margin: 0 0.75rem;
         }
 
-        /* Signup link */
         .signup-link {
             font-size: 0.95rem;
         }
@@ -198,18 +194,28 @@
                 Empowering livestock farmers with tools, data, and market connections — your success starts here.
             </p>
 
-            <form method="POST" action="{{ route('login') }}">
+            <form method="POST" action="{{ route('login') }}" id="loginForm">
                 @csrf
 
+                <!-- Email -->
                 <div class="input-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus>
+                    <input type="email" id="email" name="email"
+                        maxlength="100"
+                        pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                        title="Enter a valid email address"
+                        value="{{ old('email') }}" required autofocus>
                     <x-input-error :messages="$errors->get('email')" class="mt-1" />
                 </div>
 
+                <!-- Password -->
                 <div class="input-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
+                    <input type="password" id="password" name="password"
+                        minlength="8" maxlength="30"
+                        pattern=".{8,}"
+                        title="Password must be between 8 and 30 characters"
+                        required>
                     <x-input-error :messages="$errors->get('password')" class="mt-1" />
                 </div>
 
@@ -217,7 +223,6 @@
                     <a href="{{ route('password.request') }}">Forgot Password?</a>
                 </div>
 
-                <!-- LOGIN BUTTON -->
                 <button type="submit" class="btn-login">Log In</button>
 
                 <div class="divider">or</div>
@@ -227,7 +232,6 @@
                     Login with Google
                 </a>
 
-
                 <p class="signup-link mt-4">
                     Don’t have an account?
                     <a href="{{ route('register') }}">Sign up</a>
@@ -235,4 +239,24 @@
             </form>
         </div>
     </div>
+
+    <script>
+        // Simple anti-spam prevention for login inputs
+        document.querySelectorAll('#loginForm input').forEach(input => {
+            input.addEventListener('input', function () {
+                if (this.value.length > this.maxLength) {
+                    this.value = this.value.slice(0, this.maxLength);
+                }
+            });
+
+            // prevent spam pasting
+            input.addEventListener('paste', e => {
+                const paste = (e.clipboardData || window.clipboardData).getData('text');
+                if (paste.length > this.maxLength) {
+                    e.preventDefault();
+                    alert('Input too long!');
+                }
+            });
+        });
+    </script>
 </x-guest-layout>
