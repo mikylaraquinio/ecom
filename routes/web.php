@@ -144,6 +144,12 @@ Route::get('/orders/{id}/confirm', [SellerController::class, 'confirmReceipt'])-
 Route::post('/orders/{order}/cancel', [App\Http\Controllers\CartController::class, 'cancel'])
     ->name('orders.cancel');
 
+Route::get('/seller/orders/{order}/cod-invoice', [SellerController::class, 'viewCodInvoice'])
+    ->name('seller.codInvoice');
+
+Route::post('/seller/orders/{id}/generate-invoice', [SellerController::class, 'generateInvoice'])->name('seller.generateInvoice');
+Route::get('/seller/orders/{id}/invoice', [SellerController::class, 'viewInvoice'])->name('seller.viewInvoice');
+
 
 Route::middleware(['auth'])->group(function () {
     Route::post('/wishlist/toggle/{product}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');

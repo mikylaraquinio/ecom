@@ -152,28 +152,28 @@
                                                     <div class="icon"><i class="fas fa-check-circle"></i></div>
                                                     <div class="text">
                                                         <strong>Placed</strong>
-                                                        <small>{{ $order->created_at ? \Carbon\Carbon::parse($order->created_at)->format('M d, Y h:i A') : '—' }}</small>
+                                                        <small>{{ $order->created_at ? \Carbon\Carbon::parse($order->created_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
                                                     </div>
                                                 </div>
                                                 <div class="step {{ in_array($order->status, ['accepted','ready_for_pickup','completed']) ? 'active' : '' }}">
                                                     <div class="icon"><i class="fas fa-box"></i></div>
                                                     <div class="text">
                                                         <strong>Accepted</strong>
-                                                        <small>{{ $order->accepted_at ? \Carbon\Carbon::parse($order->accepted_at)->format('M d, Y h:i A') : '—' }}</small>
+                                                        <small>{{ $order->accepted_at ? \Carbon\Carbon::parse($order->accepted_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
                                                     </div>
                                                 </div>
                                                 <div class="step {{ in_array($order->status, ['ready_for_pickup','completed']) ? 'active' : '' }}">
                                                     <div class="icon"><i class="fas fa-store"></i></div>
                                                     <div class="text">
                                                         <strong>Ready for Pickup</strong>
-                                                        <small>{{ $order->ready_at ? \Carbon\Carbon::parse($order->ready_at)->format('M d, Y h:i A') : '—' }}</small>
+                                                        <small>{{ $order->ready_at ? \Carbon\Carbon::parse($order->ready_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
                                                     </div>
                                                 </div>
                                                 <div class="step {{ $order->status === 'completed' ? 'active' : '' }}">
                                                     <div class="icon"><i class="fas fa-box-open"></i></div>
                                                     <div class="text">
                                                         <strong>Picked Up</strong>
-                                                        <small>{{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->format('M d, Y h:i A') : '—' }}</small>
+                                                        <small>{{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -206,25 +206,25 @@
                                                 <div class="step {{ $order->created_at ? 'active' : '' }}">
                                                     <div class="icon"><i class="fas fa-check-circle"></i></div>
                                                     <div class="text"><strong>Placed</strong>
-                                                        <small>{{ $order->created_at ? \Carbon\Carbon::parse($order->created_at)->format('M d, Y h:i A') : '—' }}</small>
+                                                        <small>{{ $order->created_at ? \Carbon\Carbon::parse($order->created_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
                                                     </div>
                                                 </div>
                                                 <div class="step {{ in_array($order->status, ['accepted','shipped','completed']) ? 'active' : '' }}">
                                                     <div class="icon"><i class="fas fa-box"></i></div>
                                                     <div class="text"><strong>Accepted</strong>
-                                                        <small>{{ $order->accepted_at ? \Carbon\Carbon::parse($order->accepted_at)->format('M d, Y h:i A') : '—' }}</small>
+                                                        <small>{{ $order->accepted_at ? \Carbon\Carbon::parse($order->accepted_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
                                                     </div>
                                                 </div>
                                                 <div class="step {{ in_array($order->status, ['shipped','completed']) ? 'active' : '' }}">
                                                     <div class="icon"><i class="fas fa-truck"></i></div>
                                                     <div class="text"><strong>Shipped</strong>
-                                                        <small>{{ $order->shipped_at ? \Carbon\Carbon::parse($order->shipped_at)->format('M d, Y h:i A') : '—' }}</small>
+                                                        <small>{{ $order->shipped_at ? \Carbon\Carbon::parse($order->shipped_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A')  : '—' }}</small>
                                                     </div>
                                                 </div>
                                                 <div class="step {{ $order->status === 'completed' ? 'active' : '' }}">
                                                     <div class="icon"><i class="fas fa-box-open"></i></div>
                                                     <div class="text"><strong>Delivered</strong>
-                                                        <small>{{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->format('M d, Y h:i A') : '—' }}</small>
+                                                        <small>{{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -243,17 +243,25 @@
                                         <hr>
 
                                         <h6 class="text-success font-weight-bold mb-2"><i class="fas fa-file-invoice mr-2"></i>Payment & Invoice</h6>
-                                        <p><strong>Method:</strong> {{ ucfirst($order->payment_method) }}</p>
-                                        <p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
-                                        <p><strong>Total:</strong> ₱{{ number_format($order->total_amount ?? $order->total_price, 2) }}</p>
-                                        <p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
-                                        @if($order->invoice_url)
-                                            <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
-                                                <i class="fas fa-file-invoice mr-1"></i> View Xendit Invoice
-                                            </a>
-                                        @else
-                                            <span class="text-muted">No invoice available</span>
-                                        @endif
+<p><strong>Method:</strong> {{ ucfirst($order->payment_method) }}</p>
+<p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
+<p><strong>Total:</strong> ₱{{ number_format($order->total_amount ?? $order->total_price, 2) }}</p>
+<p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
+
+@if($order->payment_method === 'online' && $order->invoice_url)
+    {{-- ✅ Buyer sees Xendit invoice --}}
+    <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
+        <i class="fas fa-file-invoice me-1"></i> View Xendit Invoice
+    </a>
+@elseif($order->payment_method === 'cod' && $order->invoice_generated)
+    {{-- ✅ Buyer sees COD PDF only when generated --}}
+    <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-success btn-sm mt-2">
+        <i class="fas fa-file-invoice me-1"></i> View E-Invoice
+    </a>
+@else
+    <span class="text-muted small">No invoice available yet.</span>
+@endif
+
                                     </div>                              
                                   
                                     <div class="modal-footer bg-light">
@@ -307,7 +315,7 @@
                                     <div>
                                         <h6 class="fw-bold mb-1 text-success">FarmSmart Marketplace</h6>
                                         <small>Transaction E-Invoice</small><br>
-                                        <small class="text-muted">Issued: {{ $order->updated_at->format('M d, Y h:i A') }}</small>
+                                        <small class="text-muted">Issued: {{ $order->updated_at->setTimezone('Asia/Manila')->format('M d, Y h:i A') }}</small>
                                     </div>
                                     <div class="text-end">
                                         <h6 class="fw-bold">Invoice No: INV-{{ str_pad($order->id, 6, '0', STR_PAD_LEFT) }}</h6>
@@ -390,9 +398,9 @@
                                     <div class="d-flex justify-content-between mt-3 small text-muted">
                                     <div>
                                         <p class="mb-1">Payment Method: <strong>{{ strtoupper($order->payment_method) }}</strong></p>
-                                        <p class="mb-1">Order Placed: {{ $order->created_at->format('M d, Y h:i A') }}</p>
+                                        <p class="mb-1">Order Placed: {{ $order->created_at->setTimezone('Asia/Manila')->format('M d, Y h:i A') }}</p>
                                         <p class="mb-0">Order Paid Date: 
-                                            {{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->format('M d, Y h:i A') : '—' }}
+                                            {{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}
                                         </p>
                                     </div>
                                     <div class="text-end">

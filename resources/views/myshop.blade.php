@@ -15,110 +15,110 @@
 
     <div class="row g-3 mb-3">
       <div class="col-lg-6">
-  <div class="bg-white border rounded shadow-sm p-3">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <div class="fw-bold fs-6">Order Status</div>
-      <a class="text-decoration-none small fw-semibold" href="#order-status">View All ></a>
-    </div>
+        <div class="bg-white border rounded shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="fw-bold fs-6">Order Status</div>
+            <a class="text-decoration-none small fw-semibold" href="#order-status">View All ></a>
+          </div>
 
-    <div class="d-flex flex-wrap gap-2">
-      {{-- 🟡 Pending / To Ship --}}
-      <a href="{{ url()->current() }}?status=pending#order-status" class="flex-fill text-decoration-none">
-        <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
-          <div class="fw-bold fs-5 text-primary">{{ $orderCounts['pending'] ?? 0 }}</div>
-          <div class="small text-muted">To Ship</div>
-        </div>
-      </a>
-
-      {{-- 🔴 Canceled --}}
-      <a href="{{ url()->current() }}?status=canceled#order-status" class="flex-fill text-decoration-none">
-        <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
-          <div class="fw-bold fs-5 text-danger">{{ $orderCounts['canceled'] ?? 0 }}</div>
-          <div class="small text-muted">Cancelled</div>
-        </div>
-      </a>
-
-      {{-- 🟠 Denied / Return --}}
-      <a href="{{ url()->current() }}?status=denied#order-status" class="flex-fill text-decoration-none">
-        <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
-          <div class="fw-bold fs-5 text-warning">{{ $orderCounts['denied'] ?? 0 }}</div>
-          <div class="small text-muted">Return</div>
-        </div>
-      </a>
-
-      {{-- 🟢 Completed / Review --}}
-      <a href="{{ url()->current() }}?status=completed#order-status" class="flex-fill text-decoration-none">
-        <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
-          <div class="fw-bold fs-5 text-success">{{ $orderCounts['completed'] ?? 0 }}</div>
-          <div class="small text-muted">Completed</div>
-        </div>
-      </a>
-    </div>
-  </div>
-</div>
-
-
-      <div class="col-lg-3 d-flex">
-        <div class="bg-white border rounded shadow-sm p-3 flex-fill">
-          <div class="d-flex flex-nowrap gap-2 overflow-auto actions-line">
-            <a href="#order-status" data-target="order-status" class="nav-link text-decoration-none flex-shrink-0">
-              <div
-                class="action-mini border rounded text-center d-flex flex-column align-items-center justify-content-center py-2 px-2"
-                style="width:110px;">
-                <i class="fas fa-seedling"></i>
-                <div class="small fw-semibold mt-1">Order Status</div>
+          <div class="d-flex flex-wrap gap-2">
+            {{-- 🟡 Pending / To Ship --}}
+            <a href="{{ url()->current() }}?status=pending#order-status" class="flex-fill text-decoration-none">
+              <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
+                <div class="fw-bold fs-5 text-primary">{{ $orderCounts['pending'] ?? 0 }}</div>
+                <div class="small text-muted">To Ship</div>
               </div>
             </a>
 
-            <a href="#my-shop" data-target="my-shop" class="nav-link text-decoration-none flex-shrink-0">
-              <div
-                class="action-mini border rounded text-center d-flex flex-column align-items-center justify-content-center py-2 px-2"
-                style="width:110px;">
-                <i class="fas fa-store-alt"></i>
-                <div class="small fw-semibold mt-1">Products</div>
+            {{-- 🔴 Canceled --}}
+            <a href="{{ url()->current() }}?status=canceled#order-status" class="flex-fill text-decoration-none">
+              <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
+                <div class="fw-bold fs-5 text-danger">{{ $orderCounts['canceled'] ?? 0 }}</div>
+                <div class="small text-muted">Cancelled</div>
               </div>
             </a>
 
-            <a href="#analytics" data-target="analytics" class="nav-link text-decoration-none flex-shrink-0">
-              <div
-                class="action-mini border rounded text-center d-flex flex-column align-items-center justify-content-center py-2 px-2"
-                style="width:110px;">
-                <i class="fas fa-chart-line"></i>
-                <div class="small fw-semibold mt-1">Analytics</div>
+            {{-- 🟠 Denied / Return --}}
+            <a href="{{ url()->current() }}?status=denied#order-status" class="flex-fill text-decoration-none">
+              <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
+                <div class="fw-bold fs-5 text-warning">{{ $orderCounts['denied'] ?? 0 }}</div>
+                <div class="small text-muted">Return</div>
+              </div>
+            </a>
+
+            {{-- 🟢 Completed / Review --}}
+            <a href="{{ url()->current() }}?status=completed#order-status" class="flex-fill text-decoration-none">
+              <div class="border rounded p-3 text-center hover-shadow" style="min-width:110px;">
+                <div class="fw-bold fs-5 text-success">{{ $orderCounts['completed'] ?? 0 }}</div>
+                <div class="small text-muted">Completed</div>
               </div>
             </a>
           </div>
         </div>
       </div>
 
-      <style>
-        .action-mini {
-          transition: transform .12s ease, box-shadow .12s ease;
-          min-height: 84px;
-        }
 
-        .action-mini:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 .35rem .8rem rgba(0, 0, 0, .06);
-        }
+            <div class="col-lg-3 d-flex">
+              <div class="bg-white border rounded shadow-sm p-3 flex-fill">
+                <div class="d-flex flex-nowrap gap-2 overflow-auto actions-line">
+                  <a href="#order-status" data-target="order-status" class="nav-link text-decoration-none flex-shrink-0">
+                    <div
+                      class="action-mini border rounded text-center d-flex flex-column align-items-center justify-content-center py-2 px-2"
+                      style="width:110px;">
+                      <i class="fas fa-seedling"></i>
+                      <div class="small fw-semibold mt-1">Order Status</div>
+                    </div>
+                  </a>
 
-        .action-mini i {
-          font-size: 1rem;
-          line-height: 1;
-        }
+                  <a href="#my-shop" data-target="my-shop" class="nav-link text-decoration-none flex-shrink-0">
+                    <div
+                      class="action-mini border rounded text-center d-flex flex-column align-items-center justify-content-center py-2 px-2"
+                      style="width:110px;">
+                      <i class="fas fa-store-alt"></i>
+                      <div class="small fw-semibold mt-1">Products</div>
+                    </div>
+                  </a>
 
-        .action-mini .small {
-          font-size: .8rem;
-        }
+                  <a href="#analytics" data-target="analytics" class="nav-link text-decoration-none flex-shrink-0">
+                    <div
+                      class="action-mini border rounded text-center d-flex flex-column align-items-center justify-content-center py-2 px-2"
+                      style="width:110px;">
+                      <i class="fas fa-chart-line"></i>
+                      <div class="small fw-semibold mt-1">Analytics</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
 
-        .actions-line {
-          -webkit-overflow-scrolling: touch;
-        }
-        .hover-shadow:hover {
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-  transform: translateY(-2px);
-  transition: all 0.2s ease-in-out;
-}
+            <style>
+              .action-mini {
+                transition: transform .12s ease, box-shadow .12s ease;
+                min-height: 84px;
+              }
+
+              .action-mini:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 .35rem .8rem rgba(0, 0, 0, .06);
+              }
+
+              .action-mini i {
+                font-size: 1rem;
+                line-height: 1;
+              }
+
+              .action-mini .small {
+                font-size: .8rem;
+              }
+
+              .actions-line {
+                -webkit-overflow-scrolling: touch;
+              }
+              .hover-shadow:hover {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
+        transition: all 0.2s ease-in-out;
+      }
 
 
         /* smooth scroll on mobile */
@@ -129,140 +129,277 @@
       <div class="tab-content">
         @if(auth()->check() && auth()->user()->role === 'seller')
             <div class="tab-pane fade show active" id="order-status">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="fw-bold mb-0 text-dark">Your Orders</h5>
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark">Your Orders</h5>
 
-    <form method="GET" action="{{ url()->current() }}#order-status" class="d-flex align-items-center gap-2">
-      <label class="small text-muted mb-0">Filter:</label>
-      <select name="status" class="form-select form-select-sm rounded-pill shadow-sm"
-        style="max-width: 220px;" onchange="this.form.submit()">
-        <option value="">All Statuses</option>
-        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
-        <option value="accepted" {{ request('status') === 'accepted' ? 'selected' : '' }}>Accepted</option>
-        <option value="shipped" {{ request('status') === 'shipped' ? 'selected' : '' }}>Shipped</option>
-        <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
-        <option value="canceled" {{ request('status') === 'canceled' ? 'selected' : '' }}>Canceled</option>
-        <option value="denied" {{ request('status') === 'denied' ? 'selected' : '' }}>Denied</option>
-        <option value="cancel_requested" {{ request('status') === 'cancel_requested' ? 'selected' : '' }}>Cancel Requested</option>
-      </select>
-    </form>
-  </div>
+                <form method="GET" action="{{ url()->current() }}#order-status" class="d-flex align-items-center gap-2">
+                  <label class="small text-muted mb-0">Filter:</label>
+                  <select name="status" class="form-select form-select-sm rounded-pill shadow-sm"
+                    style="max-width: 220px;" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="accepted" {{ request('status') === 'accepted' ? 'selected' : '' }}>Accepted</option>
+                    <option value="shipped" {{ request('status') === 'shipped' ? 'selected' : '' }}>Shipped</option>
+                    <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
+                    <option value="canceled" {{ request('status') === 'canceled' ? 'selected' : '' }}>Canceled</option>
+                    <option value="denied" {{ request('status') === 'denied' ? 'selected' : '' }}>Denied</option>
+                    <option value="cancel_requested" {{ request('status') === 'cancel_requested' ? 'selected' : '' }}>Cancel Requested</option>
+                  </select>
+                </form>
+              </div>
 
-  <div class="table-responsive shadow-sm bg-white rounded border">
-    @if(isset($orders) && $orders->count() > 0)
-      <table class="table align-middle table-hover mb-0">
-        <thead class="table-success text-dark">
-          <tr>
-            <th>#</th>
-            <th>Buyer</th>
-            <th>Items</th>
-            <th>Total</th>
-            <th>Payment</th>
-            <th>Status</th>
-            <th class="text-center">Action</th>
-          </tr>
-        </thead>
+              <div class="table-responsive shadow-sm bg-white rounded border">
+                @if(isset($orders) && $orders->count() > 0)
+                  <table class="table align-middle table-hover mb-0">
+                    <thead class="table-success text-dark">
+                      <tr>
+                        <th>#</th>
+                        <th>Buyer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th class="text-center">Action</th>
+                      </tr>
+                    </thead>
 
-        <tbody>
-          @foreach($orders as $order)
-            <tr>
-              <td class="fw-semibold">#{{ $order->id }}</td>
-              <td>
-                <div>{{ $order->buyer->name }}</div>
-                <div class="text-muted small">{{ $order->buyer->email }}</div>
-              </td>
+                    <tbody>
+                      @foreach($orders as $order)
+                        <tr style="cursor:pointer;" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#sellerOrderModal-{{ $order->id }}">
+                          <td class="fw-semibold">#{{ $order->id }}</td>
+                          <td>
+                            <div>{{ $order->buyer->name }}</div>
+                            <div class="text-muted small">{{ $order->buyer->email }}</div>
+                          </td>
+                          <td>
+                            <ul class="list-unstyled mb-0 small">
+                              @foreach($order->orderItems as $item)
+                                <li>{{ $item->product->name }} × {{ $item->quantity }}</li>
+                              @endforeach
+                            </ul>
+                          </td>
+                          <td class="fw-semibold text-success">₱{{ number_format($order->total_amount, 2) }}</td>
+                          <td>
+                            <div><strong>{{ ucfirst($order->payment_method ?? '—') }}</strong></div>
+                            <div class="text-muted small">{{ $order->payment_reference ?? '—' }}</div>
+                          </td>
+                          <td>
+                            <span class="badge text-white px-3 py-2 rounded-pill
+                              @switch($order->status)
+                                @case('pending') bg-warning text-dark @break
+                                @case('accepted') bg-info @break
+                                @case('shipped') bg-primary @break
+                                @case('ready_for_pickup') bg-info @break
+                                @case('picked_up') bg-success @break
+                                @case('completed') bg-success @break
+                                @case('canceled') bg-danger @break
+                                @case('denied') bg-danger @break
+                                @default bg-light text-dark
+                              @endswitch">
+                              {{ ucfirst($order->status) }}
+                            </span>
+                          </td>
+                          <td class="text-center">
+                            @if($order->status == 'pending')
+                              {{-- Accept / Deny (same for both pickup and delivery) --}}
+                              <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+                                @csrf @method('PATCH')
+                                <input type="hidden" name="status" value="accepted">
+                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">Accept</button>
+                              </form>
 
-              <td>
-                <ul class="list-unstyled mb-0 small">
-                  @foreach($order->orderItems as $item)
-                    <li>{{ $item->product->name }} × {{ $item->quantity }}</li>
-                  @endforeach
-                </ul>
-              </td>
+                              <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+                                @csrf @method('PATCH')
+                                <input type="hidden" name="status" value="denied">
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">Deny</button>
+                              </form>
 
-              <td class="fw-semibold text-success">₱{{ number_format($order->total_amount, 2) }}</td>
+                            @elseif($order->fulfillment_method === 'pickup')
+                              {{-- 🟢 PICKUP WORKFLOW --}}
+                              @if($order->status == 'accepted')
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="ready_for_pickup">
+                                  <button type="submit" class="btn btn-sm btn-info rounded-pill px-3">
+                                    Mark as Ready for Pickup
+                                  </button>
+                                </form>
 
-              <td>
-                <div><strong>{{ ucfirst($order->payment_method ?? '—') }}</strong></div>
-                <div class="text-muted small">{{ $order->payment_reference ?? '—' }}</div>
-                @if($order->invoice_url)
-                  <a href="{{ $order->invoice_url }}" target="_blank" class="text-decoration-none small text-primary">
-                    <i class="fas fa-file-invoice me-1"></i> Invoice
-                  </a>
+                              @elseif($order->status == 'ready_for_pickup')
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="completed">
+                                  <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">
+                                    Mark as Picked Up
+                                  </button>
+                                </form>
+                              @endif
+
+                            @else
+                              {{-- 🚚 DELIVERY WORKFLOW --}}
+                              @if($order->status == 'accepted')
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="shipped">
+                                  <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
+                                    Mark Shipped
+                                  </button>
+                                </form>
+
+                              @elseif($order->status == 'shipped')
+                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+                                  @csrf @method('PATCH')
+                                  <input type="hidden" name="status" value="completed">
+                                  <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">
+                                    Complete
+                                  </button>
+                                </form>
+                              @endif
+                            @endif
+
+                            {{-- Cancel requests (same for all) --}}
+                            @if($order->status == 'cancel_requested')
+                              <form action="{{ route('seller.approveCancel', $order->id) }}" method="POST" class="d-inline">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">Approve</button>
+                              </form>
+                              <form action="{{ route('seller.denyCancel', $order->id) }}" method="POST" class="d-inline">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3">Deny</button>
+                              </form>
+                            @endif
+
+                            @if(!in_array($order->status, ['pending','accepted','ready_for_pickup','shipped','cancel_requested']))
+                              <span class="text-muted small">No Actions</span>
+                            @endif
+                          </td>
+                        </tr>
+                      @endforeach
+                    </tbody>
+                  </table>
+                  
+                  @foreach($orders as $order)
+                  <div class="modal fade" id="sellerOrderModal-{{ $order->id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                      <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-success text-white">
+                          <h5 class="modal-title">
+                            <i class="fas fa-box-open me-2"></i> Order #{{ $order->id }}
+                          </h5>
+                          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body">
+                          @php
+                            $buyer = $order->buyer;
+                            $address = $order->address;
+                          @endphp
+
+                          <h6 class="fw-bold text-success mb-2"><i class="fas fa-user me-2"></i> Buyer Information</h6>
+                          <p class="mb-1"><strong>Name:</strong> {{ $buyer->name ?? '—' }}</p>
+                          <p class="mb-1"><strong>Email:</strong> {{ $buyer->email ?? '—' }}</p>
+                          <p class="mb-1"><strong>Contact:</strong> {{ $buyer->phone ?? ($address->mobile_number ?? '—') }}</p>
+                          <p><strong>Address:</strong>
+                            @if($address)
+                              {{ $address->floor_unit_number ? $address->floor_unit_number . ', ' : '' }}
+                              {{ $address->barangay ? $address->barangay . ', ' : '' }}
+                              {{ $address->city ? $address->city . ', ' : '' }}
+                              {{ $address->province }}
+                            @else
+                              N/A
+                            @endif
+                          </p>
+
+                          <hr>
+
+                          <h6 class="fw-bold text-success mb-2"><i class="fas fa-shopping-cart me-2"></i> Order Items</h6>
+                          <table class="table table-sm table-bordered align-middle">
+                            <thead class="table-light">
+                              <tr>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th class="text-end">Price</th>
+                                <th class="text-end">Subtotal</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @foreach($order->orderItems as $item)
+                                <tr>
+                                  <td>{{ $item->product->name }}</td>
+                                  <td>{{ $item->quantity }}</td>
+                                  <td class="text-end">₱{{ number_format($item->price, 2) }}</td>
+                                  <td class="text-end">₱{{ number_format($item->price * $item->quantity, 2) }}</td>
+                                </tr>
+                              @endforeach
+                            </tbody>
+                          </table>
+
+                          <hr>
+
+                          <h6 class="fw-bold text-success mb-2"><i class="fas fa-file-invoice me-2"></i> Payment & Fulfillment</h6>
+                          <p><strong>Payment Method:</strong> {{ ucfirst($order->payment_method) }}</p>
+                          <p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
+                          <p><strong>Fulfillment:</strong> {{ ucfirst($order->fulfillment_method) }}</p>
+                          <p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
+                          <p><strong>Total Amount:</strong> ₱{{ number_format($order->total_amount, 2) }}</p>
+
+                          @if(Auth::user()->role === 'buyer')
+                    @if($order->status === 'completed')
+                        <span class="text-success small">
+                            <i class="fas fa-check-circle me-1"></i> Payment confirmed
+                        </span>
+                    @elseif($order->invoice_url)
+                        <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
+                            <i class="fas fa-file-invoice me-1"></i> Pay via Xendit
+                        </a>
+                    @endif
                 @endif
-              </td>
+            </div>
 
-              <td>
-                <span class="badge text-white px-3 py-2 rounded-pill
-                  @switch($order->status)
-                    @case('pending') bg-warning text-dark @break
-                    @case('accepted') bg-info @break
-                    @case('shipped') bg-primary @break
-                    @case('completed') bg-success @break
-                    @case('canceled') bg-danger @break
-                    @case('denied') bg-danger @break
-                    @case('cancel_requested') bg-secondary @break
-                    @default bg-light text-dark
-                  @endswitch">
-                  {{ ucfirst($order->status) }}
-                </span>
-              </td>
+        {{-- ✅ MOVE THE GENERATE BUTTONS HERE --}}
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 
-              <td class="text-center">
-                @if($order->status == 'pending')
-                  <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
-                    @csrf @method('PATCH')
-                    <input type="hidden" name="status" value="accepted">
-                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">Accept</button>
-                  </form>
-
-                  <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
-                    @csrf @method('PATCH')
-                    <input type="hidden" name="status" value="denied">
-                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">Deny</button>
-                  </form>
-                @elseif($order->status == 'accepted')
-                  <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
-                    @csrf @method('PATCH')
-                    <input type="hidden" name="status" value="shipped">
-                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
-                      Mark Shipped
-                    </button>
-                  </form>
-                @elseif($order->status == 'shipped')
-                  <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
-                    @csrf @method('PATCH')
-                    <input type="hidden" name="status" value="completed">
-                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">
-                      Complete
-                    </button>
-                  </form>
-                @elseif($order->status == 'cancel_requested')
-                  <form action="{{ route('seller.approveCancel', $order->id) }}" method="POST" class="d-inline">
-                    @csrf @method('PATCH')
-                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">Approve</button>
-                  </form>
-                  <form action="{{ route('seller.denyCancel', $order->id) }}" method="POST" class="d-inline">
-                    @csrf @method('PATCH')
-                    <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3">Deny</button>
-                  </form>
-                @else
-                  <span class="text-muted small">No Actions</span>
-                @endif
-              </td>
-            </tr>
+          @if($order->payment_method === 'online' && $order->seller_invoice_url)
+              <a href="{{ $order->seller_invoice_url }}" target="_blank" class="btn btn-outline-success btn-sm mt-2">
+                  <i class="fas fa-file-invoice me-1"></i> View Seller Invoice
+              </a>
+          @elseif($order->payment_method === 'online' && !$order->seller_invoice_url)
+              <form action="{{ route('seller.generateInvoice', $order->id) }}" method="POST">
+                  @csrf
+                  <button type="submit" class="btn btn-success btn-sm">
+                      <i class="fas fa-file-invoice me-1"></i> Generate Seller Invoice
+                  </button>
+              </form>
+          @elseif($order->payment_method === 'cod' && !$order->invoice_generated)
+              <form action="{{ route('seller.generateInvoice', $order->id) }}" method="POST">
+                  @csrf
+                  <button type="submit" class="btn btn-success btn-sm">
+                      <i class="fas fa-file-invoice me-1"></i> Generate COD E-Invoice
+                  </button>
+              </form>
+          @elseif($order->payment_method === 'cod' && $order->invoice_generated)
+              <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
+                  <i class="fas fa-file-invoice me-1"></i> View COD E-Invoice
+              </a>
+          @endif
+                  </div>
+                </div>
+              </div>
+            </div>
           @endforeach
-        </tbody>
-      </table>
 
-      <div class="d-flex justify-content-center mt-3">
-        {{ $orders->links('pagination::bootstrap-5') }}
-      </div>
-    @else
-      <p class="text-center text-muted py-4 mb-0">No orders available.</p>
-    @endif
-  </div>
-</div>
+
+                  <div class="d-flex justify-content-center mt-3">
+                    {{ $orders->links('pagination::bootstrap-5') }}
+                  </div>
+                @else
+                  <p class="text-center text-muted py-4 mb-0">No orders available.</p>
+                @endif
+              </div>
+            </div>
 
 
             {{-- ========== My Shop (UNCHANGED LOGIC) ========== --}}
@@ -1547,6 +1684,11 @@ select.form-select-sm {
     .shp-plus {
       font-size: 1.75rem;
       line-height: 1;
+    }
+
+    tr[data-bs-toggle="modal"]:hover {
+      background-color: #f8f9fa;
+      transition: 0.2s;
     }
   </style>
 

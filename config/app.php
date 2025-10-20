@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => env('APP_TIMEZONE', 'UTC'),
+    'timezone' => env('APP_TIMEZONE', 'Asia/Manila'),
 
     /*
     |--------------------------------------------------------------------------
@@ -104,6 +104,11 @@ return [
             explode(',', env('APP_PREVIOUS_KEYS', ''))
         ),
     ],
+
+
+
+    'PDF' => Barryvdh\DomPDF\Facade\Pdf::class,
+
 
     /*
     |--------------------------------------------------------------------------

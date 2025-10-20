@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Models\Category;
 use App\Notifications\OrderStatusUpdated;
 use App\Models\Seller;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 
 class SellerController extends Controller
@@ -187,7 +189,8 @@ class SellerController extends Controller
         $order = Order::findOrFail($id);
         $newStatus = $request->input('status');
 
-        if ($newStatus === 'completed') {
+        // ===== STOCK HANDLING (when completed / picked up) =====
+        if (in_array($newStatus, ['completed', 'picked_up'])) {
             foreach ($order->orderItems as $item) {
                 $product = $item->product;
                 if ($product->stock >= $item->quantity) {
@@ -200,21 +203,112 @@ class SellerController extends Controller
             $order->delivered_at = now();
         }
 
-        if ($newStatus === 'shipped') {
-            $order->shipped_at = now();
+        // ===== TIMESTAMP UPDATES =====
+        switch ($newStatus) {
+            case 'accepted':
+                $order->accepted_at = now();
+                break;
+
+            case 'ready_for_pickup':
+                $order->ready_at = now();
+                break;
+
+            case 'picked_up':
+            case 'completed':
+                $order->delivered_at = now();
+                break;
+
+            case 'shipped':
+                $order->shipped_at = now();
+                break;
         }
 
+        // ===== STATUS UPDATE =====
         $order->status = $newStatus;
         $order->save();
 
+        // ===== NOTIFY BUYER =====
         $extra = null;
         if ($newStatus === 'shipped') {
             $extra = trim(' ' . ($request->courier ?? '') . ' ' . ($request->tracking_no ?? ''));
         }
-        $this->notifyBuyer($order, $extra); // 👈
+
+        $this->notifyBuyer($order, $extra);
 
         return redirect()->route('myshop')->with('success', 'Order status updated successfully.');
     }
+
+    public function generateInvoice($id)
+    {
+        $order = Order::with('orderItems.product', 'user', 'address')->findOrFail($id);
+
+        // ✅ Security check
+        if (auth()->user()->role !== 'seller') {
+            abort(403, 'Unauthorized');
+        }
+
+        // === 🧾 Case 1: Online Payment (Generate seller's own PDF) ===
+        if ($order->payment_method === 'online') {
+            // Generate internal seller invoice (PDF)
+            $pdf = Pdf::loadView('invoices.seller_invoice', compact('order'))
+                    ->setPaper('a4', 'portrait');
+
+            $fileName = 'seller_invoice_' . $order->id . '.pdf';
+            $path = 'invoices/' . $fileName;
+
+            Storage::disk('public')->put($path, $pdf->output());
+
+            // Save invoice record to DB
+            $order->seller_invoice_url = asset('storage/' . $path);
+            $order->invoice_generated = true;
+            $order->save();
+
+            return redirect()->route('seller.viewInvoice', $order->id)
+                ->with('success', 'Seller E-Invoice generated successfully.');
+        }
+
+        // === 🧾 Case 2: COD Payment (Manual Generate) ===
+        if ($order->payment_method === 'cod') {
+            $pdf = Pdf::loadView('invoices.cod_invoice', compact('order'))
+                    ->setPaper('a4', 'portrait');
+
+            $fileName = 'cod_invoice_' . $order->id . '.pdf';
+            $path = 'invoices/' . $fileName;
+
+            Storage::disk('public')->put($path, $pdf->output());
+
+            $order->invoice_url = asset('storage/' . $path);
+            $order->invoice_generated = true;
+            $order->save();
+
+            return redirect()->route('seller.viewInvoice', $order->id)
+                ->with('success', 'COD E-Invoice generated successfully.');
+        }
+
+        return back()->with('error', 'Unsupported payment method.');
+    }
+
+public function viewInvoice($id)
+{
+    $order = Order::with('orderItems.product', 'user', 'address')->findOrFail($id);
+
+    // Only buyer or seller should access
+    if (!in_array(auth()->user()->role, ['buyer', 'seller', 'admin'])) {
+        abort(403, 'Unauthorized');
+    }
+
+    // If it's Xendit, redirect to Xendit invoice link
+    if ($order->payment_method === 'online' && $order->invoice_url) {
+        return redirect($order->invoice_url);
+    }
+
+    // If COD, show your custom invoice page
+    if ($order->payment_method === 'cod' && $order->invoice_generated) {
+        return view('invoices.cod_invoice', compact('order'));
+    }
+
+    return back()->with('error', 'No invoice available.');
+}
 
     public function myShop()
     {
