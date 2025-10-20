@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Address;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,6 +65,18 @@ class RegisteredUserController extends Controller
             'address' => $fullAddress,
             'password' => Hash::make($request->password),
         ]);
+
+        Address::create([
+            'user_id' => $user->id,
+            'full_name' => $user->name,
+            'mobile_number' => $user->phone,
+            'barangay' => $request->barangay,
+            'city' => $request->town,
+            'province' => 'Pangasinan',
+            'floor_unit_number' => $request->street ?? '',
+            'notes' => 'Default address from registration',
+        ]);
+
 
         // Send verification email
         event(new Registered($user));

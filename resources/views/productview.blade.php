@@ -644,18 +644,42 @@
 
       const form = document.getElementById('addToCartForm');
       if (form) {
-        form.addEventListener('submit', (e) => {
+        form.addEventListener('submit', async (e) => {
           e.preventDefault();
-          fetch(form.action, {
-            method: 'POST',
-            headers: {
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-              'Accept': 'application/json'
-            },
-            body: new FormData(form)
-          }).then(r => r.json()).then(data => {
-            alert(data.message || 'Added to cart!');
-          }).catch(() => alert('Something went wrong adding to cart.'));
+          const btn = form.querySelector('button[type="submit"]');
+
+          // 🧩 Prevent double-clicks
+          if (btn.disabled) return;
+          btn.disabled = true;
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Adding...';
+
+          try {
+            const response = await fetch(form.action, {
+              method: 'POST',
+              headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+              },
+              body: new FormData(form)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+              alert(data.message || 'Added to cart!');
+            } else {
+              alert(data.message || 'Failed to add to cart.');
+            }
+          } catch (err) {
+            alert('Something went wrong adding to cart.');
+          } finally {
+            // 🧩 Restore button after delay
+            setTimeout(() => {
+              btn.disabled = false;
+              btn.innerHTML = original;
+            }, 800);
+          }
         });
       }
     });

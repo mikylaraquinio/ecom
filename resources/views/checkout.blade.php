@@ -228,7 +228,7 @@
                                 <div class="card-body">
 
                                     <div class="d-flex justify-content-between mb-2">
-                                        <div class="text-start">Sub Total:</div>
+                                        <div class="text-start">Subtotal:</div>
                                         <div class="text-end">₱<span
                                                 id="sum-subtotal">{{ number_format($subtotal, 2) }}</span></div>
                                     </div>
@@ -255,18 +255,6 @@
                                                 id="sum-total">{{ number_format(($subtotal + $totalShipping) - ($shippingDiscount ?? 0), 2) }}</span>
                                         </div>
                                     </div>
-
-                                    {{-- Optional: keep per-seller shipping breakdown, shown smaller below --}}
-                                    @if(!empty($shippingBySeller))
-                                        <div class="mt-3">
-                                            @foreach($shippingBySeller as $info)
-                                                <div class="d-flex justify-content-between mb-1 small text-muted">
-                                                    <span>Shipping from {{ $info['seller']->name }}</span>
-                                                    <span>₱{{ number_format($info['shippingFee'], 2) }}</span>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @endif
 
                                     <button type="button" id="proceed-btn" class="btn btn-success w-100 mt-3">
                                         Place Order
@@ -297,11 +285,23 @@
                 <div class="modal-text">
                     <div class="mb-3">
                         <label class="form-label">Full Name</label>
-                        <input type="text" class="form-control" placeholder="First Last">
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            placeholder="First Last"
+                            value="{{ auth()->user()->name }}"
+                            readonly
+                        >
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Mobile Number</label>
-                        <input type="text" class="form-control" placeholder="Enter phone number">
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            placeholder="Enter phone number"
+                            value="{{ auth()->user()->phone }}"
+                            readonly
+                        >
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Other Notes</label>
@@ -433,48 +433,66 @@
             }
 
             function applyFulfillmentMode() {
-                const pickup = isPickupMode();
-                fmHidden.value = pickup ? 'pickup' : 'delivery';
+    const pickup = isPickupMode();
+    fmHidden.value = pickup ? 'pickup' : 'delivery';
 
-                // Toggle address card interactions (pickup = dim/disable)
-                if (pickup) {
-                    displayedAddressEl?.classList.add('address-disabled');
-                    if (editAddrBtnHeader) {
-                        editAddrBtnHeader.disabled = true;
-                        editAddrBtnHeader.setAttribute('aria-disabled', 'true');
-                    }
-                    if (shippingNoteEl) {
-                        shippingNoteEl.classList.add('text-success');
-                        shippingNoteEl.innerHTML = `<i class="bi bi-bag-check"></i> Pickup: No shipping fee`;
-                    }
-                } else {
-                    displayedAddressEl?.classList.remove('address-disabled');
-                    if (editAddrBtnHeader) {
-                        editAddrBtnHeader.disabled = false;
-                        editAddrBtnHeader.removeAttribute('aria-disabled');
-                    }
-                    if (shippingNoteEl) {
-                        shippingNoteEl.classList.remove('text-success');
-                        shippingNoteEl.innerHTML = `<i class="bi bi-truck"></i> Shipping: ₱50 per shop (auto-calculated)`;
-                    }
-                }
+    // Toggle address card
+    if (pickup) {
+        displayedAddressEl?.classList.add('address-disabled');
+        if (editAddrBtnHeader) {
+            editAddrBtnHeader.disabled = true;
+            editAddrBtnHeader.setAttribute('aria-disabled', 'true');
+        }
+        if (shippingNoteEl) {
+            shippingNoteEl.classList.add('text-success');
+            shippingNoteEl.innerHTML = `<i class="bi bi-bag-check"></i> Pickup: No shipping fee`;
+        }
+    } else {
+        displayedAddressEl?.classList.remove('address-disabled');
+        if (editAddrBtnHeader) {
+            editAddrBtnHeader.disabled = false;
+            editAddrBtnHeader.removeAttribute('aria-disabled');
+        }
+        if (shippingNoteEl) {
+            shippingNoteEl.classList.remove('text-success');
+            shippingNoteEl.innerHTML = `<i class="bi bi-truck"></i> Shipping: ₱50 per shop (auto-calculated)`;
+        }
+    }
 
-                const pickupEl = document.getElementById('pickupAddresses');
-                    if (pickupEl) {
-                    pickupEl.classList.toggle('d-none', !pickup);
+    // ✅ Handle pickup map display
+    const pickupEl = document.getElementById('pickupAddresses');
+    if (pickupEl) {
+        pickupEl.classList.toggle('d-none', !pickup);
 
-                    // Lazy-load map iframes when pickup is selected
-                    if (pickup) {
-                        pickupEl.querySelectorAll('iframe.pickup-map').forEach(iframe => {
-                        if (!iframe.src && iframe.dataset.src) {
-                            iframe.src = iframe.dataset.src;
-                        }
-                        });
-                    }
-                    }
-
-                recalcSummary();
+        // Lazy-load maps only when pickup selected
+        if (pickup) {
+            const iframes = pickupEl.querySelectorAll('iframe.pickup-map');
+            if (iframes.length === 0) {
+                console.warn('⚠️ No pickup maps found in DOM');
             }
+            iframes.forEach(iframe => {
+                if (!iframe.src && iframe.dataset.src) {
+                    iframe.src = iframe.dataset.src;
+                    iframe.style.opacity = '1';
+                }
+            });
+        } else {
+            // Hide maps when returning to delivery
+            pickupEl.querySelectorAll('iframe.pickup-map').forEach(iframe => {
+                iframe.removeAttribute('src');
+                iframe.style.opacity = '0';
+            });
+        }
+    }
+
+    // ✅ Fix shipping subtotal
+    const shippingSubtotalEl = document.getElementById('sum-shipping');
+    if (pickup) {
+        shippingSubtotalEl.textContent = '0.00';
+    }
+
+    recalcSummary();
+}
 
             itemChecks.forEach(cb => cb.addEventListener('change', recalcSummary));
 
@@ -535,42 +553,94 @@
                 });
             });
 
-            // Choose address -> updates hidden address_id + card
-            document.querySelectorAll('input[name="selected_address"]').forEach(r => {
-                r.addEventListener('change', function () {
-                    const card = this.closest('.address-card');
-                    const lbl = card.querySelector('label');
+            // 🔁 Handle address selection dynamically
+document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
+    radio.addEventListener('change', function () {
+        const selectedId = this.value;
+        const card = this.closest('.address-card');
+        const lbl = card.querySelector('label');
+        const lines = lbl.innerHTML.split('<br>');
+        const header = lines[0] ?? '';
+        const address1 = lines[1] ?? '';
+        const notes = lines[2] ?? '';
 
-                    // Simple parse of the label to show on right card
-                    const lines = lbl.innerHTML.split('<br>');
-                    const header = lines[0] ?? '';
-                    const address1 = lines[1] ?? '';
-                    const notes = lines[2] ?? '';
+        // Update hidden address_id input
+        const dest = document.querySelector('input[name="address_id"]');
+        if (dest) dest.value = selectedId;
 
-                    const dest = document.querySelector('input[name="address_id"]');
-                    if (dest) dest.value = this.value;
+        // Update displayed address on the checkout card instantly
+        const display = document.getElementById('displayed-address');
+        display.innerHTML = `
+            <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
+                <i class="bi bi-geo-alt-fill"></i>
+            </div>
+            <div class="flex-grow-1 small">
+                <div class="fw-semibold">${header}</div>
+                <div class="text-muted">${address1}</div>
+                ${notes ? `<div class="text-muted fst-italic">${notes}</div>` : ""}
+            </div>
+        `;
 
-                    const display = document.getElementById('displayed-address');
-                    display.innerHTML = `
-                        <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
-                            <i class="bi bi-geo-alt-fill"></i>
-                        </div>
-                        <div class="flex-grow-1 small">
-                            <div class="fw-semibold">${header}</div>
-                            <div class="text-muted">${address1}</div>
-                            <div class="text-muted fst-italic">${notes}</div>
-                        </div>
-                    `;
-                });
-            });
+        // --- 💾 Save selected address to session
+        fetch(`{{ route('checkout.saveSelectedAddress') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            },
+            body: JSON.stringify({ address_id: selectedId })
+        });
+
+        // --- 🚚 Show spinner while updating shipping
+        const shippingSpan = document.getElementById('sum-shipping');
+        shippingSpan.textContent = '...';
+
+        // --- 🔄 Recalculate shipping dynamically
+        fetch(`{{ route('checkout.recalcShipping') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            },
+            body: JSON.stringify({
+                address_id: selectedId,
+                selected_items: Array.from(
+                    document.querySelectorAll('input[name="selected_items[]"]:checked')
+                ).map(i => i.value),
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Update shipping subtotal
+                shippingSpan.textContent = data.totalShipping.toFixed(2);
+
+                // Recalculate total summary live
+                recalcSummary();
+            } else {
+                shippingSpan.textContent = '0.00';
+                recalcSummary();
+            }
+        })
+        .catch(() => {
+            shippingSpan.textContent = '0.00';
+            recalcSummary();
+        });
+
+        // Close the side modal after selecting
+        const modal = document.getElementById('editAddressModal');
+        if (modal) modal.style.display = 'none';
+    });
+});
+
 
             // Save (create/update) address
             saveAddressBtn?.addEventListener('click', (e) => {
                 e.preventDefault();
 
                 const payload = {
-                    full_name: document.querySelector('input[placeholder="First Last"]').value,
-                    mobile_number: document.querySelector('input[placeholder="Enter phone number"]').value,
+                    full_name: document.querySelector('input[placeholder="First Last"]').value || "{{ auth()->user()->name }}",
+                    mobile_number: document.querySelector('input[placeholder="Enter phone number"]').value || "{{ auth()->user()->phone }}",
                     notes: document.querySelector('input[placeholder="Enter notes"]').value,
                     floor_unit_number: document.querySelector('input[placeholder="Enter floor/unit number"]').value,
                     province: document.querySelector('input[placeholder="Enter province"]').value,
@@ -609,44 +679,52 @@
             });
 
             // Place Order
-            proceedBtn?.addEventListener('click', function (e) {
+            proceedBtn?.addEventListener('click', async function (e) {
                 e.preventDefault();
+
+                // 🧩 Disable button immediately
+                if (this.disabled) return;
+                this.disabled = true;
+                const originalText = this.innerHTML;
+                this.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> Placing Order...`;
 
                 const fulfillment = document.getElementById('fulfillment_method_final')?.value || 'delivery';
                 const addressId = document.querySelector('input[name="address_id"]')?.value;
 
-                // Address only required for delivery
                 if (fulfillment === 'delivery' && !addressId) {
-                    return alert('Please select a shipping address.');
+                    alert('Please select a shipping address.');
+                    resetButton();
+                    return;
                 }
 
                 const pm = document.querySelector('input[name="payment_method"]:checked');
-                if (!pm) return alert('Please select a payment method.');
+                if (!pm) {
+                    alert('Please select a payment method.');
+                    resetButton();
+                    return;
+                }
 
-                // --- Collect selected items ---
+                // Collect selected items
                 let selectedItems = Array.from(
                     document.querySelectorAll('input[name="selected_items[]"]:checked')
                 ).map(i => i.value);
 
-                // If cart items are empty, check for Buy Now hidden fields
                 if (!selectedItems.length) {
                     const buyNowProductId = document.querySelector('input[name="selected_items[0][product_id]"]')?.value;
                     const buyNowQty = document.querySelector('input[name="selected_items[0][quantity]"]')?.value;
-
                     if (buyNowProductId && buyNowQty) {
-                        selectedItems = [{
-                            product_id: buyNowProductId,
-                            quantity: buyNowQty
-                        }];
+                    selectedItems = [{ product_id: buyNowProductId, quantity: buyNowQty }];
                     }
                 }
 
                 if (!selectedItems.length) {
-                    return alert('Please select at least one product.');
+                    alert('Please select at least one product.');
+                    resetButton();
+                    return;
                 }
 
-                // --- Send request ---
-                fetch("{{ route('checkout.process') }}", {
+                try {
+                    const r = await fetch("{{ route('checkout.process') }}", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -657,24 +735,29 @@
                         address_id: addressId || null,
                         selected_items: selectedItems,
                         payment_method: pm.value,
-                        fulfillment_method: document.getElementById('fulfillment_method_final')?.value || 'delivery'
-                    })
-                })
-                    .then(async (r) => {
-                        const data = await r.json().catch(() => ({}));
-                        if (!r.ok) {
-                            const msg = data?.message
-                            || (data?.errors && Object.values(data.errors).flat()[0])
-                            || 'Something went wrong.';
-                            alert(msg);
-                            return;
-                        }
-                        if (data.success && data.redirect_url) {
-                            window.location.href = data.redirect_url;
-                        } else {
-                            alert(data.error || data.message || 'Something went wrong.');
-                        }
-                    })
+                        fulfillment_method: fulfillment,
+                    }),
+                    });
+
+                    const data = await r.json().catch(() => ({}));
+
+                    if (r.ok && data.success && data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                    } else {
+                    alert(data.message || 'Something went wrong placing the order.');
+                    resetButton();
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Failed to place order. Please try again.');
+                    resetButton();
+                }
+
+                // helper
+                function resetButton() {
+                    proceedBtn.disabled = false;
+                    proceedBtn.innerHTML = originalText;
+                }
             });
 
             // Helpers
@@ -761,5 +844,14 @@
 
         @media (max-width: 992px) { .right-modal .modal-content { max-width: 100%; } }
         @media (max-width: 768px) { .modal-text, .modal-address { width: 100%; } }
+
+        .mt-3 {
+            transition: opacity 0.3s ease;
+        }
+
+        .mt-3[style*="display: none"] {
+            opacity: 0;
+        }
+
     </style>
 </x-app-layout>

@@ -21,5 +21,5 @@ jobs:
           key: ${{ secrets.HOSTINGER_KEY }}
           port: 65002
           script: |
-            cd /home/u981519546/domains/farmsmart.store/public_html
+            cd /home/u981519546/domains/farmsmart.store
             git pull origin main

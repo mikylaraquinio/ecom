@@ -398,12 +398,30 @@ class CartController extends Controller
 
     public function cancel(Order $order)
     {
-        if ($order->status == 'pending') {
-            $order->update(['status' => 'canceled']);
-            return redirect()->back()->with('success', 'Order has been canceled.');
+        $user = Auth::user();
+
+        // Only allow the owner to cancel their own orders
+        if ($order->user_id !== $user->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 
-        return redirect()->back()->with('error', 'You cannot cancel this order.');
+        // Only allow cancel if pending
+        if ($order->status !== 'pending') {
+            return response()->json(['success' => false, 'message' => 'Only pending orders can be canceled.']);
+        }
+
+        // Check if more than 24 hours have passed
+        $hoursSinceOrder = now()->diffInHours($order->created_at);
+        if ($hoursSinceOrder >= 24) {
+            return response()->json(['success' => false, 'message' => 'Order can no longer be canceled after 24 hours.']);
+        }
+
+        $order->update([
+            'status' => 'canceled',
+            'canceled_at' => now(),
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Order has been canceled successfully.']);
     }
 
     public function edit(Order $order)

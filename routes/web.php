@@ -70,7 +70,7 @@ Route::middleware(['auth'])->group(function () {
 Route::post('/profile/update-picture', [ProfileController::class, 'updatePicture'])
     ->name('profile.updatePicture');
 
-Route::get('/user_profile', [ProfileController::class, 'showProfile'])->middleware(['auth', 'verified'])->name('user_profile');
+Route::get('/user_profile', [ProfileController::class, 'showProfile'])->middleware(['auth'])->name('user_profile');
 Route::patch('/buyer/order/{id}/cancel', [ProfileController::class, 'cancelOrder'])->name('buyer.cancelOrder');
 
 Route::patch('/orders/{id}/confirm-receipt', [ProfileController::class, 'confirmReceipt'])
@@ -115,6 +115,10 @@ Route::delete('/cart/bulk-delete', [CartController::class, 'bulkDelete'])->name(
 Route::post('/cart/checkout-selected', [CartController::class, 'checkoutSelected'])->name('cart.checkoutSelected');
 Route::post('/checkout', [CartController::class, 'process'])->name('checkout.process');
 
+//Shipping fee
+Route::post('/checkout/recalc-shipping', [CheckoutController::class, 'recalcShipping'])
+    ->name('checkout.recalcShipping');
+
 // Checkout Routes
 Route::post('/checkout', [CheckoutController::class, 'prepareCheckout'])->name('checkout.prepare');
 Route::get('/checkout', [CheckoutController::class, 'showCheckout'])->name('checkout.show');
@@ -136,6 +140,10 @@ Route::middleware('auth')->group(function () {
 Route::get('/my-orders', [SellerController::class, 'myOrders'])->name('buyer.orders')->middleware('auth');
 Route::patch('/seller/orders/{id}/update', [SellerController::class, 'updateOrderStatus'])->name('seller.updateOrderStatus');
 Route::get('/orders/{id}/confirm', [SellerController::class, 'confirmReceipt'])->name('buyer.confirm-receipt');
+
+Route::post('/orders/{order}/cancel', [App\Http\Controllers\CartController::class, 'cancel'])
+    ->name('orders.cancel');
+
 
 Route::middleware(['auth'])->group(function () {
     Route::post('/wishlist/toggle/{product}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');

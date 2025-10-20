@@ -18,6 +18,7 @@ class Address extends Model
         'province',
         'city',
         'barangay',
+        'notes',
     ];
 
     public function user()

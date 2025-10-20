@@ -407,24 +407,13 @@ class ProductController extends Controller
 
         // Cover (legacy single column) – versioned by file mtime
         $mainImage = $product->image
-            ? $v($product->image)
+            ? asset('storage/' . $product->image)
             : asset('assets/products.jpg');
 
         // Build gallery: cover first (versioned), then additional images (each versioned)
-        $gallery = [];
-        if ($product->image) {
-            $gallery[] = $mainImage;
-        }
-        if ($product->images && $product->images->count()) {
-            foreach ($product->images as $img) {
-                if (!empty($img->path)) {
-                    $gallery[] = $v($img->path);
-                }
-            }
-        }
-        if (empty($gallery)) {
-            $gallery[] = asset('assets/products.jpg');
-        }
+        $gallery = collect($product->gallery ?? [])
+            ->map(fn($img) => asset('storage/' . $img))
+            ->toArray();
 
         // Ratings, reviews, etc.
         $ratingsCount = (int) $product->reviews()->count();
