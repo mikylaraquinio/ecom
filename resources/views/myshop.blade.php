@@ -79,14 +79,10 @@
                     </div>
                   </a>
 
-                  <a href="#analytics" data-target="analytics" class="nav-link text-decoration-none flex-shrink-0">
-                    <div
-                      class="action-mini border rounded text-center d-flex flex-column align-items-center justify-content-center py-2 px-2"
-                      style="width:110px;">
-                      <i class="fas fa-chart-line"></i>
-                      <div class="small fw-semibold mt-1">Analytics</div>
-                    </div>
-                  </a>
+                  <a href="{{ route('seller.analytics') }}" class="btn btn-outline-success btn-sm">
+  <i class="fas fa-chart-line me-1"></i> Analytics
+</a>
+
                 </div>
               </div>
             </div>
@@ -1295,87 +1291,14 @@
                 bind('fld_moq', 'pv_moq', v => v || '—');
                 bind('fld_weight', 'pv_weight', v => v ? (parseFloat(v).toFixed(2) + ' kg') : '—');
               });
-            </script>
-
-            {{-- ========== Analytics (UNCHANGED LOGIC) ========== --}}
-            <div class="tab-pane fade" id="analytics">
-              <h4 class="fw-bold mb-3">Analytics Dashboard</h4>
-              <div class="row">
-                <div class="col-md-3">
-                  <div class="card shadow-sm border-0 p-3 bg-success text-white">
-                    <h6>Total Sales (Completed)</h6>
-                    <h4>₱{{ number_format($completedSales, 2) }}</h4>
-                    <h6>Pending Sales</h6>
-                    <h4>₱{{ number_format($pendingSales, 2) }}</h4>
-                    <h6>All Sales (Completed + Pending)</h6>
-                    <h4>₱{{ number_format($totalSales, 2) }}</h4>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="card shadow-sm border-0 p-3 bg-primary text-white">
-                    <h6>Total Orders</h6>
-                    <h4>{{ $totalOrders }}</h4>
-                    <small>Completed: {{ $completedOrders }} | Pending: {{ $pendingOrders }}</small>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="card shadow-sm border-0 p-3 bg-warning text-dark">
-                    <h6>Top Selling Products</h6>
-                    <h4>
-                      @if($mostSoldProduct)
-                        🏆 {{ $mostSoldProduct['product']->name }}
-                        <small class="text-muted">({{ $mostSoldProduct['total_quantity'] }} sold)</small>
-                      @else
-                        No sales yet
-                      @endif
-                    </h4>
-                    <ul class="list-group list-group-flush mt-3">
-                      @forelse($topProducts as $p)
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                          {{ $p['product']->name }}
-                          <span class="badge bg-success rounded-pill">{{ $p['total_quantity'] }}</span>
-                        </li>
-                      @empty
-                        <li class="list-group-item">No products sold yet</li>
-                      @endforelse
-                    </ul>
-                  </div>
-                </div>
-
-                @if($lowStockProducts->count() > 0)
-                  <div class="mt-3">
-                    <h6>⚠️ Low Stock Products</h6>
-                    <ul class="list-group">
-                      @foreach($lowStockProducts as $prod)
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                          {{ $prod->name }}
-                          <span class="badge bg-danger rounded-pill">{{ $prod->stock }} left</span>
-                        </li>
-                      @endforeach
-                    </ul>
-                  </div>
-                @endif
-              </div>
-
-              <div class="mt-4">
-                <h5 class="fw-bold">Revenue Trends</h5>
-                <select id="filterType" class="form-select w-auto mb-3">
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly" selected>Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-                <canvas id="salesChart"></canvas>
-              </div>
+              </script>
             </div>
-          </div>
 
-        @else
-        <p class="text-danger">You do not have permission to access this page.</p>
-      @endif
+          @else
+          <p class="text-danger">You do not have permission to access this page.</p>
+        @endif
+      </div>
     </div>
-  </div>
   </div>
 
   <style>
@@ -1432,24 +1355,24 @@
       font-weight: 600;
     }
     .table thead th {
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.85rem;
-}
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+    }
 
-.table-hover tbody tr:hover {
-  background-color: #f9f9f9;
-  transition: background 0.2s ease-in-out;
-}
+    .table-hover tbody tr:hover {
+      background-color: #f9f9f9;
+      transition: background 0.2s ease-in-out;
+    }
 
-.badge {
-  font-size: 0.75rem;
-}
+    .badge {
+      font-size: 0.75rem;
+    }
 
-select.form-select-sm {
-  border-radius: 50px;
-  padding-left: 12px;
-}
+    select.form-select-sm {
+      border-radius: 50px;
+      padding-left: 12px;
+    }
 
   </style>
   <script>
@@ -1484,67 +1407,6 @@ select.form-select-sm {
 
   {{-- ====== Scripts ====== --}}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const ctx = document.getElementById('salesChart').getContext('2d');
-      const filterSelect = document.getElementById('filterType');
-      let chart;
-
-      // Laravel data → JS (default monthly)
-      const revenueTrends = @json($revenueTrends);
-
-      const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-      ];
-      const defaultLabels = Object.keys(revenueTrends).map(m => monthNames[m - 1]);
-      const defaultData = Object.values(revenueTrends);
-
-      // Draw chart
-      function drawChart(labels, data) {
-        if (chart) chart.destroy();
-        chart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Revenue (₱)',
-              data: data,
-              borderColor: 'rgba(75, 192, 192, 1)',
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
-              fill: true,
-              tension: 0.3
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: { legend: { display: true } },
-            scales: { y: { beginAtZero: true } }
-          }
-        });
-      }
-
-      // Fetch new data (for daily, weekly, etc.)
-      function fetchRevenueData(type = 'monthly') {
-        fetch(`/seller/revenue-data?type=${type}`)
-          .then(res => res.json())
-          .then(data => {
-            const labels = Object.keys(data);
-            const values = Object.values(data);
-            drawChart(labels, values);
-          })
-          .catch(err => console.error('Fetch revenue data error:', err));
-      }
-
-      // Change filter
-      filterSelect.addEventListener('change', function () {
-        fetchRevenueData(this.value);
-      });
-
-      // Initial render (monthly)
-      drawChart(defaultLabels, defaultData);
-    });
-  </script>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>

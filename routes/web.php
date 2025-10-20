@@ -245,6 +245,8 @@ Route::get('/verify-notice', function () {
     return view('auth.verify-notice');
 })->name('verify.notice.guest');
 
+//Analytics
+Route::get('/seller/analytics', [SellerController::class, 'analytics'])->name('seller.analytics');
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';

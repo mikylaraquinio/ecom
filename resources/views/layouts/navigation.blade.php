@@ -1,3 +1,7 @@
+@php
+use Illuminate\Support\Facades\Route;
+@endphp
+
 <header class="header fixed-top">
   <div class="header-inner bg-white border-bottom shadow-sm">
     <div class="container">

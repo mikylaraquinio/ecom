@@ -317,107 +317,135 @@ public function viewInvoice($id)
     }
 
     public function index(Request $request)
+    {
+        $user = auth()->user();
+
+        $mainCategories = Category::whereNull('parent_id')->get();
+
+        // Notifications
+        $unreadNotifications = $user->unreadNotifications()->latest()->take(10)->get();
+        $allNotifications = $user->notifications()->latest()->paginate(10);
+
+        // ✅ Fetch seller's orders with optional status filter
+        $orders = Order::with(['buyer', 'orderItems.product', 'shippingAddress'])
+            ->whereHas('orderItems.product', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
+            ->latest()
+            ->paginate(10)
+            ->appends($request->query());
+
+        // ✅ Order Status Counts (for the 4 summary boxes)
+        $orderCounts = [
+            'pending' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
+                            ->where('status', 'pending')->count(),
+            'canceled' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
+                            ->where('status', 'canceled')->count(),
+            'denied' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
+                            ->where('status', 'denied')->count(),
+            'completed' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
+                            ->where('status', 'completed')->count(),
+        ];
+
+        $products = $user->products;
+
+        // ✅ Pass $orderCounts to the view
+        return view('myshop', compact(
+            'user',
+            'products',
+            'mainCategories',
+            'orders',
+            'orderCounts',
+            'unreadNotifications',
+            'allNotifications'
+        ));
+    }
+
+    public function analytics()
 {
-    $user = auth()->user();
+    $sellerId = auth()->id();
 
-    $mainCategories = Category::whereNull('parent_id')->get();
+    // 🧾 Fetch all orders related to the seller's products
+    $orders = Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $sellerId))->get();
 
-    // Notifications
-    $unreadNotifications = $user->unreadNotifications()->latest()->take(10)->get();
-    $allNotifications = $user->notifications()->latest()->paginate(10);
+    // ===== BASIC METRICS =====
+    $completedSales = $orders->where('status', 'completed')->sum('total_amount');
+    $pendingSales   = $orders->where('status', 'pending')->sum('total_amount');
+    $totalSales     = $completedSales + $pendingSales;
+    $totalOrders    = $orders->count();
 
-    // ✅ Fetch seller's orders with optional status filter
-    $orders = Order::with(['buyer', 'orderItems.product', 'shippingAddress'])
-        ->whereHas('orderItems.product', function ($q) use ($user) {
-            $q->where('user_id', $user->id);
-        })
-        ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
-        ->latest()
-        ->paginate(10)
-        ->appends($request->query());
+    $completedOrders = $orders->where('status', 'completed')->count();
+    $pendingOrders   = $orders->where('status', 'pending')->count();
+    $acceptedOrders  = $orders->where('status', 'accepted')->count();
+    $shippedOrders   = $orders->where('status', 'shipped')->count();
+    $canceledOrders  = $orders->where('status', 'canceled')->count();
 
-    // ✅ Order Status Counts (for the 4 summary boxes)
-    $orderCounts = [
-        'pending' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-                        ->where('status', 'pending')->count(),
-        'canceled' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-                        ->where('status', 'canceled')->count(),
-        'denied' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-                        ->where('status', 'denied')->count(),
-        'completed' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-                        ->where('status', 'completed')->count(),
-    ];
+    $deliveryOrders  = $orders->where('fulfillment_method', 'delivery')->count();
+    $pickupOrders    = $orders->where('fulfillment_method', 'pickup')->count();
 
-    // --- Analytics ---
-    $completedSales = Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-        ->where('status', 'completed')->sum('total_amount');
+    $uniqueCustomers = $orders->pluck('user_id')->unique()->count();
+    $repeatCustomers = $orders->groupBy('user_id')->filter(fn($g) => $g->count() > 1)->count();
+    $avgOrderValue   = $completedOrders ? $completedSales / $completedOrders : 0;
 
-    $pendingSales = Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-        ->where('status', 'pending')->sum('total_amount');
+    // ===== REVENUE BY MONTH =====
+    $monthlyRevenue = $orders->where('status', 'completed')
+        ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+        ->sum('total_amount');
 
-    $totalSales = $completedSales + $pendingSales;
+    // ===== REVENUE TREND =====
+    $salesTrends = $orders->where('status', 'completed')
+        ->groupBy(fn($order) => $order->created_at->format('M'))
+        ->map->sum('total_amount')
+        ->toArray();
 
-    $totalOrders = Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))->count();
-
-    $completedOrders = Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-        ->where('status', 'completed')->count();
-
-    $pendingOrders = Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-        ->where('status', 'pending')->count();
-
-    $topProducts = Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-        ->where('status', 'completed')
-        ->with('orderItems.product')
-        ->get()
-        ->flatMap->orderItems
+    // ===== TOP SELLING PRODUCTS =====
+    $topProducts = \App\Models\OrderItem::whereHas('product', fn($q) => $q->where('user_id', $sellerId))
+        ->selectRaw('product_id, SUM(quantity) as total_quantity')
         ->groupBy('product_id')
-        ->map(function ($items) {
-            return [
-                'product' => $items->first()->product,
-                'total_quantity' => $items->sum('quantity'),
-            ];
-        })
-        ->sortByDesc('total_quantity')
-        ->take(5);
+        ->with('product')
+        ->orderByDesc('total_quantity')
+        ->take(5)
+        ->get();
 
+    // ✅ Fix: define $mostSoldProduct
     $mostSoldProduct = $topProducts->first();
 
-    $lowStockCount = $user->products()->where('stock', '<=', 5)->count();
-    $lowStockProducts = $user->products()->where('stock', '<=', 5)->get();
+    // ===== LOW STOCK PRODUCTS =====
+    $lowStockProducts = \App\Models\Product::where('user_id', $sellerId)
+        ->where('stock', '<=', 5)
+        ->get();
 
-    $revenueTrends = Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-        ->where('status', 'completed')
-        ->select(
-            DB::raw('MONTH(created_at) as month'),
-            DB::raw('SUM(total_amount) as total')
-        )
-        ->groupBy(DB::raw('MONTH(created_at)'))
-        ->pluck('total', 'month');
+    // ===== RECENT ORDERS =====
+    $recentOrders = Order::whereHas('orderItems.product', fn($q) => 
+        $q->where('user_id', $sellerId)
+    )->latest()->take(5)->get();
 
-    $products = $user->products;
-
-    // ✅ Pass $orderCounts to the view
-    return view('myshop', compact(
-        'user',
-        'products',
-        'mainCategories',
-        'orders',
-        'orderCounts', // 👈 added here
+    // ===== RETURN VIEW =====
+    return view('seller.analytics', compact(
         'completedSales',
         'pendingSales',
         'totalSales',
         'totalOrders',
         'completedOrders',
         'pendingOrders',
+        'acceptedOrders',
+        'shippedOrders',
+        'canceledOrders',
+        'deliveryOrders',
+        'pickupOrders',
+        'uniqueCustomers',
+        'repeatCustomers',
+        'avgOrderValue',
+        'monthlyRevenue',
+        'salesTrends',
         'topProducts',
-        'mostSoldProduct',
-        'lowStockCount',
+        'mostSoldProduct',  // ✅ Added
         'lowStockProducts',
-        'revenueTrends',
-        'unreadNotifications',
-        'allNotifications'
+        'recentOrders'      // ✅ Added
     ));
 }
+
 
     public function revenueData(Request $request)
     {
@@ -540,6 +568,8 @@ public function viewInvoice($id)
             $buyer->notify(new OrderStatusUpdated($order, $extraMsg));
         }
     }
+
+    
 
 
 

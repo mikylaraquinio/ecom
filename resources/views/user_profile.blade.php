@@ -32,8 +32,10 @@
 
             <div>
                 @if($user->role !== 'seller')
-                    <a class="btn btn-outline-success" data-toggle="modal" data-target="#ModalCreate">
-                        <i class="fas fa-store mr-1"></i> Start Selling
+                    <a class="btn btn-outline-success" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#ModalCreate">
+                            <i class="fas fa-store mr-1"></i> Start Selling
                     </a>
                 @else
                     <a href="{{ route('myshop') }}" class="btn btn-outline-dark">
@@ -243,25 +245,24 @@
                                         <hr>
 
                                         <h6 class="text-success font-weight-bold mb-2"><i class="fas fa-file-invoice mr-2"></i>Payment & Invoice</h6>
-<p><strong>Method:</strong> {{ ucfirst($order->payment_method) }}</p>
-<p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
-<p><strong>Total:</strong> ₱{{ number_format($order->total_amount ?? $order->total_price, 2) }}</p>
-<p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
+                                        <p><strong>Method:</strong> {{ ucfirst($order->payment_method) }}</p>
+                                        <p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
+                                        <p><strong>Total:</strong> ₱{{ number_format($order->total_amount ?? $order->total_price, 2) }}</p>
+                                        <p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
 
-@if($order->payment_method === 'online' && $order->invoice_url)
-    {{-- ✅ Buyer sees Xendit invoice --}}
-    <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
-        <i class="fas fa-file-invoice me-1"></i> View Xendit Invoice
-    </a>
-@elseif($order->payment_method === 'cod' && $order->invoice_generated)
-    {{-- ✅ Buyer sees COD PDF only when generated --}}
-    <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-success btn-sm mt-2">
-        <i class="fas fa-file-invoice me-1"></i> View E-Invoice
-    </a>
-@else
-    <span class="text-muted small">No invoice available yet.</span>
-@endif
-
+                                        @if($order->payment_method === 'online' && $order->invoice_url)
+                                            {{-- ✅ Buyer sees Xendit invoice --}}
+                                            <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
+                                                <i class="fas fa-file-invoice me-1"></i> View Xendit Invoice
+                                            </a>
+                                        @elseif($order->payment_method === 'cod' && $order->invoice_generated)
+                                            {{-- ✅ Buyer sees COD PDF only when generated --}}
+                                            <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-success btn-sm mt-2">
+                                                <i class="fas fa-file-invoice me-1"></i> View E-Invoice
+                                            </a>
+                                        @else
+                                            <span class="text-muted small">No invoice available yet.</span>
+                                        @endif
                                     </div>                              
                                   
                                     <div class="modal-footer bg-light">

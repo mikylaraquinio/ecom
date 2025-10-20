@@ -115,13 +115,7 @@
           <div id="mainCarousel" class="carousel slide section-shadow rounded-4 overflow-hidden" data-bs-ride="carousel" data-bs-interval="4000">
             <div class="carousel-inner">
               <div class="carousel-item active">
-                <img src="{{ asset('assets/shop-bg.jpg') }}" class="d-block w-100 banner-img" alt="Provincial Livestock Fair">
-              </div>
-              <div class="carousel-item">
-                <img src="{{ asset('assets/farmer.jpg') }}" class="d-block w-100 banner-img" alt="Free Vet Outreach">
-              </div>
-              <div class="carousel-item">
-                <img src="{{ asset('assets/crops.jpg') }}" class="d-block w-100 banner-img" alt="Cattle Auction Day">
+                <img src="{{ asset('assets/11.11.png') }}" class="d-block w-100 banner-img" alt="Provincial Livestock Fair">
               </div>
             </div>
             <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
