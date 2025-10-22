@@ -80,9 +80,8 @@
                   </a>
 
                   <a href="{{ route('seller.analytics') }}" class="btn btn-outline-success btn-sm">
-  <i class="fas fa-chart-line me-1"></i> Analytics
-</a>
-
+                    <i class="fas fa-chart-line me-1"></i> Analytics
+                  </a>
                 </div>
               </div>
             </div>
@@ -472,7 +471,7 @@
                         <tbody>
                           @foreach($products as $product)
                             @php
-                              $thumb = asset('storage/' . $product->image);
+                              $thumb = asset('storage/products/' . $product->image);
                               $sales = $product->sales_count ?? 0;   // replace with your metric
                               $issues = 1;                           // replace with your quality logic
                             @endphp
@@ -533,10 +532,10 @@
                             @php
                               $viewSlides = [];
                               if (!empty($product->image))
-                                $viewSlides[] = asset('storage/' . $product->image);
+                                $viewSlides[] = asset('storage/products/' . $product->image);
                               if (isset($product->images) && $product->images->count()) {
                                 foreach ($product->images as $img) {
-                                  $viewSlides[] = asset('storage/' . $img->path);
+                                  $viewSlides[] = asset('storage/products/' . $product->image);
                                 }
                               }
                             @endphp
@@ -670,10 +669,10 @@
                             @php
                               $existingSlides = [];
                               if (!empty($product->image))
-                                $existingSlides[] = asset('storage/' . $product->image);
+                                $existingSlides[] = asset('storage/products/' . $product->image);
                               if (isset($product->images) && $product->images->count()) {
                                 foreach ($product->images as $img) {
-                                  $existingSlides[] = asset('storage/' . $img->path);
+                                  $existingSlides[] = asset('storage/products/' . $product->image);
                                 }
                               }
                             @endphp
@@ -802,12 +801,12 @@
                                                 $existingList = [];
                                                 // main image (no ID assumed)
                                                 if (!empty($product->image)) {
-                                                  $existingList[] = ['id' => null, 'src' => asset('storage/' . $product->image)];
+                                                  $existingList[] = ['id' => null, 'src' => asset('storage/products/' . $product->image)];
                                                 }
                                                 // gallery images with IDs
                                                 if (isset($product->images) && $product->images->count()) {
                                                   foreach ($product->images as $img) {
-                                                    $existingList[] = ['id' => $img->id, 'src' => asset('storage/' . $img->path)];
+                                                    $existingList[] = ['id' => $img->id, 'src' => asset('storage/products/' . $img->path)];
                                                   }
                                                 }
                                               @endphp
