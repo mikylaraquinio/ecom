@@ -17,21 +17,38 @@ class GoogleController extends Controller
 
     public function callback()
     {
-        $googleUser = Socialite::driver('google')->stateless()->user();
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+        } catch (\Exception $e) {
+            return redirect('/login')->withErrors(['google' => 'Failed to authenticate with Google.']);
+        }
 
-        $user = User::updateOrCreate(
-            ['email' => $googleUser->getEmail()],
-            [
-                'name' => $googleUser->getName(),
-                'google_id' => $googleUser->getId(),
-                'email_verified_at' => now(),
-                'password' => bcrypt(Str::random(16)),
-            ]
-        );
+        // ✅ Only allow login if email already exists
+        $existingUser = User::where('email', $googleUser->getEmail())->first();
 
-        Auth::login($user);
+        if (!$existingUser) {
+            return redirect('/login')->withErrors([
+                'google' => 'This Google account is not registered. Please sign up first.'
+            ]);
+        }
 
-         if (! $user->hasVerifiedEmail()) {
+        // ✅ Link Google ID if not already linked
+        if (is_null($existingUser->google_id)) {
+            $existingUser->google_id = $googleUser->getId();
+            $existingUser->save();
+        }
+
+        // ✅ Mark email as verified if Google confirms it
+        if (empty($existingUser->email_verified_at) && ($googleUser->user['verified_email'] ?? false)) {
+            $existingUser->email_verified_at = now();
+            $existingUser->save();
+        }
+
+        // ✅ Log user in
+        Auth::login($existingUser);
+
+        // ✅ Redirect properly
+        if (!$existingUser->hasVerifiedEmail()) {
             return redirect()->route('verification.notice');
         }
 
