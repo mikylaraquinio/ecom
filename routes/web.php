@@ -232,24 +232,16 @@ Route::get('/email/verify', function () {
     return view('auth.verify-email'); // show the verify page
 })->middleware('auth')->name('verification.notice');
 
-// ✅ When the user clicks the email link
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill(); // mark email as verified
-
-    // (Optional) Force fresh session in case the old one cached as unverified
-    Auth::logout(); 
-
-    // Redirect to login page with success message
-    return redirect()->route('login')->with('status', '✅ Your email has been verified! Please log in to continue.');
+    return redirect('/welcome')->with('status', 'Your email has been verified successfully!');
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
-// ✅ Allow resending verification emails
 Route::post('/email/verification-notification', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
-    return back()->with('message', '📩 Verification link sent! Check your inbox.');
+    return back()->with('message', 'Verification link sent!');
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
-// ✅ For guests who need to see “verify notice” page
 Route::get('/verify-notice', function () {
     return view('auth.verify-notice');
 })->name('verify.notice.guest');

@@ -26,40 +26,32 @@ class AuthenticatedSessionController extends Controller
      * Handle an incoming authentication request.
      */
     public function store(Request $request): RedirectResponse
-{
-    $request->validate([
-        'email' => 'required|email',
-        'password' => 'required',
-    ]);
-
-    $user = User::where('email', $request->email)->first();
-
-    if (!$user) {
-        return back()->withErrors(['email' => 'No account found with this email.']);
-    }
-
-    if (!Hash::check($request->password, $user->password)) {
-        return back()->withErrors(['password' => 'Incorrect password.']);
-    }
-
-    // 🚫 Stop login if email not verified
-    if (is_null($user->email_verified_at)) {
-        return back()->withErrors([
-            'email' => 'Your email is not verified yet. Please check your inbox for the verification link.'
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
         ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return back()->withErrors(['email' => 'No account found with this email.']);
+        }
+
+        if (!Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Incorrect password.']);
+        }
+
+        Auth::login($user, $request->filled('remember'));
+        $request->session()->regenerate();
+
+        // ✅ Redirect based on role
+        if ($user->is_admin) {
+            return redirect()->intended('/admin/dashboard');
+        }
+
+        return redirect()->intended('welcome');
     }
-
-    Auth::login($user, $request->filled('remember'));
-    $request->session()->regenerate();
-
-    // ✅ Redirect based on role
-    if ($user->is_admin) {
-        return redirect()->intended('/admin/dashboard');
-    }
-
-    return redirect()->intended('/welcome');
-}
-
 
 
     /**
