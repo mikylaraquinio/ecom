@@ -29,15 +29,6 @@ use Illuminate\Support\Facades\Route;
             <img src="{{ asset('assets/logo.png') }}" alt="FarmSmart Logo" style="height:65px;">
           </a>
 
-          <!-- Center: Search (desktop) -->
-          <form action="{{ url('/search') }}" method="GET" class="d-none d-lg-flex flex-grow-1 justify-content-center">
-            <div class="input-group search-pill">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="text" name="query" class="form-control" placeholder="Search fresh produce..." required>
-              <button type="submit" class="btn btn-success"><i class="bi bi-search"></i></button>
-            </div>
-          </form>
-
           <!-- Right: Navigation -->
           <div class="d-flex align-items-center gap-3">
 
@@ -158,17 +149,6 @@ use Illuminate\Support\Facades\Route;
               </a>
             @endauth
           </div>
-        </div>
-
-        <!-- Mobile Search -->
-        <div class="collapse d-lg-none w-100 mt-1" id="mobileSearch">
-          <form action="{{ url('/search') }}" method="GET" class="w-100">
-            <div class="input-group search-pill">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="text" name="query" class="form-control" placeholder="Search..." required>
-              <button type="submit" class="btn btn-success"><i class="bi bi-search"></i></button>
-            </div>
-          </form>
         </div>
       </nav>
       @endif

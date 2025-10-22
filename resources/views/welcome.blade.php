@@ -20,31 +20,14 @@
 
             <div class="list-group list-group-flush small py-2">
               @php
-                // Group categories by keyword
-                $livestock = $mainCategories->filter(fn($cat) => in_array(strtolower($cat->name), [
-                  'cattle / cow',
-                  'pig / hog',
-                  'goat',
-                  'chicken',
-                  'duck',
-                  'sheep',
-                  'carabao / water buffalo',
-                  'rabbit',
-                  'fish & aquatic'
-                ]));
-
-                $produce = $mainCategories->filter(fn($cat) => in_array(strtolower($cat->name), [
-                  'fruits',
-                  'vegetables',
-                  'root crops',
-                  'grains & rice',
-                  'legumes',
-                  'herbs & spices',
-                  'processed produce',
-                  'feeds & farm inputs',
-                  'farm equipment & tools',
-                  'farm services'
-                ]));
+              $livestockNames = ['cattle', 'goats', 'poultry', 'pigs', 'sheep', 'rabbits', 'aquaculture'];
+              $produceNames = ['rice', 'corn', 'vegetables', 'fruits', 'root crops', 'others'];
+              $livestock = $mainCategories->filter(function ($cat) use ($livestockNames) {
+                  return in_array(strtolower($cat->name), $livestockNames);
+              });
+              $produce = $mainCategories->filter(function ($cat) use ($produceNames) {
+                  return in_array(strtolower($cat->name), $produceNames);
+              });
               @endphp
 
               {{-- 🐄 LIVESTOCK SECTION --}}
@@ -53,55 +36,10 @@
                   Livestock
                 </div>
                 @foreach ($livestock as $main)
-                  @auth
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                      data-bs-toggle="collapse" data-bs-target="#cat-{{ $main->id }}" aria-expanded="false"
-                      aria-controls="cat-{{ $main->id }}">
-                      <span>{{ $main->name }}</span>
-                      <i class="bi bi-caret-down-fill small"></i>
-                    </button>
-                  @else
-                    <button type="button"
-                      class="list-group-item list-group-item-action d-flex justify-content-between align-items-center text-muted"
-                      onclick="window.location.href='{{ route('login') }}'">
-                      <span>{{ $main->name }}</span>
-                      <i class="bi bi-lock-fill small"></i>
-                    </button>
-                  @endauth
-
-                  <div class="collapse ps-3" id="cat-{{ $main->id }}">
-                    @foreach ($main->subcategories as $sub)
-                      @auth
-                        <a href="{{ route('shop', ['category' => \Illuminate\Support\Str::slug($sub->name)]) }}"
-                          class="list-group-item list-group-item-action border-0 small">
-                          {{ $sub->name }}
-                        </a>
-                      @else
-                        <button type="button" class="list-group-item list-group-item-action border-0 small text-muted"
-                          onclick="window.location.href='{{ route('login') }}'">
-                          {{ $sub->name }}
-                        </button>
-                      @endauth
-
-                      @if ($sub->subcategories->count())
-                        <div class="ps-3">
-                          @foreach ($sub->subcategories as $child)
-                            @auth
-                              <a href="{{ route('shop', ['category' => \Illuminate\Support\Str::slug($child->name)]) }}"
-                                class="list-group-item list-group-item-action border-0 small text-muted">
-                                — {{ $child->name }}
-                              </a>
-                            @else
-                              <button type="button" class="list-group-item list-group-item-action border-0 small text-muted"
-                                onclick="window.location.href='{{ route('login') }}'">
-                                — {{ $child->name }}
-                              </button>
-                            @endauth
-                          @endforeach
-                        </div>
-                      @endif
-                    @endforeach
-                  </div>
+                  <a href="{{ route('shop', ['category' => $main->id]) }}" 
+                    class="list-group-item list-group-item-action">
+                    {{ $main->name }}
+                  </a>
                 @endforeach
               @endif
 
@@ -111,55 +49,10 @@
                   Farm Produce
                 </div>
                 @foreach ($produce as $main)
-                  @auth
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                      data-bs-toggle="collapse" data-bs-target="#cat-{{ $main->id }}" aria-expanded="false"
-                      aria-controls="cat-{{ $main->id }}">
-                      <span>{{ $main->name }}</span>
-                      <i class="bi bi-caret-down-fill small"></i>
-                    </button>
-                  @else
-                    <button type="button"
-                      class="list-group-item list-group-item-action d-flex justify-content-between align-items-center text-muted"
-                      onclick="window.location.href='{{ route('login') }}'">
-                      <span>{{ $main->name }}</span>
-                      <i class="bi bi-lock-fill small"></i>
-                    </button>
-                  @endauth
-
-                  <div class="collapse ps-3" id="cat-{{ $main->id }}">
-                    @foreach ($main->subcategories as $sub)
-                      @auth
-                        <a href="{{ route('shop', ['category_slug' => \Illuminate\Support\Str::slug($sub->name)]) }}"
-                          class="list-group-item list-group-item-action border-0 small">
-                          {{ $sub->name }}
-                        </a>
-                      @else
-                        <button type="button" class="list-group-item list-group-item-action border-0 small text-muted"
-                          onclick="window.location.href='{{ route('login') }}'">
-                          {{ $sub->name }}
-                        </button>
-                      @endauth
-
-                      @if ($sub->subcategories->count())
-                        <div class="ps-3">
-                          @foreach ($sub->subcategories as $child)
-                            @auth
-                              <a href="{{ route('shop', ['category' => \Illuminate\Support\Str::slug($child->name)]) }}"
-                                class="list-group-item list-group-item-action border-0 small text-muted">
-                                — {{ $child->name }}
-                              </a>
-                            @else
-                              <button type="button" class="list-group-item list-group-item-action border-0 small text-muted"
-                                onclick="window.location.href='{{ route('login') }}'">
-                                — {{ $child->name }}
-                              </button>
-                            @endauth
-                          @endforeach
-                        </div>
-                      @endif
-                    @endforeach
-                  </div>
+                  <a href="{{ route('shop', ['category' => $main->id]) }}" 
+                    class="list-group-item list-group-item-action">
+                    {{ $main->name }}
+                  </a>
                 @endforeach
               @endif
             </div>

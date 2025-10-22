@@ -1162,16 +1162,7 @@
                               <select class="form-select" name="category" required>
                                 <option value="">Select category</option>
                                 @foreach($mainCategories as $category)
-                                  <optgroup label="{{ $category->name }}">
-                                    <option value="{{ $category->id }}">
-                                      {{ $category->name }} (Main)
-                                    </option>
-                                    @foreach ($category->subcategories as $subCategory)
-                                      <option value="{{ $subCategory->id }}">
-                                        └ {{ $subCategory->name }}
-                                      </option>
-                                    @endforeach
-                                  </optgroup>
+                                  <option value="{{ $category->id }}">{{ $category->name }}</option>
                                 @endforeach
                               </select>
                             </div>
