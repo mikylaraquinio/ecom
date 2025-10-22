@@ -604,6 +604,10 @@ document.querySelectorAll('[data-bs-toggle="modal"]').forEach(el => {
         border-radius: 8px;
         font-size: 0.85rem;
     }
+    .modal-backdrop.show {
+  opacity: 0.45 !important;
+}
+
 
     </style>
 
@@ -735,6 +739,16 @@ document.querySelectorAll('[data-bs-toggle="modal"]').forEach(el => {
         w.document.close();
     }
     </script>
+    <script>
+document.addEventListener('hidden.bs.modal', function (event) {
+  // Remove all leftover backdrops when any modal closes
+  const backdrops = document.querySelectorAll('.modal-backdrop');
+  backdrops.forEach(b => b.remove());
+  document.body.classList.remove('modal-open');
+  document.body.style.overflow = ''; // allow scrolling again
+});
+</script>
+
 
     @include('farmers.modal.sell')
 </x-app-layout>
