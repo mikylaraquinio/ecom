@@ -87,5 +87,17 @@ class Product extends Model
         return $this->image_path ?? asset('storage/' . $this->image ?? 'assets/products.jpg');
     }
 
+    protected static function booted()
+    {
+        static::saved(function ($product) {
+            $source = storage_path('app/public/products/' . $product->image);
+            $destination = public_path('storage/products/' . $product->image);
+
+            if (file_exists($source) && !file_exists($destination)) {
+                @mkdir(dirname($destination), 0775, true);
+                @copy($source, $destination);
+            }
+        });
+    }
 
 }
