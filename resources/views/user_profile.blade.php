@@ -294,7 +294,7 @@
                                             <button type="button" 
                                                     class="btn btn-success btn-sm"
                                                     data-bs-toggle="modal" 
-                                                    data-bs-target="#reviewModal-{{ $order->id }}">
+                                                    data-bs-target="#reviewModal-{{ $item->id }}">
                                                 <i class="fas fa-star me-1"></i> Leave Review
                                             </button>
                                         @endif
@@ -441,11 +441,6 @@
                     </div>
                 </div>
             </div>
-            @foreach($user->orders()->with('orderItems.product')->latest()->get() as $order)
-                @if($order->status === 'completed')
-                    @include('partials.review-modal', ['order' => $order])
-                @endif
-            @endforeach
 
             <!-- RIGHT COLUMN -->
             <div class="col-md-5 mb-4">
@@ -528,6 +523,25 @@
             </div>
         </div>
     </div>
+
+    {{-- ✅ Place all review modals outside containers --}}
+@foreach($user->orders()->with('orderItems.product')->latest()->get() as $order)
+    @if($order->status === 'completed')
+        @include('partials.review-modal', ['order' => $order])
+    @endif
+@endforeach
+
+
+{{-- ✅ Ensure modal triggers always work --}}
+<script>
+document.querySelectorAll('[data-bs-toggle="modal"]').forEach(el => {
+  el.addEventListener('click', e => {
+    const target = document.querySelector(el.getAttribute('data-bs-target'));
+    if (target) new bootstrap.Modal(target).show();
+  });
+});
+</script>
+
 
     <style>
     .order-card:hover{background:#f9f9f9;transition:0.2s;box-shadow:0 2px 6px rgba(0,0,0,0.05);}
