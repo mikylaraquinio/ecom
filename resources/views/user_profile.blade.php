@@ -433,11 +433,7 @@
                             </div>
                             </div>
                             @endif
-                        @endforeach
-                        @foreach($user->orders as $order)
-                            @if($order->status === 'completed')
-                                @include('partials.review-modal', ['order' => $order])
-                            @endif
+
                         @endforeach
                     @empty
                         <p class="text-center text-muted py-5 mb-0">No orders found yet.</p>
@@ -445,6 +441,11 @@
                     </div>
                 </div>
             </div>
+            @foreach($user->orders()->with('orderItems.product')->latest()->get() as $order)
+                @if($order->status === 'completed')
+                    @include('partials.review-modal', ['order' => $order])
+                @endif
+            @endforeach
 
             <!-- RIGHT COLUMN -->
             <div class="col-md-5 mb-4">
