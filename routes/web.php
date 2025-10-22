@@ -24,6 +24,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\FollowController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use App\Http\Controllers\Auth\VerifyEmailController;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -224,35 +225,23 @@ Route::get('/shop/{seller}', [ShopController::class, 'view'])->name('shop.view')
 
 /*
 |--------------------------------------------------------------------------
-| Email Verification Routes
+| Email Verification (OTP Code System)
 |--------------------------------------------------------------------------
 */
 
-Route::get('/email/verify', function () {
-    return view('auth.verify-email'); // show the verify page
-})->middleware('auth')->name('verification.notice');
+// 🟩 Allow both guests & authenticated users to enter a code
+Route::get('/email/verify/code', function () {
+    return view('auth.verify-code');
+})->name('verification.code');
 
-// ✅ When the user clicks the email link
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill(); // mark email as verified
+// 🟩 Send a 6-digit OTP code
+Route::post('/email/verification-code', [VerifyEmailController::class, 'sendVerificationCode'])
+    ->middleware(['auth', 'throttle:3,1'])
+    ->name('verification.code.send');
 
-    // (Optional) Force fresh session in case the old one cached as unverified
-    Auth::logout(); 
-
-    // Redirect to login page with success message
-    return redirect()->route('login')->with('status', '✅ Your email has been verified! Please log in to continue.');
-})->middleware(['auth', 'signed'])->name('verification.verify');
-
-// ✅ Allow resending verification emails
-Route::post('/email/verification-notification', function (Request $request) {
-    $request->user()->sendEmailVerificationNotification();
-    return back()->with('message', '📩 Verification link sent! Check your inbox.');
-})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
-
-// ✅ For guests who need to see “verify notice” page
-Route::get('/verify-notice', function () {
-    return view('auth.verify-notice');
-})->name('verify.notice.guest');
+// 🟩 Verify the entered code (works even if not logged in)
+Route::post('/email/verify/code', [VerifyEmailController::class, 'verifyCode'])
+    ->name('verification.code.submit');
 
 //Analytics
 Route::get('/seller/analytics', [SellerController::class, 'analytics'])->name('seller.analytics');

@@ -36,6 +36,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'government_id',
         'farm_registration_certificate',
         'mobile_money',
+        'email_verification_code', 
+        'email_verification_expires_at'
     ];
 
     /**
@@ -55,7 +57,9 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'email_verification_expires_at' => 'datetime',
     ];
+
 
     /**
      * A user can have many products.
@@ -110,5 +114,6 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(Follow::class, 'follower_id');
     }
+    
 
 }
