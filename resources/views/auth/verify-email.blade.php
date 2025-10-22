@@ -78,19 +78,6 @@
       font-size: 0.9rem;
       margin-bottom: 1rem;
     }
-
-    .logout-btn {
-      display: inline-block;
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      color: #dc2626;
-      text-decoration: underline;
-      transition: color 0.2s ease;
-    }
-
-    .logout-btn:hover {
-      color: #b91c1c;
-    }
   </style>
 
   <div class="register-container">
@@ -109,11 +96,6 @@
       <form method="POST" action="{{ route('verification.send') }}">
         @csrf
         <button type="submit" class="farm-btn">Resend Verification Email</button>
-      </form>
-
-      <form method="POST" action="{{ route('logout') }}">
-        @csrf
-        <button type="submit" class="logout-btn">Logout</button>
       </form>
     </div>
   </div>
