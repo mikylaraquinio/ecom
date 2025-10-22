@@ -9,15 +9,13 @@ class ShopController extends Controller
 {
     public function view($sellerId)
     {
-        // ✅ Find seller
-        $seller = User::findOrFail($sellerId);
+        $seller = User::with('seller')->findOrFail($sellerId); // ✅ include seller relationship
 
-        // ✅ Get only this seller's products
         $products = Product::where('user_id', $seller->id)
             ->latest()
             ->get();
 
-        // ✅ Pass both seller and products to the view
         return view('shop.view-shop', compact('seller', 'products'));
     }
+
 }
