@@ -471,7 +471,7 @@
                         <tbody>
                           @foreach($products as $product)
                             @php
-                              $thumb = asset('storage/products/' . $product->image);
+                              $thumb = image_url('products/' . $product->image);
                               $sales = $product->sales_count ?? 0;   // replace with your metric
                               $issues = 1;                           // replace with your quality logic
                             @endphp
@@ -480,7 +480,7 @@
 
                               <td>
                                 <div class="d-flex align-items-start gap-2">
-                                  <img src="{{ $thumb }}" alt="{{ $product->name }}" class="rounded border"
+                                  <img src="{{ image_url('products/' . $product->image) }}" alt="{{ $product->name }}" class="rounded border"
                                     style="width:64px;height:64px;object-fit:cover;">
                                   <div>
                                     <div class="fw-semibold text-truncate" style="max-width: 360px;">
@@ -532,10 +532,10 @@
                             @php
                               $viewSlides = [];
                               if (!empty($product->image))
-                                $viewSlides[] = asset('storage/products/' . $product->image);
+                                $viewSlides[] = image_url('products/' . $product->image);
                               if (isset($product->images) && $product->images->count()) {
                                 foreach ($product->images as $img) {
-                                  $viewSlides[] = asset('storage/products/' . $product->image);
+                                  $existingList[] = ['id' => $img->id, 'src' => image_url('products/' . $img->path)];
                                 }
                               }
                             @endphp
