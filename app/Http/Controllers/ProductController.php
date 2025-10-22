@@ -386,30 +386,30 @@ class ProductController extends Controller
         ]);
 
         $seller = $product->user;
-        $publicPath = '/home/u981519546/domains/farmsmart.store/public_html/';
 
-$resolveImageUrl = function ($path) use ($publicPath) {
-    if (!$path) {
+        $resolveImageUrl = function ($path) {
+        if (!$path) {
+            return asset('assets/products.jpg');
+        }
+
+        // ✅ 1. First, check if file is already accessible in /public/storage
+        if (file_exists(public_path('storage/' . $path))) {
+            return asset('storage/' . $path);
+        }
+
+        // ✅ 2. If on local (symlink usually works)
+        if (app()->environment('local')) {
+            return asset('storage/' . $path);
+        }
+
+        // ✅ 3. If on production (Hostinger - no symlink)
+        if (file_exists(storage_path('app/public/' . $path))) {
+            return asset('storage/app/public/' . $path);
+        }
+
+        // ✅ 4. Fallback image
         return asset('assets/products.jpg');
-    }
-
-    // Possible locations
-    $realPath = $publicPath . 'storage/app/public/' . $path;
-    $publicCopy = $publicPath . 'storage/' . $path;
-
-    // Prefer the public copy (if exists)
-    if (file_exists($publicCopy)) {
-        return asset('storage/' . $path);
-    }
-    // If public copy doesn't exist but app/public does, build a direct URL for it
-    elseif (file_exists($realPath)) {
-        // We expose /storage/app/public as /storage via asset()
-        return asset('storage/app/public/' . $path);
-    }
-    // fallback
-    return asset('assets/products.jpg');
-};
-
+    };
 
         // Helper to append file mtime as ?v= to bust cache per-file
         $v = function (?string $relPath) {
