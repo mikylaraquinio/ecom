@@ -267,9 +267,10 @@
                                   
                                     <div class="modal-footer bg-light">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+
                                         @php
                                             $canCancel = $order->status === 'pending' &&
-                                            \Carbon\Carbon::parse($order->created_at)->diffInHours(now()) < 24;
+                                                \Carbon\Carbon::parse($order->created_at)->diffInHours(now()) < 24;
                                         @endphp
 
                                         @if($canCancel)
@@ -281,9 +282,20 @@
                                                 <i class="fas fa-lock me-1"></i> Cancellation Locked (after 24h)
                                             </button>
                                         @endif
+
                                         @if($order->payment_method === 'cod' && $order->status === 'completed')
                                             <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#invoiceModal-{{ $order->id }}">
                                                 <i class="fas fa-file-invoice me-1"></i> View E-Invoice
+                                            </button>
+                                        @endif
+
+                                        {{-- ✅ Leave Review button (only for completed orders) --}}
+                                        @if($order->status === 'completed')
+                                            <button type="button" 
+                                                    class="btn btn-success btn-sm"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#reviewModal-{{ $order->id }}">
+                                                <i class="fas fa-star me-1"></i> Leave Review
                                             </button>
                                         @endif
                                     </div>
@@ -429,6 +441,9 @@
                     </div>
                 </div>
             </div>
+            @if($order->status === 'completed')
+                @include('partials.review-modal', ['order' => $order])
+            @endif
 
             <!-- RIGHT COLUMN -->
             <div class="col-md-5 mb-4">

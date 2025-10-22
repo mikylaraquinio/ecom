@@ -48,7 +48,14 @@ class ShippingHelper
         'san jacinto' => [16.073, 120.437],
         'san quintin' => [15.984, 120.821],
         'natividad' => [16.042, 120.791],
+        'aguilar' => [15.888, 120.236],
+        'alcala' => [15.848, 120.526],
+        'balungao' => [15.903, 120.699],
+        'bani' => [16.190, 119.868],
+        'laoac' => [16.050, 120.530],
+        'san isidro' => [15.920, 120.640],
     ];
+
 
     // Aliases for alternate spellings, abbreviations, or prefixes
     private static array $ALIASES = [
@@ -113,7 +120,8 @@ class ShippingHelper
 
     private static function normalize(?string $s): ?string
     {
-        if (!$s) return null;
+        if (!$s)
+            return null;
 
         $s = mb_strtolower(trim($s));
         $s = str_replace(['.', ',', 'pangasinan'], '', $s);
@@ -136,7 +144,8 @@ class ShippingHelper
     {
         $a = self::$COORDS[$fromKey] ?? null;
         $b = self::$COORDS[$toKey] ?? null;
-        if (!$a || !$b) return null;
+        if (!$a || !$b)
+            return null;
 
         [$lat1, $lon1] = $a;
         [$lat2, $lon2] = $b;
