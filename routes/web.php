@@ -24,7 +24,6 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\FollowController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
-use Illuminate\Support\Facades\Auth;
 
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -230,27 +229,23 @@ Route::get('/shop/{seller}', [ShopController::class, 'view'])->name('shop.view')
 */
 
 Route::get('/email/verify', function () {
-    return view('auth.verify-email');
+    return view('auth.verify-email'); // show the verify page
 })->middleware('auth')->name('verification.notice');
 
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill(); // mark email as verified ✅
-
-    // ✅ Force logout to refresh the old unverified session
-    Auth::logout();
-
-    // ✅ Redirect user to login with success banner
-    return redirect()->route('login')->with('status', '✅ Your email has been verified successfully! Please log in to continue.');
+    $request->fulfill(); // mark email as verified
+    return redirect('/welcome')->with('status', 'Your email has been verified successfully!');
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
 Route::post('/email/verification-notification', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
-    return back()->with('message', '📩 Verification link sent! Check your email.');
+    return back()->with('message', 'Verification link sent!');
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 Route::get('/verify-notice', function () {
     return view('auth.verify-notice');
 })->name('verify.notice.guest');
+
 //Analytics
 Route::get('/seller/analytics', [SellerController::class, 'analytics'])->name('seller.analytics');
 
