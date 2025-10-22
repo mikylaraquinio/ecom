@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Http\Controllers\AIChatController;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\FollowController;
@@ -253,6 +254,15 @@ Route::post('/email/verification-notification', function (Request $request) {
 Route::get('/verify-notice', function () {
     return view('auth.verify-notice');
 })->name('verify.notice.guest');
+
+// web.php
+Route::get('/email/verify/code', function () {
+    return view('auth.verify-code');
+})->middleware('auth')->name('verification.code');
+
+Route::post('/email/verify/code', [VerifyEmailController::class, 'verifyCode'])
+    ->middleware('auth')
+    ->name('verification.code.submit');
 
 //Analytics
 Route::get('/seller/analytics', [SellerController::class, 'analytics'])->name('seller.analytics');

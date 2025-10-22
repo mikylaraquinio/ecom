@@ -36,6 +36,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'government_id',
         'farm_registration_certificate',
         'mobile_money',
+        'email_verification_code', 
+        'email_verification_expires_at'
     ];
 
     /**
