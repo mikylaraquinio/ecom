@@ -227,46 +227,25 @@ Route::get('/shop/{seller}', [ShopController::class, 'view'])->name('shop.view')
 | Email Verification Routes
 |--------------------------------------------------------------------------
 */
-Route::get('/email/verify', function () {
-    // If verification is skipped (local/dev), go straight to welcome
-    if (env('AUTH_SKIP_EMAIL_VERIFICATION', false)) {
-        if (Auth::check()) {
-            Auth::user()->update(['email_verified_at' => now()]);
-            return redirect('/welcome')->with('status', 'Email verification skipped (local mode).');
-        }
-    }
 
-    return view('auth.verify-email');
+Route::get('/email/verify', function () {
+    return view('auth.verify-email'); // show the verify page
 })->middleware('auth')->name('verification.notice');
 
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    // Mark email as verified in DB
-    $request->fulfill();
-
-    // Force logout to refresh stale unverified session
-    Auth::logout();
-
-    return redirect()->route('login')->with('status', '✅ Your email has been verified! Please log in to continue.');
+    $request->fulfill(); // mark email as verified
+    return redirect('/welcome')->with('status', 'Your email has been verified successfully!');
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
 Route::post('/email/verification-notification', function (Request $request) {
-    // Skip resend if local and verification disabled
-    if (env('AUTH_SKIP_EMAIL_VERIFICATION', false)) {
-        return back()->with('message', 'Verification skipped in local environment.');
-    }
-
     $request->user()->sendEmailVerificationNotification();
-    return back()->with('message', '📩 Verification link sent! Check your inbox.');
+    return back()->with('message', 'Verification link sent!');
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 Route::get('/verify-notice', function () {
-    if (env('AUTH_SKIP_EMAIL_VERIFICATION', false) && Auth::check()) {
-        Auth::user()->update(['email_verified_at' => now()]);
-        return redirect('/welcome')->with('status', 'Email verification skipped (local mode).');
-    }
-
     return view('auth.verify-notice');
 })->name('verify.notice.guest');
+
 //Analytics
 Route::get('/seller/analytics', [SellerController::class, 'analytics'])->name('seller.analytics');
 
