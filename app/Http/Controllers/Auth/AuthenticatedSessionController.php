@@ -26,32 +26,48 @@ class AuthenticatedSessionController extends Controller
      * Handle an incoming authentication request.
      */
     public function store(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
 
-        $user = User::where('email', $request->email)->first();
+    $user = User::where('email', $request->email)->first();
 
-        if (!$user) {
-            return back()->withErrors(['email' => 'No account found with this email.']);
-        }
-
-        if (!Hash::check($request->password, $user->password)) {
-            return back()->withErrors(['password' => 'Incorrect password.']);
-        }
-
-        Auth::login($user, $request->filled('remember'));
-        $request->session()->regenerate();
-
-        // ✅ Redirect based on role
-        if ($user->is_admin) {
-            return redirect()->intended('/admin/dashboard');
-        }
-
-        return redirect()->intended('welcome');
+    if (!$user) {
+        return back()->withErrors(['email' => 'No account found with this email.']);
     }
+
+    if (!Hash::check($request->password, $user->password)) {
+        return back()->withErrors(['password' => 'Incorrect password.']);
+    }
+
+    // ✅ Check if email is verified before login
+    if (is_null($user->email_verified_at)) {
+        // Resend verification email
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            \Log::error('Failed to resend verification email', ['error' => $e->getMessage()]);
+        }
+
+        return back()->withErrors([
+            'email' => 'Please verify your email before logging in. A new verification link has been sent.',
+        ]);
+    }
+
+    // ✅ Passed all checks, proceed to login
+    Auth::login($user, $request->filled('remember'));
+    $request->session()->regenerate();
+
+    // ✅ Redirect based on role
+    if ($user->is_admin) {
+        return redirect()->intended('/admin/dashboard');
+    }
+
+    return redirect()->intended('welcome');
+}
+
 
 
     /**
