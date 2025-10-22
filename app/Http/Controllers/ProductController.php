@@ -386,6 +386,30 @@ class ProductController extends Controller
         ]);
 
         $seller = $product->user;
+        $publicPath = '/home/u981519546/domains/farmsmart.store/public_html/';
+
+$resolveImageUrl = function ($path) use ($publicPath) {
+    if (!$path) {
+        return asset('assets/products.jpg');
+    }
+
+    // Possible locations
+    $realPath = $publicPath . 'storage/app/public/' . $path;
+    $publicCopy = $publicPath . 'storage/' . $path;
+
+    // Prefer the public copy (if exists)
+    if (file_exists($publicCopy)) {
+        return asset('storage/' . $path);
+    }
+    // If public copy doesn't exist but app/public does, build a direct URL for it
+    elseif (file_exists($realPath)) {
+        // We expose /storage/app/public as /storage via asset()
+        return asset('storage/app/public/' . $path);
+    }
+    // fallback
+    return asset('assets/products.jpg');
+};
+
 
         // Helper to append file mtime as ?v= to bust cache per-file
         $v = function (?string $relPath) {
