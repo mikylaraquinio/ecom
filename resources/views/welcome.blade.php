@@ -31,30 +31,49 @@
               @endphp
 
               {{-- 🐄 LIVESTOCK SECTION --}}
-              @if ($livestock->count())
-                <div class="px-3 pt-2 text-muted text-uppercase small fw-semibold border-bottom pb-1">
-                  Livestock
-                </div>
-                @foreach ($livestock as $main)
-                  <a href="{{ route('shop', ['category' => $main->id]) }}" 
-                    class="list-group-item list-group-item-action">
-                    {{ $main->name }}
-                  </a>
-                @endforeach
-              @endif
+@if ($livestock->count())
+  <div class="px-3 pt-2 text-muted text-uppercase small fw-semibold border-bottom pb-1">
+    Livestock
+  </div>
+  @foreach ($livestock as $main)
+    @auth
+      <a href="{{ route('shop', ['category' => $main->id]) }}"
+        class="list-group-item list-group-item-action">
+        {{ $main->name }}
+      </a>
+    @else
+      <button type="button"
+        class="list-group-item list-group-item-action text-muted d-flex justify-content-between align-items-center"
+        onclick="window.location.href='{{ route('login') }}'">
+        <span>{{ $main->name }}</span>
+        <i class="bi bi-lock-fill small text-secondary"></i>
+      </button>
+    @endauth
+  @endforeach
+@endif
 
-              {{-- 🌾 FARM PRODUCE SECTION --}}
-              @if ($produce->count())
-                <div class="px-3 pt-3 mt-2 text-muted text-uppercase small fw-semibold border-bottom pb-1">
-                  Farm Produce
-                </div>
-                @foreach ($produce as $main)
-                  <a href="{{ route('shop', ['category' => $main->id]) }}" 
-                    class="list-group-item list-group-item-action">
-                    {{ $main->name }}
-                  </a>
-                @endforeach
-              @endif
+{{-- 🌾 FARM PRODUCE SECTION --}}
+@if ($produce->count())
+  <div class="px-3 pt-3 mt-2 text-muted text-uppercase small fw-semibold border-bottom pb-1">
+    Farm Produce
+  </div>
+  @foreach ($produce as $main)
+    @auth
+      <a href="{{ route('shop', ['category' => $main->id]) }}"
+        class="list-group-item list-group-item-action">
+        {{ $main->name }}
+      </a>
+    @else
+      <button type="button"
+        class="list-group-item list-group-item-action text-muted d-flex justify-content-between align-items-center"
+        onclick="window.location.href='{{ route('login') }}'">
+        <span>{{ $main->name }}</span>
+        <i class="bi bi-lock-fill small text-secondary"></i>
+      </button>
+    @endauth
+  @endforeach
+@endif
+
             </div>
           </div>
         </div>

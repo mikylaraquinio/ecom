@@ -10,6 +10,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
@@ -20,11 +22,6 @@ class RegisteredUserController extends Controller
         return view('auth.register');
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
@@ -49,7 +46,20 @@ class RegisteredUserController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        // Combine Address
+        // ✅ Verify email deliverability before creating account
+        if (!filter_var($request->email, FILTER_VALIDATE_EMAIL)) {
+            return back()->withErrors(['email' => 'Invalid email address.']);
+        }
+
+        // 🔍 OPTIONAL: check if the domain has MX records (can receive email)
+        $domain = substr(strrchr($request->email, "@"), 1);
+        if (!checkdnsrr($domain, 'MX')) {
+            return back()->withErrors([
+                'email' => 'This email domain cannot receive mail. Please use a valid email.'
+            ]);
+        }
+
+        // ✅ Prepare the full address
         $addressParts = [];
         if ($request->street) $addressParts[] = $request->street;
         $addressParts[] = "Brgy. " . $request->barangay;
@@ -57,7 +67,7 @@ class RegisteredUserController extends Controller
         $addressParts[] = "Pangasinan";
         $fullAddress = implode(', ', $addressParts);
 
-        // Create User
+        // ✅ Create user but keep them unverified
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -66,6 +76,7 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // ✅ Create address record
         Address::create([
             'user_id' => $user->id,
             'full_name' => $user->name,
@@ -77,12 +88,10 @@ class RegisteredUserController extends Controller
             'notes' => 'Default address from registration',
         ]);
 
-
-        // Send verification email
+        // ✅ Send Laravel’s built-in email verification
         event(new Registered($user));
 
-        // ✅ Do NOT auto login yet
-        return redirect()->route('verify.notice.guest')->with('status', 'Verification link sent. Please check your email to activate your account.');
+        return redirect()->route('verify.notice.guest')
+            ->with('status', 'A verification link has been sent to your email. Please verify to activate your account.');
     }
-
 }

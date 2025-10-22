@@ -32,6 +32,7 @@ Route::get('/', [CategoryController::class, 'index'])->name('welcome');
 // Optional alias for /welcome — loads the same controller
 Route::get('/welcome', [CategoryController::class, 'index']);
 
+
 // Shop Page
 
 Route::get('/shop', [ProductController::class, 'index'])->name('shop');
