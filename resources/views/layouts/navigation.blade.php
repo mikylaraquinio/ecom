@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 
 <header class="header fixed-top">
   <div class="header-inner bg-white border-bottom shadow-sm">
-    <div class="container">
       @if (Route::has('login'))
       @php
         $activeIcon = function (...$patterns) {
@@ -61,7 +60,8 @@ use Illuminate\Support\Facades\Route;
 
               <!-- Chat (icon only) -->
               <div class="dropdown">
-                <a class="icon-link dropdown-toggle" id="chatDropdown" data-bs-toggle="dropdown" title="Chat">
+                <a class="icon-link dropdown-toggle" id="chatDropdown" data-bs-toggle="dropdown" data-bs-display="static"
+ title="Chat">
                   <i class="bi bi-chat-dots"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-end chat-dropdown shadow-sm p-0" aria-labelledby="chatDropdown">
@@ -72,7 +72,8 @@ use Illuminate\Support\Facades\Route;
               <!-- Notifications (icon only) -->
               <div class="dropdown">
                 <a class="icon-link dropdown-toggle position-relative {{ $activeIcon('notifications.*') }}"
-                   id="notifDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Notifications">
+                   id="notifDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-display="static"
+ title="Notifications">
                   <i class="bi bi-bell"></i>
                   @if($unreadCount > 0)
                     <span class="badge rounded-pill bg-danger badge-dot">{{ $unreadCount }}</span>
@@ -111,7 +112,8 @@ use Illuminate\Support\Facades\Route;
 
               <!-- Profile (icon only) -->
               <div class="dropdown">
-                <a href="#" class="icon-link dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" title="Account">
+                <a href="#" class="icon-link dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" data-bs-display="static"
+ title="Account">
                   <i class="bi bi-person-circle fs-5"></i>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end user-dropdown shadow-sm" aria-labelledby="userDropdown">
@@ -152,7 +154,6 @@ use Illuminate\Support\Facades\Route;
         </div>
       </nav>
       @endif
-    </div>
   </div>
 
   <!-- Styles -->
@@ -242,5 +243,9 @@ use Illuminate\Support\Facades\Route;
     border-color: #68b13a;
     box-shadow: 0 0 0 3px rgba(104,177,58,.14);
   }
+  nav.navbar {
+  z-index: 3050 !important;
+}
+
   </style>
 </header>
