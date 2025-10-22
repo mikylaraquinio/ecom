@@ -85,7 +85,7 @@
           {{-- === Contact Info (Optional) === --}}
           <div class="mb-3">
             <label class="form-label fw-semibold">Your Contact Email (optional)</label>
-            <input type="email" name="contact_email" class="form-control" placeholder="you@example.com">
+            <input type="email" name="contact_email" class="form-control" placeholder="you@example.com" maxlength="50">
           </div>
 
         </div>

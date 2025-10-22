@@ -70,16 +70,6 @@
                                 </div>
 
                                 <div class="mb-2">
-                                    <label class="form-label fw-semibold">Stock Availability</label>
-                                    <select name="stock" class="form-select">
-                                        <option value="">All</option>
-                                        <option value="in_stock" {{ request('stock') == 'in_stock' ? 'selected' : '' }}>In
-                                            Stock</option>
-                                        <option value="out_of_stock" {{ request('stock') == 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
-                                    </select>
-                                </div>
-
-                                <div class="mb-2">
                                     <label class="form-label fw-semibold">Sort By</label>
                                     <select name="sort_by" class="form-select">
                                         <option value="">Default</option>
