@@ -30,7 +30,7 @@
       <div class="col-12 col-lg-5">
         <div class="product-gallery d-flex flex-column align-items-center">
           <div class="main-image border rounded p-2 bg-white w-100 position-relative shadow-xs">
-            <img id="mainImg" src="{{ $mainImage }}" alt="{{ $product->name }}" class="img-fluid">
+            <img id="mainImg" src="{{ image_url($mainImage) }}" alt="{{ $product->name }}" class="img-fluid">
 
             {{-- Prev / Next controls --}}
             @if(count($gallery) > 1)
@@ -48,7 +48,7 @@
             <div class="thumbs-rail d-flex gap-2 flex-nowrap overflow-auto pe-1">
               @foreach($gallery as $i => $img)
                 <button type="button" class="thumb btn p-0 border-0 {{ $i === 0 ? 'active' : '' }}" data-index="{{ $i }}">
-                  <img src="{{ $img }}" class="thumb-img rounded" alt="thumb {{ $i + 1 }}">
+                  <img src="{{ image_url($img) }}" class="thumb-img rounded" alt="thumb {{ $i + 1 }}">
                 </button>
               @endforeach
             </div>
@@ -224,7 +224,7 @@
       <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
           <img
-            src="{{ $seller?->profile_picture ? asset('storage/' . $seller->profile_picture) : asset('assets/default.png') }}"
+            src="{{ image_url($seller?->profile_picture) }}"
             alt="{{ $seller?->username ?? 'Seller' }}" class="rounded-circle"
             style="width:64px;height:64px;object-fit:cover;">
           <div>
@@ -313,10 +313,11 @@
             <div class="small text-muted mb-2">Photos from buyers</div>
             <div class="d-flex flex-wrap gap-2">
               @foreach($uniquePhotos as $p)
-                <a href="{{ asset('storage/' . $p) }}" target="_blank" class="d-inline-block">
-                  <img src="{{ asset('storage/' . $p) }}" alt="Buyer photo" class="rounded border"
-                    style="width:64px;height:64px;object-fit:cover;">
-                </a>
+                <a href="{{ image_url($p) }}" target="_blank" class="d-inline-block">
+  <img src="{{ image_url($p) }}" alt="Buyer photo" class="rounded border"
+    style="width:64px;height:64px;object-fit:cover;">
+</a>
+
               @endforeach
             </div>
           </div>
@@ -327,7 +328,7 @@
             <li class="list-group-item py-3">
               <div class="d-flex align-items-start gap-3">
                 <img
-                  src="{{ $rev->user?->profile_picture ? asset('storage/' . $rev->user->profile_picture) : asset('assets/default.png') }}"
+                  src="{{ image_url($rev->user?->profile_picture) }}"
                   alt="{{ $rev->user?->name ?? 'User' }}" class="rounded-circle border"
                   style="width:40px;height:40px;object-fit:cover;">
 
@@ -355,7 +356,7 @@
                   <div class="d-flex flex-wrap gap-2">
                     @if($showReviewPhoto)
                       <a href="{{ asset('storage/' . $rev->photo_path) }}" target="_blank">
-                        <img src="{{ asset('storage/' . $rev->photo_path) }}" alt="Review photo" class="rounded border"
+                        <img src="{{ image_url($rev->photo_path) }}" alt="Review photo" class="rounded border"
                           style="width:110px;height:110px;object-fit:cover;">
                       </a>
                     @endif

@@ -605,8 +605,8 @@ document.querySelectorAll('[data-bs-toggle="modal"]').forEach(el => {
         font-size: 0.85rem;
     }
     .modal-backdrop.show {
-  opacity: 0.45 !important;
-}
+        opacity: 0.45 !important;
+    }
 
 
     </style>

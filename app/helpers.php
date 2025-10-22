@@ -1,27 +1,24 @@
 <?php
 
-if (!function_exists('getCategoryIcon')) {
-    function getCategoryIcon($categoryName, $parentCategoryName = null)
-    {
-        $icons = [
-            'Grains & Cereals' => '🌾',
-            'Vegetables' => '🥦',
-            'Fruits' => '🍎',
-            'Herbs & Spices' => '🌿',
-            'Livestock' => '🐄',
-            'Poultry' => '🐔'
-        ];
+use Illuminate\Support\Facades\Storage;
 
-        // 1️⃣ If the category has its own icon, return it
-        if (isset($icons[$categoryName])) {
-            return $icons[$categoryName];
+if (!function_exists('image_url')) {
+    function image_url($path) {
+        if (!$path) {
+            return asset('assets/default.png');
         }
 
-        // 2️⃣ If it's a subcategory, inherit from the parent category
-        if ($parentCategoryName && isset($icons[$parentCategoryName])) {
-            return $icons[$parentCategoryName];
+        // Check if file exists in storage
+        if (Storage::disk('public')->exists($path)) {
+            return asset('storage/' . ltrim($path, '/'));
         }
 
-        return '🌱'; // Default icon for unknown categories
+        // Fallback if absolute URL already or CDN
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
+        }
+
+        // Fallback default
+        return asset('assets/default.png');
     }
 }
