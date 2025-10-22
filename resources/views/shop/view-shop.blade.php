@@ -5,7 +5,9 @@
     <nav aria-label="breadcrumb" class="mb-4">
       <ol class="breadcrumb mb-0">
         <li class="breadcrumb-item"><a href="{{ route('shop') }}">Shop</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{{ $seller->username ?? $seller->name }}</li>
+        <li class="breadcrumb-item active" aria-current="page">
+          {{ $seller->seller->shop_name ?? 'Shop' }}
+        </li>
       </ol>
     </nav>
 
@@ -14,12 +16,14 @@
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div class="d-flex align-items-center gap-3">
           <img src="{{ $seller->profile_picture ? asset('storage/'.$seller->profile_picture) : asset('assets/default.png') }}"
-              alt="{{ $seller->name }}"
+              alt="{{ $seller->seller->shop_name ?? $seller->name }}"
               class="rounded-circle border"
               style="width:80px;height:80px;object-fit:cover;">
 
           <div>
-            <h4 class="mb-1 fw-semibold">{{ $seller->username ?? $seller->name }}</h4>
+            <h4 class="mb-1 fw-semibold">
+              {{ $seller->seller->shop_name ?? $seller->name }}
+            </h4>
             <div class="small text-muted">Joined {{ $seller->created_at->diffForHumans() }}</div>
             <div class="small text-muted">{{ $products->count() }} products</div>
           </div>
@@ -36,7 +40,7 @@
     {{-- 🛍️ Seller Products --}}
     <section>
       <h5 class="fw-bold mb-3 text-success">
-        {{ $seller->username ?? $seller->name }}’s Products
+        {{ $seller->seller->shop_name ?? $seller->name }}’s Products
       </h5>
 
       {{-- Include the reusable product list partial --}}
@@ -45,7 +49,7 @@
 
   </div>
 
-  {{-- ✅ Wishlist JS (use same as shop & productview) --}}
+  {{-- ✅ Wishlist JS --}}
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
