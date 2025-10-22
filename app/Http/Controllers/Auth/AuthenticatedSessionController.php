@@ -42,23 +42,6 @@ class AuthenticatedSessionController extends Controller
             return back()->withErrors(['password' => 'Incorrect password.']);
         }
 
-        // ✅ Always re-fetch latest data from database (to get updated email_verified_at)
-        $user->refresh();
-
-        // ✅ Check if email is verified before login
-        if (is_null($user->email_verified_at)) {
-            try {
-                $user->sendEmailVerificationNotification();
-            } catch (\Throwable $e) {
-                \Log::error('Failed to resend verification email', ['error' => $e->getMessage()]);
-            }
-
-            return back()->withErrors([
-                'email' => 'Please verify your email before logging in. A new verification link has been sent.',
-            ]);
-        }
-
-        // ✅ Passed all checks, proceed to login
         Auth::login($user, $request->filled('remember'));
         $request->session()->regenerate();
 
@@ -69,7 +52,6 @@ class AuthenticatedSessionController extends Controller
 
         return redirect()->intended('welcome');
     }
-
 
 
     /**
