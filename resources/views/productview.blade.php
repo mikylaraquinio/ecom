@@ -144,8 +144,19 @@
 
 
           <div class="d-flex flex-wrap gap-2">
-            @if(($product->stock ?? 0) > 0)
-              {{-- Add to Cart --}}
+            @php
+              $user = auth()->user(); // ✅ define the user
+              $isOwner = $user && $product->user_id === $user->id;
+            @endphp
+
+            @if ($isOwner)
+              {{-- 🚫 Owner cannot buy their own product --}}
+              <button class="btn btn-secondary btn-lg px-4 w-100" disabled>
+                <i class="fa-solid fa-ban me-1"></i> You cannot buy your own product
+              </button>
+
+            @elseif (($product->stock ?? 0) > 0)
+              {{-- ✅ Add to Cart --}}
               <form id="addToCartForm" method="POST" action="{{ route('cart.add', $product->id) }}">
                 @csrf
                 <input type="hidden" name="quantity" id="qtyField" value="{{ (int) ($product->min_order_qty ?? 1) }}">
@@ -154,7 +165,7 @@
                 </button>
               </form>
 
-              {{-- Buy Now --}}
+              {{-- ✅ Buy Now --}}
               <form method="POST" action="{{ route('checkout.prepare') }}"
                 onsubmit="document.getElementById('buyNowQty').value = document.getElementById('qtyInput').value;">
                 @csrf
@@ -162,12 +173,14 @@
                 <input type="hidden" id="buyNowQty" name="quantity" value="{{ (int) ($product->min_order_qty ?? 1) }}">
                 <button class="btn btn-danger btn-lg px-4">Buy Now</button>
               </form>
+
             @else
-              {{-- SOLD OUT --}}
+              {{-- ❌ SOLD OUT --}}
               <button class="btn btn-secondary btn-lg px-4" disabled>
                 <i class="fa-solid fa-ban me-1"></i> Sold Out
               </button>
             @endif
+
 
             {{-- Wishlist --}}
             @auth

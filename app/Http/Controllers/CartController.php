@@ -116,6 +116,14 @@ class CartController extends Controller
             return response()->json(['success' => false, 'message' => 'You must be logged in to add to cart.']);
         }
 
+        // 🚫 Prevent users from adding their own products to cart
+        if ($product->user_id === $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot add your own product to the cart.'
+            ]);
+        }
+
         // Check if the requested quantity is available
         if ($request->quantity > $product->stock) {
             return response()->json(['success' => false, 'message' => 'Not enough stock available.']);

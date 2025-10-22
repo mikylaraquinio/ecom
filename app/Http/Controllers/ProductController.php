@@ -393,6 +393,7 @@ class ProductController extends Controller
         ]);
 
         $seller = $product->user;
+        $user = auth()->user();
 
         $resolveImageUrl = function ($path) {
         if (!$path) {
