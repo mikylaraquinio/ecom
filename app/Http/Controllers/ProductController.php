@@ -157,68 +157,75 @@ class ProductController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'unit' => 'required|string|in:kg,piece,bundle,sack',
-            'weight' => 'required|numeric|min:0.01',
-            'min_order_qty' => 'nullable|integer|min:1',
-            'category' => 'required|exists:categories,id',
-        ]);
+{
+    $request->validate([
+        'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'name' => 'required|string|max:255',
+        'description' => 'required|string',
+        'price' => 'required|numeric|min:0',
+        'stock' => 'required|integer|min:0',
+        'unit' => 'required|string|in:kg,piece,bundle,sack',
+        'weight' => 'required|numeric|min:0.01',
+        'min_order_qty' => 'nullable|integer|min:1',
+        'category' => 'required|exists:categories,id',
+    ]);
 
-        // ✅ Save the image in storage/app/public/products
-        $imagePath = $request->file('image')->store('products', 'public');
+    // ✅ Save main image
+    $imagePath = $request->file('image')->store('products', 'public');
 
-        // ✅ Hostinger workaround: manually copy file to public/storage/
-        $publicPath = public_path('storage/' . $imagePath);
-        $directory = dirname($publicPath);
-
-        if (!file_exists($directory)) {
-            mkdir($directory, 0755, true);
-        }
-
-        // Copy file so Hostinger can serve it
-        @copy(storage_path('app/public/' . $imagePath), $publicPath);
-
-        // ✅ Save product
-        $product = new Product();
-        $product->fill([
-            'name' => $request->name,
-            'description' => $request->description,
-            'price' => $request->price,
-            'stock' => $request->stock,
-            'unit' => $request->unit,
-            'weight' => $request->weight,
-            'min_order_qty' => $request->min_order_qty ?? 1,
-            'image' => $imagePath,
-            'image_path' => asset('storage/' . $imagePath),
-            'category_id' => $request->category,
-            'user_id' => auth()->id(),
-        ]);
-        $product->save();
-
-        // ✅ Also handle gallery images
-        if ($request->hasFile('gallery')) {
-            $order = 0;
-            foreach ($request->file('gallery') as $file) {
-                $path = $file->store('products', 'public');
-                @copy(storage_path('app/public/' . $path), public_path('storage/' . $path));
-
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'path' => $path,
-                    'sort_order' => $order++,
-                ]);
-            }
-        }
-
-        return back()->with('success', 'Product added successfully.');
+    // ✅ Hostinger workaround (no symlink)
+    $source = storage_path('app/public/' . $imagePath);
+    $destination = public_path('storage/' . $imagePath);
+    if (file_exists($source)) {
+        @mkdir(dirname($destination), 0755, true);
+        @copy($source, $destination);
     }
+
+    // ✅ Detect actual public base (Hostinger may use /public_html/public)
+    $publicUrl = url('storage/' . $imagePath);
+
+    // ✅ Save product
+    $product = new Product();
+    $product->fill([
+        'name' => $request->name,
+        'description' => $request->description,
+        'price' => $request->price,
+        'stock' => $request->stock,
+        'unit' => $request->unit,
+        'weight' => $request->weight,
+        'min_order_qty' => $request->min_order_qty ?? 1,
+        'image' => $imagePath,
+        'image_path' => $publicUrl,
+        'category_id' => $request->category,
+        'user_id' => auth()->id(),
+    ]);
+    $product->save();
+
+    // ✅ Handle gallery images (copy & store)
+    if ($request->hasFile('gallery')) {
+        $order = 0;
+        foreach ($request->file('gallery') as $file) {
+            $path = $file->store('products', 'public');
+
+            $src = storage_path('app/public/' . $path);
+            $dst = public_path('storage/' . $path);
+            if (file_exists($src)) {
+                @mkdir(dirname($dst), 0755, true);
+                @copy($src, $dst);
+            }
+
+            ProductImage::create([
+                'product_id' => $product->id,
+                'path' => $path,
+                'sort_order' => $order++,
+            ]);
+        }
+    }
+
+    return back()->with('success', 'Product added successfully.');
+}
+
 
 
     public function edit($id)
