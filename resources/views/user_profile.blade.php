@@ -434,9 +434,11 @@
                             </div>
                             @endif
                         @endforeach
-                        @if($order->status === 'completed')
-                            @include('partials.review-modal', ['order' => $order])
-                        @endif
+                        @foreach($user->orders as $order)
+                            @if($order->status === 'completed')
+                                @include('partials.review-modal', ['order' => $order])
+                            @endif
+                        @endforeach
                     @empty
                         <p class="text-center text-muted py-5 mb-0">No orders found yet.</p>
                     @endforelse
