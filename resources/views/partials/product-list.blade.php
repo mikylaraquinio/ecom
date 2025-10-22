@@ -2,7 +2,9 @@
   <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
     @forelse($products as $product)
       @php
-        $imageUrl = $product->image ? asset('public/storage/products/' . $product->image) : asset('assets/products.jpg');
+        $imageUrl = $product->image
+          ? asset((app()->environment('local') ? 'storage/' : 'public/storage/') . $product->image)
+          : asset('assets/products.jpg');
       @endphp
 
       <div class="col d-flex position-relative" style="overflow: visible;">
