@@ -433,17 +433,16 @@
                             </div>
                             </div>
                             @endif
-
                         @endforeach
+                        @if($order->status === 'completed')
+                            @include('partials.review-modal', ['order' => $order])
+                        @endif
                     @empty
                         <p class="text-center text-muted py-5 mb-0">No orders found yet.</p>
                     @endforelse
                     </div>
                 </div>
             </div>
-            @if($order->status === 'completed')
-                @include('partials.review-modal', ['order' => $order])
-            @endif
 
             <!-- RIGHT COLUMN -->
             <div class="col-md-5 mb-4">
