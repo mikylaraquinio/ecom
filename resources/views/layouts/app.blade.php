@@ -59,20 +59,6 @@
               <h6 class="fw-semibold mb-3 text-uppercase">Quick Links</h6>
               <ul class="list-unstyled small">
                 <li><a href="{{ route('shop') }}" class="footer-link">Shop Products</a></li>
-                <li><a href="#" class="footer-link">Categories</a></li>
-                <li><a href="#" class="footer-link">About Us</a></li>
-                <li><a href="#" class="footer-link">Contact</a></li>
-              </ul>
-            </div>
-
-            <!-- Support -->
-            <div class="col-md-3">
-              <h6 class="fw-semibold mb-3 text-uppercase">Customer Support</h6>
-              <ul class="list-unstyled small">
-                <li><a href="#" class="footer-link">FAQs</a></li>
-                <li><a href="#" class="footer-link">Terms & Conditions</a></li>
-                <li><a href="#" class="footer-link">Privacy Policy</a></li>
-                <li><a href="#" class="footer-link">Return Policy</a></li>
               </ul>
             </div>
 

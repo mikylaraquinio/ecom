@@ -339,7 +339,6 @@
         <div class="modal-content">
             <div class="modal-header d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">Select / Edit Address</h4>
-                <button class="btn btn-success btn-sm" id="openAddAddressModal">Add</button>
             </div>
             <div class="modal-body">
                 @foreach($addresses as $address)
