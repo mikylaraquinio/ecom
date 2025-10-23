@@ -93,7 +93,7 @@ class RegisteredUserController extends Controller
 
 
     // ✅ Redirect user to code entry page
-    return redirect()->route('verification.code')
+    return redirect()->route('verify.code')
         ->with('status', 'A verification code has been sent to your email. Please enter it below to verify your account.');
 }
 
