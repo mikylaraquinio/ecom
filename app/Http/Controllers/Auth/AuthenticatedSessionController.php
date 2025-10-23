@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use App\Models\User;
 
@@ -25,43 +26,41 @@ class AuthenticatedSessionController extends Controller
      * Handle an incoming authentication request.
      */
     public function store(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
 
-        $user = User::where('email', $request->email)->first();
+    $user = User::where('email', $request->email)->first();
 
-        if (!$user) {
-            return back()->withErrors(['email' => 'No account found with this email.']);
-        }
-
-        if (!Hash::check($request->password, $user->password)) {
-            return back()->withErrors(['password' => 'Incorrect password.']);
-        }
-
-        // 🚫 Redirect to verify-code if email not verified
-        if (is_null($user->email_verified_at)) {
-            // Temporarily store user ID so verify-code can access it if needed
-            session(['unverified_user_id' => $user->id]);
-
-            return redirect()
-                ->route('verify.code')
-                ->with('message', 'Please verify your email to continue.');
-        }
-
-        // ✅ Proceed to login
-        Auth::login($user, $request->filled('remember'));
-        $request->session()->regenerate();
-
-        // ✅ Redirect based on role
-        if ($user->is_admin) {
-            return redirect()->intended('/admin/dashboard');
-        }
-
-        return redirect()->intended('/welcome');
+    if (!$user) {
+        return back()->withErrors(['email' => 'No account found with this email.']);
     }
+
+    if (!Hash::check($request->password, $user->password)) {
+        return back()->withErrors(['password' => 'Incorrect password.']);
+    }
+
+    // 🚫 Stop login if email not verified
+    if (is_null($user->email_verified_at)) {
+        return back()->withErrors([
+            'email' => 'Your email is not verified yet. Please check your inbox for the verification link.'
+        ]);
+    }
+
+    Auth::login($user, $request->filled('remember'));
+    $request->session()->regenerate();
+
+    // ✅ Redirect based on role
+    if ($user->is_admin) {
+        return redirect()->intended('/admin/dashboard');
+    }
+
+    return redirect()->intended('/welcome');
+}
+
+
 
     /**
      * Destroy an authenticated session.
@@ -70,8 +69,10 @@ class AuthenticatedSessionController extends Controller
     {
         Log::info("User Logging Out", ['user_id' => Auth::id()]);
 
+        // Logout user
         Auth::guard('web')->logout();
 
+        // Invalidate session properly
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
