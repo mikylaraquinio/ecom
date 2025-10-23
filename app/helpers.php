@@ -1,20 +1,24 @@
 <?php
 
+use Illuminate\Support\Facades\Storage;
+
 if (!function_exists('image_url')) {
     function image_url($path) {
         if (!$path) {
             return asset('assets/default.png');
         }
 
-        // Normalize path (remove duplicate folders)
-        $clean = str_replace(['public/', 'storage/'], '', $path);
-
-        // ✅ Local (symlink exists)
-        if (file_exists(public_path('storage/' . $clean))) {
-            return asset('storage/' . $clean);
+        // Check if file exists in storage
+        if (Storage::disk('public')->exists($path)) {
+            return asset('storage/' . ltrim($path, '/'));
         }
 
-        // ✅ Hostinger fallback (no symlink)
-        return url('storage/' . $clean);
+        // Fallback if absolute URL already or CDN
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
+        }
+
+        // Fallback default
+        return asset('assets/default.png');
     }
 }
