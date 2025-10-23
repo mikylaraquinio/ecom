@@ -801,12 +801,12 @@
                                                 $existingList = [];
                                                 // main image (no ID assumed)
                                                 if (!empty($product->image)) {
-                                                  $existingList[] = ['id' => null, 'src' => asset('storage/products/' . $product->image)];
+                                                  $existingList[] = ['id' => null, 'src' => image_url('products/' . $product->image)];
                                                 }
                                                 // gallery images with IDs
                                                 if (isset($product->images) && $product->images->count()) {
                                                   foreach ($product->images as $img) {
-                                                    $existingList[] = ['id' => $img->id, 'src' => asset('storage/products/' . $img->path)];
+                                                    $existingList[] = ['id' => $img->id, 'src' => image_url('products/' . $img->path)];
                                                   }
                                                 }
                                               @endphp

@@ -317,14 +317,18 @@ public function viewInvoice($id)
     }
 
     public function index(Request $request)
-    {
-        $user = auth()->user();
+    {$user = auth()->user();
+$mainCategories = \App\Models\Category::whereNull('parent_id')->get();
 
-        $mainCategories = Category::whereNull('parent_id')->get();
+// ✅ Safely handle guests (null user)
+$unreadNotifications = collect();
+$allNotifications = collect();
 
-        // Notifications
-        $unreadNotifications = $user->unreadNotifications()->latest()->take(10)->get();
-        $allNotifications = $user->notifications()->latest()->paginate(10);
+if ($user) {
+    $unreadNotifications = $user->unreadNotifications()->latest()->take(10)->get();
+    $allNotifications = $user->notifications()->latest()->paginate(10);
+}
+
 
         // ✅ Fetch seller's orders with optional status filter
         $orders = Order::with(['buyer', 'orderItems.product', 'shippingAddress'])

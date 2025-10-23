@@ -94,9 +94,6 @@
               </div>
 
               <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm btn-light border d-none d-md-inline-flex align-items-center gap-1">
-                  <i class="fa-regular fa-share-from-square"></i> Share
-                </button>
 
                 <!-- 🧭 Mini Report Button -->
                 <button class="btn btn-sm btn-outline-danger d-none d-md-inline-flex align-items-center gap-1"
