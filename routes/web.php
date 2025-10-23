@@ -243,6 +243,11 @@ Route::post('/email/verification-code', [VerifyEmailController::class, 'sendVeri
 Route::post('/email/verify/code', [VerifyEmailController::class, 'verifyCode'])
     ->name('verification.code.submit');
 
+Route::get('/verify-code', function () {
+    return view('auth.verify-code');
+})->name('verify.code');
+
+
 //Analytics
 Route::get('/seller/analytics', [SellerController::class, 'analytics'])->name('seller.analytics');
 
