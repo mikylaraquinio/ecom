@@ -83,25 +83,21 @@
         <div class="col-lg-9 d-flex flex-column gap-4">
 
           {{-- === CAROUSEL === --}}
-<div id="mainCarousel" class="carousel slide section-shadow rounded-4 overflow-hidden" 
-     data-bs-ride="carousel" data-bs-interval="4000">
-
-  <div class="carousel-inner">
-    <div class="carousel-item active">
-      <img src="{{ asset('assets/banner.png') }}" 
-           class="d-block w-100 banner-img" 
-           alt="Provincial Livestock Fair">
-    </div>
-  </div>
-
-  <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
-    <span class="carousel-control-prev-icon"></span>
-  </button>
-  <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
-    <span class="carousel-control-next-icon"></span>
-  </button>
-</div>
-
+          <div id="mainCarousel" class="carousel slide section-shadow rounded-4 overflow-hidden" data-bs-ride="carousel"
+            data-bs-interval="4000">
+            <div class="carousel-inner">
+              <div class="carousel-item active">
+                <img src="{{ asset('assets/11.11.png') }}" class="d-block w-100 banner-img"
+                  alt="Provincial Livestock Fair">
+              </div>
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
+              <span class="carousel-control-next-icon"></span>
+            </button>
+          </div>
 
           {{-- === PRODUCTS (CARD SECTION) === --}}
           <section id="products-section" class="section-shadow border rounded-4 bg-white p-3 p-md-4">
@@ -149,19 +145,15 @@
       }
 
       /* Carousel */
-      /* Carousel image responsiveness */
-.banner-img {
-  height: 350px; /* adjust height */
-  object-fit: cover; /* crop image instead of stretching */
-  object-position: center;
-}
+      .banner-img {
+        aspect-ratio: 16/5;
+        object-fit: cover;
+        transition: transform .4s ease;
+      }
 
-@media (max-width: 768px) {
-  .banner-img {
-    height: 220px; /* smaller height on mobile */
-  }
-}
-
+      .banner-img:hover {
+        transform: scale(1.02);
+      }
 
       @media (max-width: 768px) {
         #home-layout .col-lg-3 {
