@@ -227,10 +227,6 @@
 
                 <div class="divider">or</div>
 
-                <a href="{{ route('google.redirect') }}" class="btn-google">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon">
-                    Login with Google
-                </a>
 
                 <p class="signup-link mt-4">
                     Don’t have an account?
