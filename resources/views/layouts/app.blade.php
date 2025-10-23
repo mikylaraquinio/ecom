@@ -186,5 +186,27 @@
         background: #355a1b;
       }
     </style>
+
+    <script>
+  // 🧩 Prevent hidden modals from reopening after form submit or navigation
+  document.addEventListener('submit', function (e) {
+    // Hide all Bootstrap modals currently in DOM
+    document.querySelectorAll('.modal.show').forEach(modalEl => {
+      const instance = bootstrap.Modal.getInstance(modalEl);
+      if (instance) instance.hide();
+    });
+  });
+
+  // Optional: also close modals when switching tabs
+  document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+    tab.addEventListener('shown.bs.tab', () => {
+      document.querySelectorAll('.modal.show').forEach(modalEl => {
+        const instance = bootstrap.Modal.getInstance(modalEl);
+        if (instance) instance.hide();
+      });
+    });
+  });
+</script>
+
   </body>
 </html>
