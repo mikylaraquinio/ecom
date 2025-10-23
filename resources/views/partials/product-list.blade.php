@@ -13,7 +13,6 @@
           @auth
             <button class="btn btn-sm btn-outline-danger border-0 p-1 wishlist-btn" data-product-id="{{ $product->id }}"
               title="Toggle Wishlist">
-              <i class="{{ auth()->user()->wishlist->contains($product->id) ? 'fas' : 'far' }} fa-heart"></i>
             </button>
           @endauth
 
