@@ -30,7 +30,9 @@
             <!-- Product Image -->
             <div class="position-relative overflow-hidden" style="height: 180px;">
               <img src="{{ $imageUrl }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover">
-              <span class="badge bg-success position-absolute top-0 start-0 m-2 shadow-sm">New</span>
+              @if($product->created_at->gt(now()->subDays(3)))
+                <span class="badge bg-success position-absolute top-0 start-0 m-2 shadow-sm">New</span>
+              @endif
             </div>
 
             <!-- Product Content -->
