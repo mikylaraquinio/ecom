@@ -756,8 +756,8 @@ $(document).on("click", ".toggle-wishlist-btn", function (e) {
             confirmButtonText: "Yes, cancel it"
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch(`/orders/${orderId}/cancel`, {
-                    method: "POST",
+                fetch(`/buyer/order/${orderId}/cancel`, {
+                    method: "PATCH",
                     headers: {
                         "X-CSRF-TOKEN": "{{ csrf_token() }}"
                     }

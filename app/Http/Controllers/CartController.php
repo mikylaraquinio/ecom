@@ -212,6 +212,7 @@ class CartController extends Controller
         $items = $request->input('items', []); // selected cart items
 
         $perSeller = [];
+
         foreach ($items as $item) {
             $cartItem = Cart::with('product.user')->where('user_id', $user->id)->find($item['id']);
             if (!$cartItem || !$cartItem->product)
@@ -234,29 +235,10 @@ class CartController extends Controller
                 ];
             }
 
-            // accumulate weight
+            // ✅ accumulate weight ONCE
             $perSeller[$sellerId]['weight'] += ($product->weight ?? 0) * $qty;
 
-            // calculate fee for this seller’s total weight
-            $perSeller[$sellerId]['fee'] = \App\Helpers\ShippingHelper::calculate(
-                $buyerTown,
-                $sellerTown,
-                $perSeller[$sellerId]['weight']
-            );
-
-
-
-            if (!isset($perSeller[$sellerId])) {
-                $perSeller[$sellerId] = [
-                    'weight' => 0,
-                    'fee' => 0,
-                ];
-            }
-
-            // accumulate weight
-            $perSeller[$sellerId]['weight'] += ($product->weight ?? 0) * $qty;
-
-            // calculate fee for this seller’s total weight
+            // ✅ calculate fee based on total weight so far
             $perSeller[$sellerId]['fee'] = \App\Helpers\ShippingHelper::calculate(
                 $buyerTown,
                 $sellerTown,
@@ -271,6 +253,7 @@ class CartController extends Controller
             'perSeller' => $perSeller, // 👈 match frontend
         ]);
     }
+
 
 
 

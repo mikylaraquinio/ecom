@@ -11,18 +11,18 @@ class Order extends Model
 {
     use HasFactory;
 
-   protected $fillable = [
-    'user_id',
-    'address_id',
-    'payment_method',
-    'fulfillment_method',
-    'status',
-    'total_amount',
-    'shipping_fee',
-    'payment_reference',
-    'invoice_url',
-    'payment_status',
-];
+    protected $fillable = [
+        'user_id',
+        'address_id',
+        'payment_method',
+        'fulfillment_method',
+        'status',
+        'total_amount',
+        'shipping_fee',
+        'payment_reference',
+        'invoice_url',
+        'payment_status',
+    ];
 
     // Define constants for statuses
     const STATUS_PENDING = 'pending';
@@ -44,10 +44,11 @@ class Order extends Model
     // Products relationship (many-to-many)
     public function products(): BelongsToMany
     {
-        return $this->belongsToMany(Product::class)
-                    ->withPivot('quantity', 'price') // Assuming you want to track quantity and price in the pivot table
-                    ->withTimestamps();
+        return $this->belongsToMany(Product::class, 'order_items', 'order_id', 'product_id')
+            ->withPivot('quantity', 'price')
+            ->withTimestamps();
     }
+
 
     public function buyer()
     {
@@ -58,7 +59,7 @@ class Order extends Model
     {
         return $this->belongsTo(Address::class, 'address_id');
     }
-       public function address()
+    public function address()
     {
         return $this->belongsTo(Address::class, 'address_id');
     }

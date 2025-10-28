@@ -31,31 +31,31 @@ class ProfileController extends Controller
      * Update the user's profile information.
      */
     public function update(Request $request): RedirectResponse
-{
-    if (!Auth::check()) {
-        abort(403, 'Unauthorized action. You must be logged in.');
+    {
+        if (!Auth::check()) {
+            abort(403, 'Unauthorized action. You must be logged in.');
+        }
+
+        $user = Auth::user();
+
+        $request->validate([
+            'username' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:15',
+            'birthdate' => 'nullable|date',
+            'gender' => 'nullable|string|in:male,female',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+        ]);
+
+        $user->update([
+            'username' => $request->username,
+            'phone' => $request->phone,
+            'birthdate' => $request->birthdate,
+            'gender' => $request->gender,
+            'email' => $request->email,
+        ]);
+
+        return Redirect::route('user_profile')->with('status', 'Profile updated successfully!');
     }
-
-    $user = Auth::user();
-
-    $request->validate([
-        'username' => 'required|string|max:255',
-        'phone' => 'nullable|string|max:15',
-        'birthdate' => 'nullable|date',
-        'gender' => 'nullable|string|in:male,female',
-        'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-    ]);
-
-    $user->update([
-        'username' => $request->username,
-        'phone' => $request->phone,
-        'birthdate' => $request->birthdate,
-        'gender' => $request->gender,
-        'email' => $request->email,
-    ]);
-
-    return Redirect::route('user_profile')->with('status', 'Profile updated successfully!');
-}
 
 
 
@@ -112,7 +112,7 @@ class ProfileController extends Controller
     public function updatePicture(Request $request)
     {
         $request->validate([
-            'profile_picture' => ['required','image','max:2048'], // ~2MB, adjust as needed
+            'profile_picture' => ['required', 'image', 'max:2048'], // ~2MB, adjust as needed
         ]);
 
         $user = $request->user();
@@ -130,7 +130,7 @@ class ProfileController extends Controller
 
         return response()->json([
             'success' => true,
-            'path' => asset('storage/'.$path), // for instant preview if needed
+            'path' => asset('storage/' . $path), // for instant preview if needed
         ]);
     }
     // In your controller
@@ -164,28 +164,41 @@ class ProfileController extends Controller
             'wishlistItems'
         ));
     }
-
-
     public function cancelOrder($id)
     {
-        $order = Order::findOrFail($id);
+        $order = Order::with('products')->findOrFail($id);
 
-        if ($order->status == 'pending') {
-            // Directly cancel if still pending
-            $order->update(['status' => 'canceled']);
-            return redirect()->back()->with('success', 'Order has been canceled.');
-        } elseif ($order->status == 'accepted') {
-            // If accepted, request seller approval
-            $order->update(['status' => 'cancel_requested']);
-
-            // Notify the seller (if you have a notification system)
-            // Notification::send($order->seller, new OrderCancelRequest($order));
-
-            return redirect()->back()->with('success', 'Cancelation request sent to the seller.');
+        // ⏰ Check if still pending and within 24 hours
+        if ($order->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only pending orders can be canceled.'
+            ]);
         }
 
-        return redirect()->back()->with('error', 'Order cannot be canceled at this stage.');
+        if ($order->created_at->diffInHours(now()) >= 24) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cancellation period has expired (24 hours limit).'
+            ]);
+        }
+
+        // 🔄 Restore stock for each product in the order
+        foreach ($order->products as $product) {
+            $product->stock += $product->pivot->quantity;
+            $product->save();
+        }
+
+        // 🛑 Update order status
+        $order->update(['status' => 'canceled']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order has been canceled.'
+        ]);
     }
+
+
 
     public function confirmReceipt($id)
     {

@@ -94,12 +94,13 @@
                             {{ $availableStock <= 0 ? 'disabled' : '' }}>−</button>
 
                           <input type="text" class="form-control text-center quantity-input" value="{{ $displayQty }}"
-                            data-id="{{ $cartItem->id }}" readonly {{ $availableStock <= 0 ? 'disabled' : '' }}>
+                            data-id="{{ $cartItem->id }}" data-stock="{{ $availableStock }}" readonly {{ $availableStock <= 0 ? 'disabled' : '' }}>
 
                           <button type="button" class="btn btn-outline-secondary increment-btn" data-id="{{ $cartItem->id }}"
                             {{ $availableStock <= 0 ? 'disabled' : '' }}>+</button>
                         </div>
                       </div>
+
 
                       <div class="col-auto fw-semibold">
                         <span class="subtotal">₱{{ number_format($subtotal, 2) }}</span>
@@ -243,137 +244,219 @@
         function showLoading() { loadingScreen?.classList.remove("d-none"); }
         function hideLoading() { loadingScreen?.classList.add("d-none"); }
 
-        // Function to update total price and item count
-        function updateTotal() {
-            let subtotal = 0;
-            let selectedCount = 0;
-            const selectedItems = [];
+        // Handle quantity increase / decrease
+        document.addEventListener("click", function (e) {
+          // Increment button
+          if (e.target.classList.contains("increment-btn")) {
+            const id = e.target.dataset.id;
+            const input = document.querySelector(`.quantity-input[data-id="${id}"]`);
+            if (!input) return;
 
-            // collect selected products
-            $$(".product-checkbox:checked").forEach(cb => {
-                const row = cb.closest(".list-group-item");
-                const price = parseFloat(cb.dataset.price || 0);
-                const qty = parseInt(row.querySelector(".quantity-input").value || "1");
+            const availableStock = parseInt(input.dataset.stock || "0");
+            let qty = parseInt(input.value) || 0;
 
-                subtotal += price * qty;
-                selectedCount++;
-                selectedItems.push({
-                    id: cb.value,
-                    qty: qty
-                });
-            });
-
-            // Update bottom bar immediately
-            document.querySelector("#total-price").textContent = subtotal.toFixed(2);
-            $("#selected-count").textContent = selectedCount.toString();
-            checkoutBtn.disabled = selectedCount === 0;
-
-            // Enable or disable the "Remove" button
-            deleteSelectedTop.disabled = selectedCount === 0;
-            deleteSelectedBottom.disabled = selectedCount === 0;
-            
-            // If nothing is selected → reset shipping display and stop here
-            if (selectedCount === 0) {
-                document.querySelector(".cart-bottom-bar .shipping-note").textContent = "Shipping: ₱0.00";
-
-                // Reset each shop footer
-                $$(".shop-shipping-footer").forEach(footer => {
-                    footer.querySelector(".shop-shipping-fee").textContent = "0.00";
-                    footer.querySelector(".shop-shipping-weight").textContent = "0";
-                });
-                return;
+            // 🚫 Block if no stock
+            if (availableStock <= 0) {
+              alert("This product is currently out of stock.");
+              return;
             }
 
-            // Recalculate shipping if items are selected
-            fetch("{{ route('cart.shipping') }}", {
-                method: "POST",
-                headers: {
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ items: selectedItems })
-            })
+            // 🚫 Block if already reached max stock
+            if (qty >= availableStock) {
+              alert(`Only ${availableStock} item(s) available.`);
+              return;
+            }
+
+            qty++;
+            input.value = qty;
+            updateCartQuantity(id, qty);
+
+            // 🔒 If reached limit, disable increment button
+            if (qty >= availableStock) {
+              e.target.disabled = true;
+            }
+
+            // ✅ Ensure decrement is re-enabled if increased above 1
+            const decBtn = input.closest(".qty-group").querySelector(".decrement-btn");
+            if (decBtn) decBtn.disabled = false;
+          }
+
+          // Decrement button
+          if (e.target.classList.contains("decrement-btn")) {
+            const id = e.target.dataset.id;
+            const input = document.querySelector(`.quantity-input[data-id="${id}"]`);
+            if (!input) return;
+
+            const availableStock = parseInt(input.dataset.stock || "0");
+            let qty = parseInt(input.value) || 1;
+
+            if (qty > 1) {
+              qty--;
+              input.value = qty;
+              updateCartQuantity(id, qty);
+            }
+
+            // 🔒 If reduced to 1, disable decrement
+            if (qty <= 1) {
+              e.target.disabled = true;
+            }
+
+            // ✅ Re-enable increment if it was disabled
+            const incBtn = input.closest(".qty-group").querySelector(".increment-btn");
+            if (incBtn && qty < availableStock) {
+              incBtn.disabled = false;
+            }
+          }
+        });
+
+        // Update cart quantity via AJAX
+        function updateCartQuantity(id, qty) {
+          fetch(`/cart/update/${id}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-TOKEN": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify({ quantity: qty })
+          })
             .then(r => r.json())
             .then(data => {
-                const shipping = data.totalShipping || 0;
-                const total = subtotal + shipping;
+              if (!data.success) {
+                alert(data.message || "Failed to update quantity.");
+              } else {
+                updateTotal(); // Refresh total & shipping
+              }
+            })
+            .catch(err => console.error("Quantity update failed:", err));
+        }
 
-                // Update total price and shipping
-                document.querySelector("#total-price").textContent = total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                document.querySelector(".cart-bottom-bar .shipping-note").textContent = `Shipping: ₱${shipping.toFixed(2)}`;
+        // Function to update total price and item count
+        function updateTotal() {
+          let subtotal = 0;
+          let selectedCount = 0;
+          const selectedItems = [];
 
-                // Update per-shop shipping details
-                if (data.perSeller) {
-                    for (const sellerId in data.perSeller) {
-                        const info = data.perSeller[sellerId];
-                        const footer = document.querySelector(`#shop-shipping-${sellerId}`);
-                        if (footer) {
-                            footer.querySelector(".shop-shipping-fee").textContent = parseFloat(info.fee).toFixed(2);
-                            footer.querySelector(".shop-shipping-weight").textContent = info.weight;
-                        }
-                    }
+          // collect selected products
+          $$(".product-checkbox:checked").forEach(cb => {
+            const row = cb.closest(".list-group-item");
+            const price = parseFloat(cb.dataset.price || 0);
+            const qty = parseInt(row.querySelector(".quantity-input").value || "1");
+
+            subtotal += price * qty;
+            selectedCount++;
+            selectedItems.push({
+              id: cb.value,
+              qty: qty
+            });
+          });
+
+          // Update bottom bar immediately
+          document.querySelector("#total-price").textContent = subtotal.toFixed(2);
+          $("#selected-count").textContent = selectedCount.toString();
+          checkoutBtn.disabled = selectedCount === 0;
+
+          // Enable or disable the "Remove" button
+          deleteSelectedTop.disabled = selectedCount === 0;
+          deleteSelectedBottom.disabled = selectedCount === 0;
+
+          // If nothing is selected → reset shipping display and stop here
+          if (selectedCount === 0) {
+            document.querySelector(".cart-bottom-bar .shipping-note").textContent = "Shipping: ₱0.00";
+
+            // Reset each shop footer
+            $$(".shop-shipping-footer").forEach(footer => {
+              footer.querySelector(".shop-shipping-fee").textContent = "0.00";
+              footer.querySelector(".shop-shipping-weight").textContent = "0";
+            });
+            return;
+          }
+
+          // Recalculate shipping if items are selected
+          fetch("{{ route('cart.shipping') }}", {
+            method: "POST",
+            headers: {
+              "X-CSRF-TOKEN": "{{ csrf_token() }}",
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ items: selectedItems })
+          })
+            .then(r => r.json())
+            .then(data => {
+              const shipping = data.totalShipping || 0;
+              const total = subtotal + shipping;
+
+              // Update total price and shipping
+              document.querySelector("#total-price").textContent = total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+              document.querySelector(".cart-bottom-bar .shipping-note").textContent = `Shipping: ₱${shipping.toFixed(2)}`;
+
+              // Update per-shop shipping details
+              if (data.perSeller) {
+                for (const sellerId in data.perSeller) {
+                  const info = data.perSeller[sellerId];
+                  const footer = document.querySelector(`#shop-shipping-${sellerId}`);
+                  if (footer) {
+                    footer.querySelector(".shop-shipping-fee").textContent = parseFloat(info.fee).toFixed(2);
+                    footer.querySelector(".shop-shipping-weight").textContent = info.weight;
+                  }
                 }
+              }
             })
             .catch(err => {
-                console.error("Shipping update failed:", err);
+              console.error("Shipping update failed:", err);
             });
         }
 
         // Handle "Select All" checkboxes
         [selectAllTop, selectAllBottom].forEach(sel => {
-            sel?.addEventListener("change", function () {
-                const check = this.checked;
-                $$(".product-checkbox").forEach(cb => {
-                    if (!cb.disabled) cb.checked = this.checked;
-                });
-                $$(".shop-checkbox").forEach(sb => sb.checked = check);
-                updateTotal();
+          sel?.addEventListener("change", function () {
+            const check = this.checked;
+            $$(".product-checkbox").forEach(cb => {
+              if (!cb.disabled) cb.checked = this.checked;
             });
+            $$(".shop-checkbox").forEach(sb => sb.checked = check);
+            updateTotal();
+          });
         });
 
         // Shop-level checkbox (select/deselect all products from a seller)
         document.addEventListener("change", function (e) {
-            if (e.target.classList.contains("shop-checkbox")) {
-                const sellerId = e.target.dataset.seller;
-                const items = $$(`.list-group-item[data-seller-id="${sellerId}"] .product-checkbox`);
-                items.forEach(cb => cb.checked = e.target.checked);
-                updateTotal();
-            }
+          if (e.target.classList.contains("shop-checkbox")) {
+            const sellerId = e.target.dataset.seller;
+            const items = $$(`.list-group-item[data-seller-id="${sellerId}"] .product-checkbox`);
+            items.forEach(cb => cb.checked = e.target.checked);
+            updateTotal();
+          }
         });
 
         // Individual product checkbox
         document.addEventListener("change", function (e) {
-            if (e.target.classList.contains("product-checkbox")) {
-                updateTotal();
-            }
+          if (e.target.classList.contains("product-checkbox")) {
+            updateTotal();
+          }
         });
 
         // Remove selected items
         function removeSelected() {
-            const selectedIds = $$(".product-checkbox:checked").map(cb => cb.value);
-            if (!selectedIds.length) return alert("Select at least one item to delete.");
-            if (!confirm("Remove selected items?")) return;
+          const selectedIds = $$(".product-checkbox:checked").map(cb => cb.value);
+          if (!selectedIds.length) return alert("Select at least one item to delete.");
+          if (!confirm("Remove selected items?")) return;
 
-            showLoading();
-            fetch("{{ route('cart.bulkDelete') }}", {
-                method: "DELETE",
-                headers: {
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ selected_items: selectedIds })
-            })
+          showLoading();
+          fetch("{{ route('cart.bulkDelete') }}", {
+            method: "DELETE",
+            headers: {
+              "X-CSRF-TOKEN": "{{ csrf_token() }}",
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ selected_items: selectedIds })
+          })
             .then(r => r.json())
             .then(data => {
-                if (data.success) {
-                    selectedIds.forEach(id => document.getElementById(`cart-item-${id}`)?.remove());
-                    $$(".shop-block").forEach(block => {
-                        if (!block.querySelector(".list-group-item")) block.remove();
-                    });
-                    updateTotal();
-                } else {
-                    alert("Error deleting items.");
-                }
+              if (data.success) {
+                window.location.reload(); // 🔄 Reload the page after bulk delete
+              } else {
+                alert("Error deleting items.");
+              }
             })
             .catch(console.error)
             .finally(hideLoading);
@@ -384,68 +467,64 @@
 
         // Remove single item from the cart
         document.addEventListener("click", function (e) {
-            if (e.target.classList.contains("remove-item")) {
-                const itemId = e.target.dataset.id;
-                if (!confirm("Remove this item?")) return;
-                showLoading();
-                fetch(`/cart/remove/${itemId}`, {
-                    method: "DELETE",
-                    headers: {
-                        "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                        "Content-Type": "application/json",
-                        "Accept": "application/json"
-                    }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById(`cart-item-${itemId}`)?.remove();
-                        $$(".shop-block").forEach(block => {
-                            if (!block.querySelector(".list-group-item")) block.remove();
-                        });
-                        updateTotal();
-                    } else {
-                        alert(data.message || "Error removing item.");
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert("Something went wrong. Please try again.");
-                })
-                .finally(hideLoading);
-            }
+          if (e.target.classList.contains("remove-item")) {
+            const itemId = e.target.dataset.id;
+            if (!confirm("Remove this item?")) return;
+            showLoading();
+            fetch(`/cart/remove/${itemId}`, {
+              method: "DELETE",
+              headers: {
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+              }
+            })
+              .then(r => r.json())
+              .then(data => {
+                if (data.success) {
+                  window.location.reload(); // 🔄 Reload the page after removing an item
+                } else {
+                  alert(data.message || "Error removing item.");
+                }
+              })
+              .catch(err => {
+                console.error(err);
+                alert("Something went wrong. Please try again.");
+              })
+              .finally(hideLoading);
+          }
         });
 
         // Checkout logic
         $("#checkout-btn")?.addEventListener("click", function () {
-            const selectedItems = $$(".product-checkbox:checked").map(cb => cb.value);
-            if (!selectedItems.length) return alert("Please select at least one product.");
+          const selectedItems = $$(".product-checkbox:checked").map(cb => cb.value);
+          if (!selectedItems.length) return alert("Please select at least one product.");
 
-            // Send selected items to the checkout process
-            fetch('/checkout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({ selected_items: selectedItems })
-            })
+          // Send selected items to the checkout process
+          fetch('/checkout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ selected_items: selectedItems })
+          })
             .then(r => r.json())
             .then(data => {
-                if (data.redirect_url) {
-                    window.location.href = data.redirect_url;
-                } else {
-                    alert('Something went wrong. Please try again.');
-                }
+              if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+              } else {
+                alert('Something went wrong. Please try again.');
+              }
             })
             .catch(err => {
-                console.error(err);
-                alert('An error occurred. Please try again.');
+              console.error(err);
+              alert('An error occurred. Please try again.');
             });
         });
 
         // Initial compute
         updateTotal();
-    });
+      });
     </script>
 </x-app-layout>

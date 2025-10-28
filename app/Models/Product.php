@@ -20,6 +20,7 @@ class Product extends Model
         'user_id',
         'unit',
         'min_order_qty',
+        'weight',
     ];
 
     // Optional if you have a custom primary key
