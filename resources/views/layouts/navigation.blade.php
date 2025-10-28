@@ -28,6 +28,18 @@ use Illuminate\Support\Facades\Route;
             <img src="{{ asset('assets/logo.png') }}" alt="FarmSmart Logo" style="height:65px;">
           </a>
 
+          <!-- Search bar -->
+<form action="{{ route('search.seller') }}" method="GET" class="d-none d-lg-flex ms-auto me-3 search-pill">
+  <span class="input-group-text bg-transparent border-0">
+    <i class="bi bi-search"></i>
+  </span>
+  <input type="text" name="q" class="form-control" placeholder="Search sellers or shops..." required>
+  <button class="btn" type="submit">
+    <i class="bi bi-arrow-right"></i>
+  </button>
+</form>
+
+
           <!-- Right: Navigation -->
           <div class="d-flex align-items-center gap-3">
 
@@ -37,6 +49,8 @@ use Illuminate\Support\Facades\Route;
             </button>
 
             @auth
+
+            
               <!-- Home -->
               <a class="nav-link-item {{ $activeIcon('welcome') }}" href="{{ url('/welcome') }}">
                 <span class="d-none d-lg-inline">Home</span>

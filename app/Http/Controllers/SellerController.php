@@ -605,6 +605,33 @@ public function printAnalytics(Request $request)
     return $pdf->stream('Analytics_Report.pdf');
 }
 
+public function searchSeller(Request $request)
+{
+    $term = trim($request->get('q', ''));
+
+    if ($term === '') {
+        return redirect()->back()->with('error', 'Please enter a search term.');
+    }
+
+    $sellers = \App\Models\Seller::with('user')
+        ->where(function ($q) use ($term) {
+            $q->where('shop_name', 'like', "%{$term}%")
+              ->orWhereHas('user', function ($sub) use ($term) {
+                  $sub->where('name', 'like', "%{$term}%");
+              });
+        })
+        ->limit(10)
+        ->get();
+
+    if ($sellers->count() === 1) {
+        // Auto-redirect to the seller’s shop if only one match
+        return redirect()->route('shop.view', $sellers->first()->user_id);
+    }
+
+    // Otherwise show a results page
+    return view('seller.search_results', compact('sellers', 'term'));
+}
+
 
 
 private function getDateRange($type)
@@ -744,7 +771,18 @@ private function getDateRange($type)
         }
     }
 
-    
+public function viewShop($id)
+{
+    $seller = \App\Models\User::with('seller')
+        ->where('id', $id)
+        ->firstOrFail();
+
+    $products = \App\Models\Product::where('user_id', $seller->id)->get();
+
+    return view('shop.view-shop', compact('seller', 'products'));
+}
+
+
 
 
 

@@ -253,6 +253,12 @@ Route::get('/seller/analytics/data', [App\Http\Controllers\SellerController::cla
 Route::get('/seller/analytics/print', [App\Http\Controllers\SellerController::class, 'printAnalytics'])
     ->name('seller.analytics.print');
 
+Route::get('/shop/view/{id}', [App\Http\Controllers\SellerController::class, 'viewShop'])
+    ->name('shop.view');
+
+Route::get('/search-seller', [App\Http\Controllers\SellerController::class, 'searchSeller'])
+    ->name('search.seller');
+
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';
