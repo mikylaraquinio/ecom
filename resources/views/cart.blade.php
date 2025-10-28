@@ -423,7 +423,21 @@
           if (e.target.classList.contains("shop-checkbox")) {
             const sellerId = e.target.dataset.seller;
             const items = $$(`.list-group-item[data-seller-id="${sellerId}"] .product-checkbox`);
-            items.forEach(cb => cb.checked = e.target.checked);
+            const check = e.target.checked;
+
+            items.forEach(cb => {
+              const input = cb.closest(".list-group-item").querySelector(".quantity-input");
+              const stock = parseInt(input?.dataset.stock || "0");
+
+              // 🚫 Skip out-of-stock items
+              if (stock <= 0) {
+                cb.checked = false;
+                return;
+              }
+
+              cb.checked = check;
+            });
+
             updateTotal();
           }
         });
