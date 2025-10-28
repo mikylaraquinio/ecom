@@ -422,29 +422,33 @@
             }
 
             function recalcSummary() {
-                let subtotal = 0;
-                itemChecks.forEach(cb => {
-                    if (!cb.checked) return;
-                    const price = parseFloat(cb.dataset.price || '0');
-                    const qty = parseInt(cb.dataset.qty || '1', 10);
-                    subtotal += price * qty;
-                });
+    let subtotal = 0;
+    itemChecks.forEach(cb => {
+        if (!cb.checked) return;
+        const price = parseFloat(cb.dataset.price || '0');
+        const qty = parseInt(cb.dataset.qty || '1', 10);
+        subtotal += price * qty;
+    });
 
-                // base shipping & discount from DOM (server-rendered)…
-                let shipping = parseFloat((sumShipping?.textContent || '0').replace(/,/g, '')) || 0;
-                let shippingDiscount = parseFloat((sumShippingDiscount?.textContent || '0').replace(/,/g, '')) || 0;
+    let shipping = parseFloat((sumShipping?.textContent || '0').replace(/,/g, '')) || 0;
+    let shippingDiscount = parseFloat((sumShippingDiscount?.textContent || '0').replace(/,/g, '')) || 0;
 
-                // …but in pickup mode, zero them out
-                if (isPickupMode()) {
-                    shipping = 0;
-                    shippingDiscount = 0;
-                }
+    if (isPickupMode()) {
+        shipping = 0;
+        shippingDiscount = 0;
+    }
 
-                const total = subtotal + shipping - shippingDiscount;
+    const total = subtotal + shipping - shippingDiscount;
 
-                sumSubtotal.textContent = subtotal.toFixed(2);
-                sumTotal.textContent = total.toFixed(2);
-            }
+    // 🧾 Format with thousand separators (2 decimal places)
+    const formatNum = n => n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    sumSubtotal.textContent = formatNum(subtotal);
+    sumShipping.textContent = formatNum(shipping);
+    sumShippingDiscount.textContent = formatNum(shippingDiscount);
+    sumTotal.textContent = formatNum(total);
+}
+
 
             function applyFulfillmentMode() {
                 const pickup = isPickupMode();
