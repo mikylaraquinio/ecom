@@ -243,257 +243,209 @@
         function showLoading() { loadingScreen?.classList.remove("d-none"); }
         function hideLoading() { loadingScreen?.classList.add("d-none"); }
 
-        function setSelectAll(checked) {
-          if (selectAllTop) selectAllTop.checked = checked;
-          if (selectAllBottom) selectAllBottom.checked = checked;
-        }
-
-        function syncSelectAllState() {
-          const cbs = $$(".product-checkbox");
-          const allChecked = cbs.length && cbs.every(cb => cb.checked);
-          setSelectAll(allChecked);
-        }
-
+        // Function to update total price and item count
         function updateTotal() {
-          let subtotal = 0;
-          let selectedCount = 0;
-          const selectedItems = [];
+            let subtotal = 0;
+            let selectedCount = 0;
+            const selectedItems = [];
 
-          // collect selected products
-          $$(".product-checkbox:checked").forEach(cb => {
-            const row = cb.closest(".list-group-item");
-            const price = parseFloat(cb.dataset.price || 0);
-            const qty = parseInt(row.querySelector(".quantity-input").value || "1");
+            // collect selected products
+            $$(".product-checkbox:checked").forEach(cb => {
+                const row = cb.closest(".list-group-item");
+                const price = parseFloat(cb.dataset.price || 0);
+                const qty = parseInt(row.querySelector(".quantity-input").value || "1");
 
-            subtotal += price * qty;
-            selectedCount++;
-            selectedItems.push({
-              id: cb.value,
-              qty: qty
+                subtotal += price * qty;
+                selectedCount++;
+                selectedItems.push({
+                    id: cb.value,
+                    qty: qty
+                });
             });
-          });
 
-          // Update bottom bar immediately
-          document.querySelector("#total-price").textContent = subtotal.toFixed(2);
-          $("#selected-count").textContent = selectedCount.toString();
-          checkoutBtn.disabled = selectedCount === 0;
+            // Update bottom bar immediately
+            document.querySelector("#total-price").textContent = subtotal.toFixed(2);
+            $("#selected-count").textContent = selectedCount.toString();
+            checkoutBtn.disabled = selectedCount === 0;
 
-          // 🔹 If nothing is selected → reset shipping display and stop here
-          if (selectedCount === 0) {
-            document.querySelector(".cart-bottom-bar .shipping-note").textContent = "Shipping: ₱0.00";
+            // Enable or disable the "Remove" button
+            deleteSelectedTop.disabled = selectedCount === 0;
+            deleteSelectedBottom.disabled = selectedCount === 0;
+            
+            // If nothing is selected → reset shipping display and stop here
+            if (selectedCount === 0) {
+                document.querySelector(".cart-bottom-bar .shipping-note").textContent = "Shipping: ₱0.00";
 
-            // also reset each shop footer
-            $$(".shop-shipping-footer").forEach(footer => {
-              footer.querySelector(".shop-shipping-fee").textContent = "0.00";
-              footer.querySelector(".shop-shipping-weight").textContent = "0";
-            });
-            return; // 🚀 stop, don’t call fetch
-          }
+                // Reset each shop footer
+                $$(".shop-shipping-footer").forEach(footer => {
+                    footer.querySelector(".shop-shipping-fee").textContent = "0.00";
+                    footer.querySelector(".shop-shipping-weight").textContent = "0";
+                });
+                return;
+            }
 
-          // 🔹 If some items are selected → ask Laravel for shipping recalculation
-          fetch("{{ route('cart.shipping') }}", {
-            method: "POST",
-            headers: {
-              "X-CSRF-TOKEN": "{{ csrf_token() }}",
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ items: selectedItems })
-          })
+            // Recalculate shipping if items are selected
+            fetch("{{ route('cart.shipping') }}", {
+                method: "POST",
+                headers: {
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ items: selectedItems })
+            })
             .then(r => r.json())
             .then(data => {
-              const shipping = data.totalShipping || 0;
-              const total = subtotal + shipping;
+                const shipping = data.totalShipping || 0;
+                const total = subtotal + shipping;
 
-              // bottom bar
-              document.querySelector("#total-price").textContent = total.toFixed(2);
-              document.querySelector(".cart-bottom-bar .shipping-note").textContent = `Shipping: ₱${shipping.toFixed(2)}`;
+                // Update total price and shipping
+                document.querySelector("#total-price").textContent = total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                document.querySelector(".cart-bottom-bar .shipping-note").textContent = `Shipping: ₱${shipping.toFixed(2)}`;
 
-              // per shop footer
-              if (data.perSeller) {
-                for (const sellerId in data.perSeller) {
-                  const info = data.perSeller[sellerId];
-                  const footer = document.querySelector(`#shop-shipping-${sellerId}`);
-                  if (footer) {
-                    footer.querySelector(".shop-shipping-fee").textContent = parseFloat(info.fee).toFixed(2);
-                    footer.querySelector(".shop-shipping-weight").textContent = info.weight;
-                  }
+                // Update per-shop shipping details
+                if (data.perSeller) {
+                    for (const sellerId in data.perSeller) {
+                        const info = data.perSeller[sellerId];
+                        const footer = document.querySelector(`#shop-shipping-${sellerId}`);
+                        if (footer) {
+                            footer.querySelector(".shop-shipping-fee").textContent = parseFloat(info.fee).toFixed(2);
+                            footer.querySelector(".shop-shipping-weight").textContent = info.weight;
+                        }
+                    }
                 }
-              }
             })
             .catch(err => {
-              console.error("Shipping update failed:", err);
+                console.error("Shipping update failed:", err);
             });
         }
 
+        // Handle "Select All" checkboxes
         [selectAllTop, selectAllBottom].forEach(sel => {
-          sel?.addEventListener("change", function () {
-            const check = this.checked;
-
-            $$(".product-checkbox").forEach(cb => {
-              if (!cb.disabled) cb.checked = this.checked;
+            sel?.addEventListener("change", function () {
+                const check = this.checked;
+                $$(".product-checkbox").forEach(cb => {
+                    if (!cb.disabled) cb.checked = this.checked;
+                });
+                $$(".shop-checkbox").forEach(sb => sb.checked = check);
+                updateTotal();
             });
-
-            $$(".shop-checkbox").forEach(sb => sb.checked = check);
-
-            updateTotal();
-          });
         });
 
-
-        // Shop-level checkbox
+        // Shop-level checkbox (select/deselect all products from a seller)
         document.addEventListener("change", function (e) {
-          if (e.target.classList.contains("shop-checkbox")) {
-            const sellerId = e.target.dataset.seller;
-            const items = $$(`.list-group-item[data-seller-id="${sellerId}"] .product-checkbox`);
-            items.forEach(cb => cb.checked = e.target.checked);
-            updateTotal();
-          }
+            if (e.target.classList.contains("shop-checkbox")) {
+                const sellerId = e.target.dataset.seller;
+                const items = $$(`.list-group-item[data-seller-id="${sellerId}"] .product-checkbox`);
+                items.forEach(cb => cb.checked = e.target.checked);
+                updateTotal();
+            }
         });
 
         // Individual product checkbox
         document.addEventListener("change", function (e) {
-          if (e.target.classList.contains("product-checkbox")) {
-            updateTotal();
-          }
+            if (e.target.classList.contains("product-checkbox")) {
+                updateTotal();
+            }
         });
 
-        // Remove selected
+        // Remove selected items
         function removeSelected() {
-          const selectedIds = $$(".product-checkbox:checked").map(cb => cb.value);
-          if (!selectedIds.length) return alert("Select at least one item to delete.");
-          if (!confirm("Remove selected items?")) return;
+            const selectedIds = $$(".product-checkbox:checked").map(cb => cb.value);
+            if (!selectedIds.length) return alert("Select at least one item to delete.");
+            if (!confirm("Remove selected items?")) return;
 
-          showLoading();
-          fetch("{{ route('cart.bulkDelete') }}", {
-            method: "DELETE",
-            headers: {
-              "X-CSRF-TOKEN": "{{ csrf_token() }}",
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ selected_items: selectedIds })
-          })
+            showLoading();
+            fetch("{{ route('cart.bulkDelete') }}", {
+                method: "DELETE",
+                headers: {
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ selected_items: selectedIds })
+            })
             .then(r => r.json())
             .then(data => {
-              if (data.success) {
-                selectedIds.forEach(id => document.getElementById(`cart-item-${id}`)?.remove());
-                // Remove empty shops
-                $$(".shop-block").forEach(block => {
-                  if (!block.querySelector(".list-group-item")) block.remove();
-                });
-                updateTotal();
-                if (!document.querySelector(".list-group-item")) window.location.reload();
-              } else {
-                alert("Error deleting items.");
-              }
+                if (data.success) {
+                    selectedIds.forEach(id => document.getElementById(`cart-item-${id}`)?.remove());
+                    $$(".shop-block").forEach(block => {
+                        if (!block.querySelector(".list-group-item")) block.remove();
+                    });
+                    updateTotal();
+                } else {
+                    alert("Error deleting items.");
+                }
             })
             .catch(console.error)
             .finally(hideLoading);
         }
+
         deleteSelectedTop?.addEventListener("click", removeSelected);
         deleteSelectedBottom?.addEventListener("click", removeSelected);
 
-        // Remove single item
+        // Remove single item from the cart
         document.addEventListener("click", function (e) {
-          if (e.target.classList.contains("remove-item")) {
-            const itemId = e.target.dataset.id;
-            if (!confirm("Remove this item?")) return;
-            showLoading();
-            fetch(`/cart/remove/${itemId}`, {
-              method: "DELETE",
-              headers: {
-                "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-              }
-            })
-              .then(r => r.json())
-              .then(data => {
-                if (data.success) {
-                  document.getElementById(`cart-item-${itemId}`)?.remove();
-                  $$(".shop-block").forEach(block => {
-                    if (!block.querySelector(".list-group-item")) block.remove();
-                  });
-                  updateTotal();
-                  if (!document.querySelector(".list-group-item")) window.location.reload();
-                } else {
-                  alert(data.message || "Error removing item.");
-                }
-              })
-              .catch(err => {
-                console.error(err);
-                alert("Something went wrong. Please try again.");
-              })
-              .finally(hideLoading);
-          }
+            if (e.target.classList.contains("remove-item")) {
+                const itemId = e.target.dataset.id;
+                if (!confirm("Remove this item?")) return;
+                showLoading();
+                fetch(`/cart/remove/${itemId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById(`cart-item-${itemId}`)?.remove();
+                        $$(".shop-block").forEach(block => {
+                            if (!block.querySelector(".list-group-item")) block.remove();
+                        });
+                        updateTotal();
+                    } else {
+                        alert(data.message || "Error removing item.");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Something went wrong. Please try again.");
+                })
+                .finally(hideLoading);
+            }
         });
 
-        // Quantity update (reuses your existing endpoint)
-        function updateQty(itemId, newQty, inputEl) {
-          showLoading();
-          fetch(`{{ route('cart.update', '') }}/${itemId}`, {
-            method: "POST",
-            headers: {
-              "X-CSRF-TOKEN": "{{ csrf_token() }}",
-              "Content-Type": "application/json",
-              "Accept": "application/json"
-            },
-            body: JSON.stringify({ quantity: newQty })
-          })
-            .then(r => r.json())
-            .then(data => {
-              if (data.success) {
-                inputEl.value = data.new_quantity;
-                const price = parseFloat(document.querySelector(`.product-checkbox[value='${itemId}']`).dataset.price);
-                const row = document.getElementById(`cart-item-${itemId}`);
-                row.querySelector(".subtotal").textContent = `₱${(price * data.new_quantity).toFixed(2)}`;
-                updateTotal();
-              } else {
-                alert(data.message || "Error updating quantity.");
-              }
-            })
-            .catch(err => {
-              console.error(err);
-              alert("Something went wrong.");
-            })
-            .finally(hideLoading);
-        }
-
-        document.addEventListener("click", function (e) {
-          if (e.target.classList.contains("increment-btn") || e.target.classList.contains("decrement-btn")) {
-            const itemId = e.target.dataset.id;
-            const input = document.querySelector(`.quantity-input[data-id='${itemId}']`);
-            const current = parseInt(input.value || "1");
-            const next = e.target.classList.contains("increment-btn") ? current + 1 : Math.max(1, current - 1);
-            updateQty(itemId, next, input);
-          }
-        });
-
-        // Checkout – same behavior you already had (prepareCheckout → redirect)
+        // Checkout logic
         $("#checkout-btn")?.addEventListener("click", function () {
-          const selectedItems = $$(".product-checkbox:checked").map(cb => cb.value);
-          if (!selectedItems.length) return alert("Please select at least one product.");
+            const selectedItems = $$(".product-checkbox:checked").map(cb => cb.value);
+            if (!selectedItems.length) return alert("Please select at least one product.");
 
-          fetch('/checkout', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({ selected_items: selectedItems })
-          })
+            // Send selected items to the checkout process
+            fetch('/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ selected_items: selectedItems })
+            })
             .then(r => r.json())
             .then(data => {
-              if (data.redirect_url) window.location.href = data.redirect_url;
-              else alert('Something went wrong. Please try again.');
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    alert('Something went wrong. Please try again.');
+                }
             })
             .catch(err => {
-              console.error(err);
-              alert('An error occurred. Please try again.');
+                console.error(err);
+                alert('An error occurred. Please try again.');
             });
         });
 
         // Initial compute
         updateTotal();
-      });
+    });
     </script>
 </x-app-layout>

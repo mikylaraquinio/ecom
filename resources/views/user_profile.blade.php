@@ -245,7 +245,14 @@
                                         <hr>
 
                                         <h6 class="text-success font-weight-bold mb-2"><i class="fas fa-file-invoice mr-2"></i>Payment & Invoice</h6>
-                                        <p><strong>Method:</strong> {{ ucfirst($order->payment_method) }}</p>
+                                        @if($order->payment_method === 'cop')
+                                            <p><strong>Method:</strong> Cash on Pickup</p>
+                                        @elseif($order->payment_method === 'cod')
+                                            <p><strong>Method:</strong> Cash on Delivery</p>
+                                        @else
+                                            <p><strong>Method:</strong> {{ ucfirst($order->payment_method) }}</p>
+                                        @endif
+
                                         <p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
                                         <p><strong>Total:</strong> ₱{{ number_format($order->total_amount ?? $order->total_price, 2) }}</p>
                                         <p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
@@ -656,19 +663,67 @@ document.querySelectorAll('[data-bs-toggle="modal"]').forEach(el => {
         });
     });
 
-    // Remove from wishlist
-    $(".toggle-wishlist-btn").click(function(){
-        const id=$(this).data("id");
-        fetch(`/wishlist/toggle/${id}`,{
-            method:"POST",
-            headers:{
-                "X-CSRF-TOKEN":"{{ csrf_token() }}"
-            }
-        }).then(r=>r.json()).then(data=>{
-            Swal.fire("Removed!","Item removed from wishlist.","info");
-            $(this).closest(".d-flex").remove();
-        });
-    });
+    // Remove from wishlist (robust)
+$(document).on("click", ".toggle-wishlist-btn", function (e) {
+  e.preventDefault();
+
+  const btn = this;                                  // keep reference
+  const productId = btn.getAttribute("data-id");
+  const row = btn.closest(".d-flex.align-items-center"); // the wishlist row
+  const badge = document.querySelector("#tabWishlist .badge");
+  const csrf = document.querySelector('meta[name="csrf-token"]').content;
+
+  // 👉 If your route expects DELETE, change method:"POST" to "DELETE"
+  fetch(`/wishlist/toggle/${productId}`, {
+    method: "POST",                                   // or "DELETE" if your route is DELETE
+    headers: {
+      "X-CSRF-TOKEN": csrf,
+      "Accept": "application/json"
+    }
+  })
+  .then(async (res) => {
+    // Try to parse JSON if present, but tolerate 204/empty
+    let data = null;
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("application/json")) {
+      data = await res.json();
+    }
+    if (!res.ok) {
+      const msg = (data && data.message) || `Request failed (${res.status})`;
+      throw new Error(msg);
+    }
+    return data;
+  })
+  .then((data) => {
+    // Remove the row immediately
+    if (row) row.remove();
+
+    // Decrement badge
+    if (badge) {
+      const current = parseInt(badge.textContent.trim() || "0", 10);
+      const next = Math.max(0, current - 1);
+      badge.textContent = next;
+
+      // If empty, show placeholder text
+      if (next === 0) {
+        const list = document.getElementById("wishlistView");
+        if (list && !list.querySelector(".text-muted")) {
+          const p = document.createElement("p");
+          p.className = "text-muted";
+          p.textContent = "No items in wishlist.";
+          list.appendChild(p);
+        }
+      }
+    }
+
+    Swal.fire("Removed!", "Item removed from wishlist.", "info");
+  })
+  .catch((err) => {
+    console.error(err);
+    Swal.fire("Error", err.message || "Could not remove item.", "error");
+  });
+});
+
 
     // Upload Profile Picture
     function uploadProfilePicture(event){
@@ -740,14 +795,14 @@ document.querySelectorAll('[data-bs-toggle="modal"]').forEach(el => {
     }
     </script>
     <script>
-document.addEventListener('hidden.bs.modal', function (event) {
-  // Remove all leftover backdrops when any modal closes
-  const backdrops = document.querySelectorAll('.modal-backdrop');
-  backdrops.forEach(b => b.remove());
-  document.body.classList.remove('modal-open');
-  document.body.style.overflow = ''; // allow scrolling again
-});
-</script>
+        document.addEventListener('hidden.bs.modal', function (event) {
+        // Remove all leftover backdrops when any modal closes
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(b => b.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = ''; // allow scrolling again
+        });
+    </script>
 
 
     @include('farmers.modal.sell')

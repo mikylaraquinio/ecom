@@ -177,12 +177,37 @@ class SellerController extends Controller
     }
 
     public function denyOrder($id)
-    {
+{
+    DB::beginTransaction();
+
+    try {
+        // Find the order by ID
         $order = Order::findOrFail($id);
         $order->update(['status' => 'denied']);
 
-        return redirect()->route('myshop')->with('error', 'Order denied!');
+        // Loop through each order item to restore the stock
+        foreach ($order->orderItems as $orderItem) {
+            $product = $orderItem->product;
+
+            // Check if the product exists and restore the stock
+            if ($product) {
+                // Restore stock back to the original quantity
+                $product->stock += $orderItem->quantity;
+
+                // Save the updated stock
+                $product->save();
+            }
+        }
+
+        DB::commit();
+        return redirect()->route('myshop')->with('success', 'Order denied and stock restored!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Error while denying order: ' . $e->getMessage());
+        return redirect()->route('myshop')->with('error', 'An error occurred while denying the order.');
     }
+}
+
 
     public function updateOrderStatus(Request $request, $id)
     {
@@ -318,53 +343,53 @@ public function viewInvoice($id)
 
     public function index(Request $request)
     {$user = auth()->user();
-$mainCategories = \App\Models\Category::whereNull('parent_id')->get();
+    $mainCategories = \App\Models\Category::whereNull('parent_id')->get();
 
-// ✅ Safely handle guests (null user)
-$unreadNotifications = collect();
-$allNotifications = collect();
+    // ✅ Safely handle guests (null user)
+    $unreadNotifications = collect();
+    $allNotifications = collect();
 
-if ($user) {
-    $unreadNotifications = $user->unreadNotifications()->latest()->take(10)->get();
-    $allNotifications = $user->notifications()->latest()->paginate(10);
-}
-
-
-        // ✅ Fetch seller's orders with optional status filter
-        $orders = Order::with(['buyer', 'orderItems.product', 'shippingAddress'])
-            ->whereHas('orderItems.product', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })
-            ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
-            ->latest()
-            ->paginate(10)
-            ->appends($request->query());
-
-        // ✅ Order Status Counts (for the 4 summary boxes)
-        $orderCounts = [
-            'pending' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-                            ->where('status', 'pending')->count(),
-            'canceled' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-                            ->where('status', 'canceled')->count(),
-            'denied' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-                            ->where('status', 'denied')->count(),
-            'completed' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
-                            ->where('status', 'completed')->count(),
-        ];
-
-        $products = $user->products;
-
-        // ✅ Pass $orderCounts to the view
-        return view('myshop', compact(
-            'user',
-            'products',
-            'mainCategories',
-            'orders',
-            'orderCounts',
-            'unreadNotifications',
-            'allNotifications'
-        ));
+    if ($user) {
+        $unreadNotifications = $user->unreadNotifications()->latest()->take(10)->get();
+        $allNotifications = $user->notifications()->latest()->paginate(10);
     }
+
+
+            // ✅ Fetch seller's orders with optional status filter
+            $orders = Order::with(['buyer', 'orderItems.product', 'shippingAddress'])
+                ->whereHas('orderItems.product', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })
+                ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
+                ->latest()
+                ->paginate(10)
+                ->appends($request->query());
+
+            // ✅ Order Status Counts (for the 4 summary boxes)
+            $orderCounts = [
+                'pending' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
+                                ->where('status', 'pending')->count(),
+                'canceled' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
+                                ->where('status', 'canceled')->count(),
+                'denied' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
+                                ->where('status', 'denied')->count(),
+                'completed' => Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $user->id))
+                                ->where('status', 'completed')->count(),
+            ];
+
+            $products = $user->products;
+
+            // ✅ Pass $orderCounts to the view
+            return view('myshop', compact(
+                'user',
+                'products',
+                'mainCategories',
+                'orders',
+                'orderCounts',
+                'unreadNotifications',
+                'allNotifications'
+            ));
+        }
 
     public function analytics()
 {

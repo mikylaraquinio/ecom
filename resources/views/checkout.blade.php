@@ -196,28 +196,36 @@
                                 </div>
                             </div>
 
-                            <!-- Payment -->
-                            <div class="card shadow-sm border-0 mb-3">
-                                <div class="card-header bg-white py-3">
-                                    <h5 class="mb-0 fw-semibold">Payment Method</h5>
-                                </div>
-                                <div class="card-body payment-methods">
-                                    <label class="form-check d-flex align-items-center justify-content-between mb-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <input class="form-check-input" type="radio" name="payment_method" id="onlinePayment"
-                                                   value="online" required>
-                                            <span>Online Payment</span>
-                                        </div>
-                                    </label>
-                                    <label class="form-check d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <input class="form-check-input" type="radio" name="payment_method" id="pm_cod"
-                                                   value="cod">
-                                            <span>Cash on Delivery</span>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
+                           <!-- Payment -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-header bg-white py-3">
+    <h5 class="mb-0 fw-semibold">Payment Method</h5>
+  </div>
+  <div class="card-body payment-methods">
+    <label id="row_online" class="form-check d-flex align-items-center justify-content-between mb-2">
+      <div class="d-flex align-items-center gap-2">
+        <input class="form-check-input" type="radio" name="payment_method" id="pm_online" value="online" required>
+        <span>Online Payment</span>
+      </div>
+    </label>
+
+    <label id="row_cod" class="form-check d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <input class="form-check-input" type="radio" name="payment_method" id="pm_cod" value="cod">
+        <span>Cash on Delivery</span>
+      </div>
+    </label>
+
+    <label id="row_cop" class="form-check d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <input class="form-check-input" type="radio" name="payment_method" id="pm_cop" value="cop">
+        <span>Cash on Pickup</span>
+      </div>
+    </label>
+  </div>
+</div>
+
+
 
                             <!-- Summary -->
                             <div class="card shadow-sm border-0 mb-3">
@@ -432,66 +440,73 @@
             }
 
             function applyFulfillmentMode() {
-    const pickup = isPickupMode();
-    fmHidden.value = pickup ? 'pickup' : 'delivery';
+  const pickup = isPickupMode();
+  fmHidden.value = pickup ? 'pickup' : 'delivery';
 
-    // Toggle address card
+  // --- UI bits you already had
+  if (pickup) {
+    displayedAddressEl?.classList.add('address-disabled');
+    if (editAddrBtnHeader) { editAddrBtnHeader.disabled = true; editAddrBtnHeader.setAttribute('aria-disabled', 'true'); }
+    if (shippingNoteEl) { shippingNoteEl.classList.add('text-success'); shippingNoteEl.innerHTML = `<i class="bi bi-bag-check"></i> Pickup: No shipping fee`; }
+  } else {
+    displayedAddressEl?.classList.remove('address-disabled');
+    if (editAddrBtnHeader) { editAddrBtnHeader.disabled = false; editAddrBtnHeader.removeAttribute('aria-disabled'); }
+    if (shippingNoteEl) { shippingNoteEl.classList.remove('text-success'); shippingNoteEl.innerHTML = `<i class="bi bi-truck"></i> Shipping: ₱50 per shop (auto-calculated)`; }
+  }
+
+  // --- SHOW/HIDE payment choices
+  const rowOnline = document.getElementById('row_online');
+  const rowCOD    = document.getElementById('row_cod');
+  const rowCOP    = document.getElementById('row_cop');
+  const pmOnline  = document.getElementById('pm_online');
+  const pmCOD     = document.getElementById('pm_cod');
+  const pmCOP     = document.getElementById('pm_cop');
+
+  if (pickup) {
+    // Pickup: online + cop
+    rowOnline?.classList.remove('d-none');
+    rowCOP?.classList.remove('d-none');
+    rowCOD?.classList.add('d-none');          // hide COD
+
+    // If currently selected is hidden, switch to COP by default
+    const selected = document.querySelector('input[name="payment_method"]:checked');
+    if (!selected || selected.value === 'cod') {
+      pmCOP.checked = true;
+    }
+  } else {
+    // Delivery: online + cod
+    rowOnline?.classList.remove('d-none');
+    rowCOD?.classList.remove('d-none');
+    rowCOP?.classList.add('d-none');          // hide COP
+
+    // If currently selected is hidden, switch to COD by default
+    const selected = document.querySelector('input[name="payment_method"]:checked');
+    if (!selected || selected.value === 'cop') {
+      pmCOD.checked = true;
+    }
+  }
+
+  // maps & shipping
+  const pickupEl = document.getElementById('pickupAddresses');
+  if (pickupEl) {
+    pickupEl.classList.toggle('d-none', !pickup);
     if (pickup) {
-        displayedAddressEl?.classList.add('address-disabled');
-        if (editAddrBtnHeader) {
-            editAddrBtnHeader.disabled = true;
-            editAddrBtnHeader.setAttribute('aria-disabled', 'true');
-        }
-        if (shippingNoteEl) {
-            shippingNoteEl.classList.add('text-success');
-            shippingNoteEl.innerHTML = `<i class="bi bi-bag-check"></i> Pickup: No shipping fee`;
-        }
+      pickupEl.querySelectorAll('iframe.pickup-map').forEach(iframe => {
+        if (!iframe.src && iframe.dataset.src) { iframe.src = iframe.dataset.src; iframe.style.opacity = '1'; }
+      });
     } else {
-        displayedAddressEl?.classList.remove('address-disabled');
-        if (editAddrBtnHeader) {
-            editAddrBtnHeader.disabled = false;
-            editAddrBtnHeader.removeAttribute('aria-disabled');
-        }
-        if (shippingNoteEl) {
-            shippingNoteEl.classList.remove('text-success');
-            shippingNoteEl.innerHTML = `<i class="bi bi-truck"></i> Shipping: ₱50 per shop (auto-calculated)`;
-        }
+      pickupEl.querySelectorAll('iframe.pickup-map').forEach(iframe => { iframe.removeAttribute('src'); iframe.style.opacity = '0'; });
     }
+  }
 
-    // ✅ Handle pickup map display
-    const pickupEl = document.getElementById('pickupAddresses');
-    if (pickupEl) {
-        pickupEl.classList.toggle('d-none', !pickup);
+  // shipping 0 for pickup
+  const shippingSubtotalEl = document.getElementById('sum-shipping');
+  if (pickup) shippingSubtotalEl.textContent = '0.00';
 
-        // Lazy-load maps only when pickup selected
-        if (pickup) {
-            const iframes = pickupEl.querySelectorAll('iframe.pickup-map');
-            if (iframes.length === 0) {
-                console.warn('⚠️ No pickup maps found in DOM');
-            }
-            iframes.forEach(iframe => {
-                if (!iframe.src && iframe.dataset.src) {
-                    iframe.src = iframe.dataset.src;
-                    iframe.style.opacity = '1';
-                }
-            });
-        } else {
-            // Hide maps when returning to delivery
-            pickupEl.querySelectorAll('iframe.pickup-map').forEach(iframe => {
-                iframe.removeAttribute('src');
-                iframe.style.opacity = '0';
-            });
-        }
-    }
-
-    // ✅ Fix shipping subtotal
-    const shippingSubtotalEl = document.getElementById('sum-shipping');
-    if (pickup) {
-        shippingSubtotalEl.textContent = '0.00';
-    }
-
-    recalcSummary();
+  recalcSummary();
 }
+
+
 
             itemChecks.forEach(cb => cb.addEventListener('change', recalcSummary));
 
