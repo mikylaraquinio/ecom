@@ -251,6 +251,7 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'unit' => 'required|string|max:50',
+            'weight' => 'required|numeric|min:0.01',
             'min_order_qty' => 'required|integer|min:1',
             'category_id' => 'required|exists:categories,id',
         ]);

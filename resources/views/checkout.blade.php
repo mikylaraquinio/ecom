@@ -32,26 +32,26 @@
                                             @if($cartItem->id == 0)
                                                 {{-- Buy Now flow: send product + qty --}}
                                                 <input type="hidden" name="selected_items[0][product_id]"
-                                                       value="{{ $cartItem->product->id }}">
+                                                    value="{{ $cartItem->product->id }}">
                                                 <input type="hidden" name="selected_items[0][quantity]"
-                                                       value="{{ $cartItem->quantity }}">
+                                                    value="{{ $cartItem->quantity }}">
 
                                                 {{-- Hidden checkbox for JS subtotal calculation --}}
                                                 <input type="checkbox" class="item-check d-none" checked
-                                                       data-price="{{ $cartItem->product->price }}"
-                                                       data-qty="{{ $cartItem->quantity }}"
-                                                       data-seller="{{ $cartItem->product->user_id }}">
+                                                    data-price="{{ $cartItem->product->price }}"
+                                                    data-qty="{{ $cartItem->quantity }}"
+                                                    data-seller="{{ $cartItem->product->user_id }}">
                                             @else
                                                 {{-- Normal cart checkout --}}
                                                 <input class="form-check-input mt-0 item-check" type="checkbox"
-                                                       name="selected_items[]" value="{{ $cartItem->id }}" checked
-                                                       data-price="{{ $cartItem->product->price }}"
-                                                       data-qty="{{ $cartItem->quantity }}"
-                                                       data-seller="{{ $cartItem->product->user_id }}">
+                                                    name="selected_items[]" value="{{ $cartItem->id }}" checked
+                                                    data-price="{{ $cartItem->product->price }}"
+                                                    data-qty="{{ $cartItem->quantity }}"
+                                                    data-seller="{{ $cartItem->product->user_id }}">
                                             @endif
                                             <img src="{{ asset('storage/' . $cartItem->product->image) }}"
-                                                 alt="{{ $cartItem->product->name }}" class="rounded border"
-                                                 style="width:76px;height:76px;object-fit:cover;">
+                                                alt="{{ $cartItem->product->name }}" class="rounded border"
+                                                style="width:76px;height:76px;object-fit:cover;">
                                             <div class="flex-grow-1">
                                                 <div class="fw-semibold">{{ $cartItem->product->name }}</div>
                                                 @if($sellerName)
@@ -97,7 +97,7 @@
                                     @if($user->addresses->count() > 0 && $selectedAddress)
                                         <div class="d-flex gap-3 align-items-start" id="displayed-address">
                                             <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center"
-                                                 style="width:42px;height:42px;">
+                                                style="width:42px;height:42px;">
                                                 <i class="bi bi-geo-alt-fill"></i>
                                             </div>
                                             <div class="flex-grow-1 small">
@@ -115,10 +115,20 @@
                                                 @endif
                                             </div>
                                         </div>
+
                                         <input type="hidden" name="address_id" value="{{ $selectedAddress->id }}">
+
+                                        <!-- Add Another Address Button -->
+                                        <div class="mt-3 text-end">
+                                            <button type="button" class="btn btn-success btn-sm" id="add-address-btn">
+                                                + Add Another Address
+                                            </button>
+                                        </div>
                                     @else
-                                        <button type="button" class="btn btn-success w-100" id="add-address-btn">+ Add
-                                            Address</button>
+                                        <!-- If no address yet -->
+                                        <button type="button" class="btn btn-success w-100" id="add-address-btn">
+                                            + Add Address
+                                        </button>
                                     @endif
                                 </div>
                             </div>
@@ -130,100 +140,107 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="form-check d-flex align-items-start gap-2 mb-2">
-                                        <input class="form-check-input mt-1" type="radio"
-                                                name="fulfillment_method" id="fm_delivery" value="delivery" checked>
+                                        <input class="form-check-input mt-1" type="radio" name="fulfillment_method"
+                                            id="fm_delivery" value="delivery" checked>
                                         <label class="form-check-label w-100" for="fm_delivery">
                                             <div class="fw-semibold">For delivery</div>
                                             <div class="text-muted small">Ship to the address above</div>
                                         </label>
-                                        </div>
+                                    </div>
 
-                                        <div class="form-check d-flex align-items-start gap-2">
-                                        <input class="form-check-input mt-1" type="radio"
-                                                name="fulfillment_method" id="fm_pickup" value="pickup">
+                                    <div class="form-check d-flex align-items-start gap-2">
+                                        <input class="form-check-input mt-1" type="radio" name="fulfillment_method"
+                                            id="fm_pickup" value="pickup">
                                         <label class="form-check-label w-100" for="fm_pickup">
                                             <div class="fw-semibold">Pick up</div>
-                                            <div class="text-muted small">No shipping fee. Pickup details will be sent after checkout.</div>
+                                            <div class="text-muted small">No shipping fee. Pickup details will be sent after
+                                                checkout.</div>
                                         </label>
                                     </div>
 
-                                    <input type="hidden" name="fulfillment_method_final" id="fulfillment_method_final" value="delivery">
-                                    
+                                    <input type="hidden" name="fulfillment_method_final" id="fulfillment_method_final"
+                                        value="delivery">
+
                                     {{-- Seller pickup addresses (shown only when "Pickup" is selected) --}}
                                     @if(!empty($pickupBySeller))
                                         <div id="pickupAddresses" class="mt-3 d-none">
                                             <div class="small text-muted mb-2">Pickup locations for your order</div>
 
                                             @foreach($pickupBySeller as $info)
-                                            @php
-                                                $addr = trim($info['address_line'] ?? '');
-                                                // Fallback to seller name if address is empty (avoids broken map)
-                                                $q = $addr !== '' ? $addr : ($info['name'] ?? 'Pickup');
-                                            @endphp
+                                                @php
+                                                    $addr = trim($info['address_line'] ?? '');
+                                                    // Fallback to seller name if address is empty (avoids broken map)
+                                                    $q = $addr !== '' ? $addr : ($info['name'] ?? 'Pickup');
+                                                @endphp
 
-                                            <div class="border rounded p-2 mb-2 small">
-                                                <div class="fw-semibold">{{ $info['name'] }}</div>
+                                                <div class="border rounded p-2 mb-2 small">
+                                                    <div class="fw-semibold">{{ $info['name'] }}</div>
 
-                                                @if($addr !== '')
-                                                <div class="text-muted">{{ $addr }}</div>
-                                                @else
-                                                <div class="text-muted fst-italic">Pickup address will be provided by the seller.</div>
-                                                @endif
+                                                    @if($addr !== '')
+                                                        <div class="text-muted">{{ $addr }}</div>
+                                                    @else
+                                                        <div class="text-muted fst-italic">Pickup address will be provided by the
+                                                            seller.</div>
+                                                    @endif
 
-                                                @if(!empty($info['phone']))
-                                                <div class="text-muted">Contact: {{ $info['phone'] }}</div>
-                                                @endif
+                                                    @if(!empty($info['phone']))
+                                                        <div class="text-muted">Contact: {{ $info['phone'] }}</div>
+                                                    @endif
 
-                                                {{-- Map (lazy-loaded when pickup is selected) --}}
-                                                <div class="mt-2">
-                                                <iframe
-                                                    class="pickup-map w-100 rounded border"
-                                                    height="180"
-                                                    loading="lazy"
-                                                    referrerpolicy="no-referrer-when-downgrade"
-                                                    data-src="https://maps.google.com/maps?q={{ urlencode($q) }}&z=15&output=embed">
-                                                </iframe>
-                                                <div class="mt-1">
-                                                    <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($q) }}" target="_blank" class="small">
-                                                    Open in Google Maps
-                                                    </a>
+                                                    {{-- Map (lazy-loaded when pickup is selected) --}}
+                                                    <div class="mt-2">
+                                                        <iframe class="pickup-map w-100 rounded border" height="180" loading="lazy"
+                                                            referrerpolicy="no-referrer-when-downgrade"
+                                                            data-src="https://maps.google.com/maps?q={{ urlencode($q) }}&z=15&output=embed">
+                                                        </iframe>
+                                                        <div class="mt-1">
+                                                            <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($q) }}"
+                                                                target="_blank" class="small">
+                                                                Open in Google Maps
+                                                            </a>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                </div>
-                                            </div>
                                             @endforeach
                                         </div>
                                     @endif
                                 </div>
                             </div>
 
-                           <!-- Payment -->
-<div class="card shadow-sm border-0 mb-3">
-  <div class="card-header bg-white py-3">
-    <h5 class="mb-0 fw-semibold">Payment Method</h5>
-  </div>
-  <div class="card-body payment-methods">
-    <label id="row_online" class="form-check d-flex align-items-center justify-content-between mb-2">
-      <div class="d-flex align-items-center gap-2">
-        <input class="form-check-input" type="radio" name="payment_method" id="pm_online" value="online" required>
-        <span>Online Payment</span>
-      </div>
-    </label>
+                            <!-- Payment -->
+                            <div class="card shadow-sm border-0 mb-3">
+                                <div class="card-header bg-white py-3">
+                                    <h5 class="mb-0 fw-semibold">Payment Method</h5>
+                                </div>
+                                <div class="card-body payment-methods">
+                                    <label id="row_online"
+                                        class="form-check d-flex align-items-center justify-content-between mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input class="form-check-input" type="radio" name="payment_method"
+                                                id="pm_online" value="online" required>
+                                            <span>Online Payment</span>
+                                        </div>
+                                    </label>
 
-    <label id="row_cod" class="form-check d-flex align-items-center justify-content-between">
-      <div class="d-flex align-items-center gap-2">
-        <input class="form-check-input" type="radio" name="payment_method" id="pm_cod" value="cod">
-        <span>Cash on Delivery</span>
-      </div>
-    </label>
+                                    <label id="row_cod"
+                                        class="form-check d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input class="form-check-input" type="radio" name="payment_method" id="pm_cod"
+                                                value="cod">
+                                            <span>Cash on Delivery</span>
+                                        </div>
+                                    </label>
 
-    <label id="row_cop" class="form-check d-flex align-items-center justify-content-between">
-      <div class="d-flex align-items-center gap-2">
-        <input class="form-check-input" type="radio" name="payment_method" id="pm_cop" value="cop">
-        <span>Cash on Pickup</span>
-      </div>
-    </label>
-  </div>
-</div>
+                                    <label id="row_cop"
+                                        class="form-check d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input class="form-check-input" type="radio" name="payment_method" id="pm_cop"
+                                                value="cop">
+                                            <span>Cash on Pickup</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
 
 
 
@@ -293,23 +310,13 @@
                 <div class="modal-text">
                     <div class="mb-3">
                         <label class="form-label">Full Name</label>
-                        <input 
-                            type="text" 
-                            class="form-control" 
-                            placeholder="First Last"
-                            value="{{ auth()->user()->name }}"
-                            readonly
-                        >
+                        <input type="text" class="form-control" placeholder="First Last"
+                            value="{{ auth()->user()->name }}" readonly>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Mobile Number</label>
-                        <input 
-                            type="text" 
-                            class="form-control" 
-                            placeholder="Enter phone number"
-                            value="{{ auth()->user()->phone }}"
-                            readonly
-                        >
+                        <input type="text" class="form-control" placeholder="Enter phone number"
+                            value="{{ auth()->user()->phone }}" readonly>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Other Notes</label>
@@ -352,8 +359,8 @@
                 @foreach($addresses as $address)
                     <div class="address-card">
                         <input type="radio" name="selected_address" id="address-{{ $address->id }}"
-                               value="{{ $address->id }}" class="form-check-input me-2"
-                               @if(session('selected_address_id') == $address->id) checked @endif>
+                            value="{{ $address->id }}" class="form-check-input me-2"
+                            @if(session('selected_address_id') == $address->id) checked @endif>
                         <label for="address-{{ $address->id }}" class="ms-1">
                             <strong>{{ $address->full_name }} - {{ $address->mobile_number }}</strong><br>
                             {{ $address->floor_unit_number }}, {{ $address->barangay }}, {{ $address->city }},
@@ -362,10 +369,10 @@
                         </label>
 
                         <button class="edit-address-btn btn btn-link p-0 small" type="button" data-id="{{ $address->id }}"
-                                data-full_name="{{ $address->full_name }}" data-mobile_number="{{ $address->mobile_number }}"
-                                data-notes="{{ $address->notes }}" data-floor_unit_number="{{ $address->floor_unit_number }}"
-                                data-province="{{ $address->province }}" data-city="{{ $address->city }}"
-                                data-barangay="{{ $address->barangay }}">
+                            data-full_name="{{ $address->full_name }}" data-mobile_number="{{ $address->mobile_number }}"
+                            data-notes="{{ $address->notes }}" data-floor_unit_number="{{ $address->floor_unit_number }}"
+                            data-province="{{ $address->province }}" data-city="{{ $address->city }}"
+                            data-barangay="{{ $address->barangay }}">
                             Edit
                         </button>
                     </div>
@@ -396,12 +403,12 @@
 
             // New Fulfillment refs
             const fmDelivery = document.getElementById('fm_delivery');
-            const fmPickup   = document.getElementById('fm_pickup');
-            const fmHidden   = document.getElementById('fulfillment_method_final');
+            const fmPickup = document.getElementById('fm_pickup');
+            const fmHidden = document.getElementById('fulfillment_method_final');
 
-            const shippingNoteEl     = document.getElementById('shipping-note');
+            const shippingNoteEl = document.getElementById('shipping-note');
             const displayedAddressEl = document.getElementById('displayed-address');
-            const editAddrBtnHeader  = document.getElementById('edit-address-btn');
+            const editAddrBtnHeader = document.getElementById('edit-address-btn');
 
             // ---------- Totals
             const itemChecks = document.querySelectorAll('.item-check');
@@ -440,71 +447,71 @@
             }
 
             function applyFulfillmentMode() {
-  const pickup = isPickupMode();
-  fmHidden.value = pickup ? 'pickup' : 'delivery';
+                const pickup = isPickupMode();
+                fmHidden.value = pickup ? 'pickup' : 'delivery';
 
-  // --- UI bits you already had
-  if (pickup) {
-    displayedAddressEl?.classList.add('address-disabled');
-    if (editAddrBtnHeader) { editAddrBtnHeader.disabled = true; editAddrBtnHeader.setAttribute('aria-disabled', 'true'); }
-    if (shippingNoteEl) { shippingNoteEl.classList.add('text-success'); shippingNoteEl.innerHTML = `<i class="bi bi-bag-check"></i> Pickup: No shipping fee`; }
-  } else {
-    displayedAddressEl?.classList.remove('address-disabled');
-    if (editAddrBtnHeader) { editAddrBtnHeader.disabled = false; editAddrBtnHeader.removeAttribute('aria-disabled'); }
-    if (shippingNoteEl) { shippingNoteEl.classList.remove('text-success'); shippingNoteEl.innerHTML = `<i class="bi bi-truck"></i> Shipping: ₱50 per shop (auto-calculated)`; }
-  }
+                // --- UI bits you already had
+                if (pickup) {
+                    displayedAddressEl?.classList.add('address-disabled');
+                    if (editAddrBtnHeader) { editAddrBtnHeader.disabled = true; editAddrBtnHeader.setAttribute('aria-disabled', 'true'); }
+                    if (shippingNoteEl) { shippingNoteEl.classList.add('text-success'); shippingNoteEl.innerHTML = `<i class="bi bi-bag-check"></i> Pickup: No shipping fee`; }
+                } else {
+                    displayedAddressEl?.classList.remove('address-disabled');
+                    if (editAddrBtnHeader) { editAddrBtnHeader.disabled = false; editAddrBtnHeader.removeAttribute('aria-disabled'); }
+                    if (shippingNoteEl) { shippingNoteEl.classList.remove('text-success'); shippingNoteEl.innerHTML = `<i class="bi bi-truck"></i> Shipping: ₱50 per shop (auto-calculated)`; }
+                }
 
-  // --- SHOW/HIDE payment choices
-  const rowOnline = document.getElementById('row_online');
-  const rowCOD    = document.getElementById('row_cod');
-  const rowCOP    = document.getElementById('row_cop');
-  const pmOnline  = document.getElementById('pm_online');
-  const pmCOD     = document.getElementById('pm_cod');
-  const pmCOP     = document.getElementById('pm_cop');
+                // --- SHOW/HIDE payment choices
+                const rowOnline = document.getElementById('row_online');
+                const rowCOD = document.getElementById('row_cod');
+                const rowCOP = document.getElementById('row_cop');
+                const pmOnline = document.getElementById('pm_online');
+                const pmCOD = document.getElementById('pm_cod');
+                const pmCOP = document.getElementById('pm_cop');
 
-  if (pickup) {
-    // Pickup: online + cop
-    rowOnline?.classList.remove('d-none');
-    rowCOP?.classList.remove('d-none');
-    rowCOD?.classList.add('d-none');          // hide COD
+                if (pickup) {
+                    // Pickup: online + cop
+                    rowOnline?.classList.remove('d-none');
+                    rowCOP?.classList.remove('d-none');
+                    rowCOD?.classList.add('d-none');          // hide COD
 
-    // If currently selected is hidden, switch to COP by default
-    const selected = document.querySelector('input[name="payment_method"]:checked');
-    if (!selected || selected.value === 'cod') {
-      pmCOP.checked = true;
-    }
-  } else {
-    // Delivery: online + cod
-    rowOnline?.classList.remove('d-none');
-    rowCOD?.classList.remove('d-none');
-    rowCOP?.classList.add('d-none');          // hide COP
+                    // If currently selected is hidden, switch to COP by default
+                    const selected = document.querySelector('input[name="payment_method"]:checked');
+                    if (!selected || selected.value === 'cod') {
+                        pmCOP.checked = true;
+                    }
+                } else {
+                    // Delivery: online + cod
+                    rowOnline?.classList.remove('d-none');
+                    rowCOD?.classList.remove('d-none');
+                    rowCOP?.classList.add('d-none');          // hide COP
 
-    // If currently selected is hidden, switch to COD by default
-    const selected = document.querySelector('input[name="payment_method"]:checked');
-    if (!selected || selected.value === 'cop') {
-      pmCOD.checked = true;
-    }
-  }
+                    // If currently selected is hidden, switch to COD by default
+                    const selected = document.querySelector('input[name="payment_method"]:checked');
+                    if (!selected || selected.value === 'cop') {
+                        pmCOD.checked = true;
+                    }
+                }
 
-  // maps & shipping
-  const pickupEl = document.getElementById('pickupAddresses');
-  if (pickupEl) {
-    pickupEl.classList.toggle('d-none', !pickup);
-    if (pickup) {
-      pickupEl.querySelectorAll('iframe.pickup-map').forEach(iframe => {
-        if (!iframe.src && iframe.dataset.src) { iframe.src = iframe.dataset.src; iframe.style.opacity = '1'; }
-      });
-    } else {
-      pickupEl.querySelectorAll('iframe.pickup-map').forEach(iframe => { iframe.removeAttribute('src'); iframe.style.opacity = '0'; });
-    }
-  }
+                // maps & shipping
+                const pickupEl = document.getElementById('pickupAddresses');
+                if (pickupEl) {
+                    pickupEl.classList.toggle('d-none', !pickup);
+                    if (pickup) {
+                        pickupEl.querySelectorAll('iframe.pickup-map').forEach(iframe => {
+                            if (!iframe.src && iframe.dataset.src) { iframe.src = iframe.dataset.src; iframe.style.opacity = '1'; }
+                        });
+                    } else {
+                        pickupEl.querySelectorAll('iframe.pickup-map').forEach(iframe => { iframe.removeAttribute('src'); iframe.style.opacity = '0'; });
+                    }
+                }
 
-  // shipping 0 for pickup
-  const shippingSubtotalEl = document.getElementById('sum-shipping');
-  if (pickup) shippingSubtotalEl.textContent = '0.00';
+                // shipping 0 for pickup
+                const shippingSubtotalEl = document.getElementById('sum-shipping');
+                if (pickup) shippingSubtotalEl.textContent = '0.00';
 
-  recalcSummary();
-}
+                recalcSummary();
+            }
 
 
 
@@ -568,23 +575,23 @@
             });
 
             // 🔁 Handle address selection dynamically
-document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
-    radio.addEventListener('change', function () {
-        const selectedId = this.value;
-        const card = this.closest('.address-card');
-        const lbl = card.querySelector('label');
-        const lines = lbl.innerHTML.split('<br>');
-        const header = lines[0] ?? '';
-        const address1 = lines[1] ?? '';
-        const notes = lines[2] ?? '';
+            document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
+                radio.addEventListener('change', function () {
+                    const selectedId = this.value;
+                    const card = this.closest('.address-card');
+                    const lbl = card.querySelector('label');
+                    const lines = lbl.innerHTML.split('<br>');
+                    const header = lines[0] ?? '';
+                    const address1 = lines[1] ?? '';
+                    const notes = lines[2] ?? '';
 
-        // Update hidden address_id input
-        const dest = document.querySelector('input[name="address_id"]');
-        if (dest) dest.value = selectedId;
+                    // Update hidden address_id input
+                    const dest = document.querySelector('input[name="address_id"]');
+                    if (dest) dest.value = selectedId;
 
-        // Update displayed address on the checkout card instantly
-        const display = document.getElementById('displayed-address');
-        display.innerHTML = `
+                    // Update displayed address on the checkout card instantly
+                    const display = document.getElementById('displayed-address');
+                    display.innerHTML = `
             <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
                 <i class="bi bi-geo-alt-fill"></i>
             </div>
@@ -595,57 +602,64 @@ document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
             </div>
         `;
 
-        // --- 💾 Save selected address to session
-        fetch(`{{ route('checkout.saveSelectedAddress') }}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            },
-            body: JSON.stringify({ address_id: selectedId })
-        });
+                    // --- 💾 Save selected address to session, then reload page
+                    fetch(`{{ route('checkout.saveSelectedAddress') }}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        },
+                        body: JSON.stringify({ address_id: selectedId })
+                    })
+                        .then(res => {
+                            if (res.ok) {
+                                // Close the modal before reload for smooth UX
+                                const modal = document.getElementById('editAddressModal');
+                                if (modal) modal.style.display = 'none';
 
-        // --- 🚚 Show spinner while updating shipping
-        const shippingSpan = document.getElementById('sum-shipping');
-        shippingSpan.textContent = '...';
+                                // Add a small delay so the close animation can finish
+                                setTimeout(() => location.reload(), 300);
+                            }
+                        })
+                        .catch(err => console.error('Error saving selected address:', err));
 
-        // --- 🔄 Recalculate shipping dynamically
-        fetch(`{{ route('checkout.recalcShipping') }}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            },
-            body: JSON.stringify({
-                address_id: selectedId,
-                selected_items: Array.from(
-                    document.querySelectorAll('input[name="selected_items[]"]:checked')
-                ).map(i => i.value),
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                // Update shipping subtotal
-                shippingSpan.textContent = data.totalShipping.toFixed(2);
+                    // --- 🔄 Recalculate shipping dynamically
+                    fetch(`{{ route('checkout.recalcShipping') }}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        },
+                        body: JSON.stringify({
+                            address_id: selectedId,
+                            selected_items: Array.from(
+                                document.querySelectorAll('input[name="selected_items[]"]:checked')
+                            ).map(i => i.value),
+                        })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Update shipping subtotal
+                                shippingSpan.textContent = data.totalShipping.toFixed(2);
 
-                // Recalculate total summary live
-                recalcSummary();
-            } else {
-                shippingSpan.textContent = '0.00';
-                recalcSummary();
-            }
-        })
-        .catch(() => {
-            shippingSpan.textContent = '0.00';
-            recalcSummary();
-        });
+                                // Recalculate total summary live
+                                recalcSummary();
+                            } else {
+                                shippingSpan.textContent = '0.00';
+                                recalcSummary();
+                            }
+                        })
+                        .catch(() => {
+                            shippingSpan.textContent = '0.00';
+                            recalcSummary();
+                        });
 
-        // Close the side modal after selecting
-        const modal = document.getElementById('editAddressModal');
-        if (modal) modal.style.display = 'none';
-    });
-});
+                    // Close the side modal after selecting
+                    const modal = document.getElementById('editAddressModal');
+                    if (modal) modal.style.display = 'none';
+                });
+            });
 
 
             // Save (create/update) address
@@ -727,7 +741,7 @@ document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
                     const buyNowProductId = document.querySelector('input[name="selected_items[0][product_id]"]')?.value;
                     const buyNowQty = document.querySelector('input[name="selected_items[0][quantity]"]')?.value;
                     if (buyNowProductId && buyNowQty) {
-                    selectedItems = [{ product_id: buyNowProductId, quantity: buyNowQty }];
+                        selectedItems = [{ product_id: buyNowProductId, quantity: buyNowQty }];
                     }
                 }
 
@@ -739,27 +753,27 @@ document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
 
                 try {
                     const r = await fetch("{{ route('checkout.process') }}", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                        "Accept": "application/json",
-                    },
-                    body: JSON.stringify({
-                        address_id: addressId || null,
-                        selected_items: selectedItems,
-                        payment_method: pm.value,
-                        fulfillment_method: fulfillment,
-                    }),
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                            "Accept": "application/json",
+                        },
+                        body: JSON.stringify({
+                            address_id: addressId || null,
+                            selected_items: selectedItems,
+                            payment_method: pm.value,
+                            fulfillment_method: fulfillment,
+                        }),
                     });
 
                     const data = await r.json().catch(() => ({}));
 
                     if (r.ok && data.success && data.redirect_url) {
-                    window.location.href = data.redirect_url;
+                        window.location.href = data.redirect_url;
                     } else {
-                    alert(data.message || 'Something went wrong placing the order.');
-                    resetButton();
+                        alert(data.message || 'Something went wrong placing the order.');
+                        resetButton();
                     }
                 } catch (err) {
                     console.error(err);
@@ -789,19 +803,59 @@ document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
             text-align: left;
         }
 
-        .checkout-page .card-body>.d-flex { width: 100%; }
-        .checkout-page .card-body .text-end { text-align: right !important; }
-        .checkout-page .card-header { border-bottom: 1px solid #eee; }
-        .checkout-page .list-group-item { border-color: #f1f1f1; }
-        .checkout-page .form-check { display: flex; align-items: flex-start; gap: .5rem; }
-        .checkout-page .form-check-input { width: 18px; height: 18px; margin: 0; }
-        .checkout-page .form-check-input.mt-1 { margin-top: .2rem; } /* tiny nudge */
-        .checkout-page .form-check-label { line-height: 1.25; }
+        .checkout-page .card-body>.d-flex {
+            width: 100%;
+        }
+
+        .checkout-page .card-body .text-end {
+            text-align: right !important;
+        }
+
+        .checkout-page .card-header {
+            border-bottom: 1px solid #eee;
+        }
+
+        .checkout-page .list-group-item {
+            border-color: #f1f1f1;
+        }
+
+        .checkout-page .form-check {
+            display: flex;
+            align-items: flex-start;
+            gap: .5rem;
+        }
+
+        .checkout-page .form-check-input {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+        }
+
+        .checkout-page .form-check-input.mt-1 {
+            margin-top: .2rem;
+        }
+
+        /* tiny nudge */
+        .checkout-page .form-check-label {
+            line-height: 1.25;
+        }
 
         /* Payment methods alignment */
-        .payment-methods .form-check { width: 100%; cursor: pointer; }
-        .payment-methods span { flex: 1; text-align: left; }
-        .checkout-page .form-check-input { width: 18px; height: 18px; margin: 0; }
+        .payment-methods .form-check {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .payment-methods span {
+            flex: 1;
+            text-align: left;
+        }
+
+        .checkout-page .form-check-input {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+        }
 
         /* Custom modal (swap to Bootstrap modal if preferred) */
         .modal {
@@ -825,7 +879,11 @@ document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
             box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
         }
 
-        .right-modal { justify-content: flex-end; align-items: stretch; }
+        .right-modal {
+            justify-content: flex-end;
+            align-items: stretch;
+        }
+
         .right-modal .modal-content {
             max-width: 420px;
             height: 100%;
@@ -833,22 +891,45 @@ document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
             box-shadow: -6px 0 24px rgba(0, 0, 0, .18);
         }
 
-        .modal-body { display: flex; flex-wrap: wrap; gap: 16px; }
-        .modal-text, .modal-address { width: 48%; }
+        .modal-body {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .modal-text,
+        .modal-address {
+            width: 48%;
+        }
 
         .modal-actions {
-            display: flex; justify-content: flex-end; gap: 10px;
-            border-top: 1px solid #eee; padding-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid #eee;
+            padding-top: 12px;
         }
 
         .address-card {
-            display: flex; align-items: flex-start; gap: 10px;
-            border: 1px solid #e9ecef; border-radius: 10px; background: #fafafa;
-            padding: 12px; margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            background: #fafafa;
+            padding: 12px;
+            margin-bottom: 10px;
         }
 
-        .address-card:hover { background: #f6fff6; border-color: #cce5cc; }
-        .address-card label { flex: 1; cursor: pointer; }
+        .address-card:hover {
+            background: #f6fff6;
+            border-color: #cce5cc;
+        }
+
+        .address-card label {
+            flex: 1;
+            cursor: pointer;
+        }
 
         /* Dim/disable address card when pickup selected */
         .address-disabled {
@@ -856,8 +937,19 @@ document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
             pointer-events: none;
         }
 
-        @media (max-width: 992px) { .right-modal .modal-content { max-width: 100%; } }
-        @media (max-width: 768px) { .modal-text, .modal-address { width: 100%; } }
+        @media (max-width: 992px) {
+            .right-modal .modal-content {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+
+            .modal-text,
+            .modal-address {
+                width: 100%;
+            }
+        }
 
         .mt-3 {
             transition: opacity 0.3s ease;
@@ -866,6 +958,5 @@ document.querySelectorAll('input[name="selected_address"]').forEach(radio => {
         .mt-3[style*="display: none"] {
             opacity: 0;
         }
-
     </style>
 </x-app-layout>
