@@ -413,13 +413,20 @@ class CheckoutController extends Controller
             }
         }
 
+        // ✅ Determine status based on payment method
+        if ($paymentMethod === 'online') {
+    $status = $fulfillment === 'pickup' ? 'awaiting_pickup' : 'awaiting_shipment';
+} else {
+    $status = 'pending';
+}
+
         // ✅ Create Order (use the computed $paymentMethod)
         $order = Order::create([
             'user_id'            => $user->id,
             'address_id'         => $fulfillment === 'delivery' ? $request->address_id : null,
             'payment_method'     => $paymentMethod,
             'fulfillment_method' => $fulfillment,
-            'status'             => 'pending',
+            'status'             => $status, // 👈 dynamic now
             'total_amount'       => $grandTotal,
             'shipping_fee'       => $totalShipping,
         ]);

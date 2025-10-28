@@ -52,411 +52,373 @@
                 <div class="card border-0 shadow-sm overflow-hidden">
                     <!-- Header -->
                     <div class="card-header bg-white border-0 border-bottom py-3 px-4">
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-        <h5 class="fw-bold mb-0 text-success">
-            <i class="fas fa-box-open me-2"></i>Your Orders
-            <span class="badge bg-success text-white">{{ $ordersCount }}</span>
-        </h5>
-    </div>
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                            <h5 class="fw-bold mb-0 text-success">
+                                <i class="fas fa-box-open me-2"></i>Your Orders
+                                <span class="badge bg-success text-white">{{ $ordersCount }}</span>
+                            </h5>
+                        </div>
 
-    <!-- Shopee-style Tabs (full-width row under title) -->
-    <ul class="nav nav-pills order-tabs mt-2 flex-wrap" id="orderTabs">
-        <li class="nav-item"><button class="nav-link active" data-status="all">All</button></li>
-        <li class="nav-item"><button class="nav-link" data-status="pending">Pending</button></li>
-        <li class="nav-item"><button class="nav-link" data-status="accepted">Accepted</button></li>
-        <li class="nav-item">
-            <button class="nav-link" data-status="shipped,ready_for_pickup">
-                Shipped / Ready for Pickup
-            </button>
-        </li>
-        <li class="nav-item"><button class="nav-link" data-status="completed">Completed</button></li>
-        <li class="nav-item"><button class="nav-link" data-status="canceled">Canceled</button></li>
-    </ul>
-</div>
+                        <!-- Shopee-style Tabs (full-width row under title) -->
+                        <ul class="nav nav-pills order-tabs mt-2 flex-wrap" id="orderTabs">
+                            <li class="nav-item"><button class="nav-link active" data-status="all">All</button></li>
+                            <li class="nav-item"><button class="nav-link" data-status="pending">Pending</button></li>
+                            <li class="nav-item"><button class="nav-link" data-status="accepted">Accepted</button></li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-status="shipped,ready_for_pickup">
+                                    Shipped / Ready for Pickup
+                                </button>
+                            </li>
+                            <li class="nav-item"><button class="nav-link" data-status="completed">Completed</button></li>
+                            <li class="nav-item"><button class="nav-link" data-status="canceled">Canceled</button></li>
+                        </ul>
+                    </div>
 
 
-                    <!-- Orders List -->
-                    <div class="card-body bg-light" id="orderList">
-                    @forelse($user->orders()->with('orderItems.product')->latest()->get() as $order)
-                        @foreach($order->orderItems as $item)
+                    <!-- ===================== ORDERS LIST ===================== -->
+<div class="card-body bg-light" id="orderList">
+    @forelse($user->orders()->with('orderItems.product')->latest()->get() as $order)
+        @php
+            $firstItem = $order->orderItems->first();
+            $product = $firstItem?->product;
+            $imageUrl = $product && $product->image
+                ? asset('storage/' . $product->image)
+                : asset('assets/products.jpg');
+            $shippingFee = $order->shipping_fee ?? 0;
+            $total = $order->total_amount ?? ($product?->price * $firstItem->quantity + $shippingFee);
+        @endphp
+
+        @if($product)
+        <!-- ✅ Order Card -->
+        <div class="order-card shadow-sm bg-white rounded-3 p-3 mb-3 border position-relative"
+            data-status="{{ strtolower($order->status) }}"
+            data-bs-toggle="modal"
+            data-bs-target="#orderModal-{{ $order->id }}"
+            style="cursor:pointer; transition: all 0.2s ease;">
+            
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex align-items-center">
+                    <img src="{{ $imageUrl }}" width="70" height="70" class="rounded me-3 border" style="object-fit:cover;">
+                    <div>
+                        <h6 class="fw-semibold text-dark mb-1">{{ $product->name }}</h6>
+                        @if($order->orderItems->count() > 1)
+                            <small class="text-muted">
+                                +{{ $order->orderItems->count() - 1 }} more item{{ $order->orderItems->count() > 2 ? 's' : '' }}
+                            </small>
+                        @endif
+                        <div class="text-muted small mt-1">
+                            ₱{{ number_format($product->price, 2) }} × {{ $firstItem->quantity }}  
+                            <span class="mx-1">•</span>  
+                            Shipping ₱{{ number_format($shippingFee, 2) }}
+                        </div>
+                        <div class="fw-semibold mt-1 text-danger">₱{{ number_format($total, 2) }}</div>
+                    </div>
+                </div>
+
+                <span class="order-status-badge {{ strtolower($order->status) }}">
+                    {{ ucfirst(str_replace('_', ' ', $order->status)) }}
+                </span>
+            </div>
+
+            <div class="text-end mt-2">
+                <small class="text-success fw-semibold" data-bs-toggle="modal" data-bs-target="#orderModal-{{ $order->id }}">
+                    View Details <i class="fas fa-chevron-right ms-1"></i>
+                </small>
+            </div>
+        </div>
+        @endif
+
+
+        <!-- ========================= ORDER MODAL ========================= -->
+        <div class="modal fade" id="orderModal-{{ $order->id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-receipt me-2"></i> Order #{{ $order->id }}
+                            @if($order->status === 'canceled')
+                                <span class="badge bg-danger ms-2"><i class="fas fa-ban me-1"></i> Canceled</span>
+                            @endif
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        @php
+                            $isPickup = $order->fulfillment_method === 'pickup';
+                            $address = optional($order->address);
+                        @endphp
+
+                        @if($isPickup)
+                            <h6 class="text-success fw-bold mb-2"><i class="fas fa-store me-2"></i>Pickup Information</h6>
                             @php
-                                $product = $item->product;
-                                $imageUrl = $product && $product->image ? asset('storage/' . $product->image) : asset('assets/products.jpg');
-                                $shippingFee = $order->shipping_fee ?? 0;
-                                $total = ($product->price * $item->quantity) + $shippingFee;
+                                $firstItem = $order->orderItems->first();
+                                $seller = optional($firstItem?->product?->user?->seller);
                             @endphp
-
-                            <div class="order-card shadow-sm bg-white rounded-3 p-3 mb-3 border position-relative"
-                                data-status="{{ strtolower($order->status) }}"
-                                data-bs-toggle="modal"
-                                data-bs-target="#orderModal-{{ $order->id }}"
-                                style="cursor:pointer; transition: all 0.2s ease;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="d-flex align-items-center">
-                                    <img src="{{ $imageUrl }}" width="70" height="70" class="rounded me-3 border" style="object-fit:cover;">
-                                    <div>
-                                        <h6 class="fw-semibold text-dark mb-1">{{ $product->name }}</h6>
-                                        <div class="text-muted small">
-                                            ₱{{ number_format($product->price,2) }} × {{ $item->quantity }}  
-                                            <span class="mx-1">•</span>  
-                                            Shipping ₱{{ number_format($shippingFee,2) }}
-                                        </div>
-                                        <div class="fw-semibold mt-1 text-danger">₱{{ number_format($total,2) }}</div>
-                                    </div>
-                                </div>
-                                <span class="order-status-badge {{ strtolower($order->status) }}">
-                                    {{ ucfirst(str_replace('_', ' ', $order->status)) }}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="modal fade" id="orderModal-{{ $order->id }}" tabindex="-1">
-                            <div class="modal-dialog modal-dialog-centered modal-lg">
-                                <div class="modal-content">
-                                    <div class="modal-header bg-success text-white">
-                                        <h5 class="modal-title">
-                                            <i class="fas fa-receipt me-2"></i> Order #{{ $order->id }}
-                                            @if($order->status === 'canceled')
-                                                <span class="badge bg-danger ms-2"><i class="fas fa-ban me-1"></i> Canceled</span>
-                                            @endif
-                                        </h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-
-                                    <div class="modal-body">
-                                        @php
-                                            $isPickup = $order->fulfillment_method === 'pickup';
-                                            $address = optional($order->address);
-                                        @endphp
-
-                                        <!-- ========================= IF PICKUP ========================= -->
-                                        @if($isPickup)
-                                            <h6 class="text-success font-weight-bold mb-2">
-                                                <i class="fas fa-store mr-2"></i>Pickup Information
-                                            </h6>
-
-                                            @php
-                                                // Try to fetch the seller info from the first item
-                                                $firstItem = $order->orderItems->first();
-                                                $seller = optional($firstItem?->product?->user?->seller);
-                                            @endphp
-
-                                            @if($seller)
-                                                <p><strong>Pickup Location:</strong><br>
-                                                    {{ $seller->pickup_address ?? 'No pickup address available' }}
-                                                </p>
-                                                <p><strong>Pickup Contact:</strong><br>
-                                                    {{ $seller->pickup_phone ?? '—' }}
-                                                </p>
-                                            @else
-                                                <p class="text-muted">Pickup details will be provided by the seller.</p>
-                                            @endif
-
-                                            <hr>
-
-                                            <h6 class="text-success font-weight-bold mb-3">
-                                                <i class="fas fa-truck-loading mr-2"></i>Pickup Progress
-                                            </h6>
-
-                                            <div class="order-tracker">
-                                                <div class="step {{ $order->created_at ? 'active' : '' }}">
-                                                    <div class="icon"><i class="fas fa-check-circle"></i></div>
-                                                    <div class="text">
-                                                        <strong>Placed</strong>
-                                                        <small>{{ $order->created_at ? \Carbon\Carbon::parse($order->created_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
-                                                    </div>
-                                                </div>
-                                                <div class="step {{ in_array($order->status, ['accepted','ready_for_pickup','completed']) ? 'active' : '' }}">
-                                                    <div class="icon"><i class="fas fa-box"></i></div>
-                                                    <div class="text">
-                                                        <strong>Accepted</strong>
-                                                        <small>{{ $order->accepted_at ? \Carbon\Carbon::parse($order->accepted_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
-                                                    </div>
-                                                </div>
-                                                <div class="step {{ in_array($order->status, ['ready_for_pickup','completed']) ? 'active' : '' }}">
-                                                    <div class="icon"><i class="fas fa-store"></i></div>
-                                                    <div class="text">
-                                                        <strong>Ready for Pickup</strong>
-                                                        <small>{{ $order->ready_at ? \Carbon\Carbon::parse($order->ready_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
-                                                    </div>
-                                                </div>
-                                                <div class="step {{ $order->status === 'completed' ? 'active' : '' }}">
-                                                    <div class="icon"><i class="fas fa-box-open"></i></div>
-                                                    <div class="text">
-                                                        <strong>Picked Up</strong>
-                                                        <small>{{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @else
-                                            <!-- ========================= DELIVERY MODE ========================= -->
-                                            <h6 class="text-success font-weight-bold mb-2">
-                                                <i class="fas fa-user mr-2"></i>Delivery Information
-                                            </h6>
-
-                                            <p><strong>Name:</strong> {{ $address->full_name ?? $user->name ?? '—' }}</p>
-                                            <p><strong>Contact:</strong> {{ $address->mobile_number ?? $user->phone ?? '—' }}</p>
-                                            <p><strong>Address:</strong>
-                                                @if($address && ($address->province || $address->city || $address->barangay))
-                                                    {{ $address->floor_unit_number ? $address->floor_unit_number . ', ' : '' }}
-                                                    {{ $address->barangay ? $address->barangay . ', ' : '' }}
-                                                    {{ $address->city ? $address->city . ', ' : '' }}
-                                                    {{ $address->province }}
-                                                @else
-                                                    No address provided
-                                                @endif
-                                            </p>
-
-                                            <hr>
-
-                                            <h6 class="text-success font-weight-bold mb-3">
-                                                <i class="fas fa-truck mr-2"></i>Shipping Progress
-                                            </h6>
-
-                                            <div class="order-tracker">
-                                                <div class="step {{ $order->created_at ? 'active' : '' }}">
-                                                    <div class="icon"><i class="fas fa-check-circle"></i></div>
-                                                    <div class="text"><strong>Placed</strong>
-                                                        <small>{{ $order->created_at ? \Carbon\Carbon::parse($order->created_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
-                                                    </div>
-                                                </div>
-                                                <div class="step {{ in_array($order->status, ['accepted','shipped','completed']) ? 'active' : '' }}">
-                                                    <div class="icon"><i class="fas fa-box"></i></div>
-                                                    <div class="text"><strong>Accepted</strong>
-                                                        <small>{{ $order->accepted_at ? \Carbon\Carbon::parse($order->accepted_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
-                                                    </div>
-                                                </div>
-                                                <div class="step {{ in_array($order->status, ['shipped','completed']) ? 'active' : '' }}">
-                                                    <div class="icon"><i class="fas fa-truck"></i></div>
-                                                    <div class="text"><strong>Shipped</strong>
-                                                        <small>{{ $order->shipped_at ? \Carbon\Carbon::parse($order->shipped_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A')  : '—' }}</small>
-                                                    </div>
-                                                </div>
-                                                <div class="step {{ $order->status === 'completed' ? 'active' : '' }}">
-                                                    <div class="icon"><i class="fas fa-box-open"></i></div>
-                                                    <div class="text"><strong>Delivered</strong>
-                                                        <small>{{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endif
-
-                                        <hr>
-
-                                        <!-- Common Section (for both pickup & delivery) -->
-                                        <h6 class="text-success font-weight-bold mb-2"><i class="fas fa-box-open mr-2"></i>Ordered Items</h6>
-                                        @foreach($order->orderItems as $sub)
-                                            <div class="d-flex justify-content-between border-bottom py-1">
-                                                <span>{{ $sub->product->name }} × {{ $sub->quantity }}</span>
-                                                <span>₱{{ number_format($sub->price * $sub->quantity, 2) }}</span>
-                                            </div>
-                                        @endforeach
-                                        <hr>
-
-                                        <h6 class="text-success font-weight-bold mb-2"><i class="fas fa-file-invoice mr-2"></i>Payment & Invoice</h6>
-                                        @if($order->payment_method === 'cop')
-                                            <p><strong>Method:</strong> Cash on Pickup</p>
-                                        @elseif($order->payment_method === 'cod')
-                                            <p><strong>Method:</strong> Cash on Delivery</p>
-                                        @else
-                                            <p><strong>Method:</strong> {{ ucfirst($order->payment_method) }}</p>
-                                        @endif
-
-                                        <p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
-                                        <p><strong>Total:</strong> ₱{{ number_format($order->total_amount ?? $order->total_price, 2) }}</p>
-                                        <p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
-                                    </div>                              
-                                  
-                                    <div class="modal-footer bg-light">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-
-                                        @php
-                                            $canCancel = $order->status === 'pending' &&
-                                                \Carbon\Carbon::parse($order->created_at)->diffInHours(now()) < 24;
-                                        @endphp
-
-                                        @if($canCancel)
-                                            <button class="btn btn-danger cancel-order-btn" data-id="{{ $order->id }}">
-                                                <i class="fas fa-times-circle me-1"></i> Cancel Order
-                                            </button>
-                                        @elseif($order->status === 'pending')
-                                            <button class="btn btn-outline-secondary" disabled>
-                                                <i class="fas fa-lock me-1"></i> Cancellation Locked (after 24h)
-                                            </button>
-                                        @endif
-
-                                        @if(in_array($order->payment_method, ['cod','cop','online']) && in_array($order->status, ['completed','delivered']))
-                                            <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#invoiceModal-{{ $order->id }}">
-                                                <i class="fas fa-file-invoice me-1"></i> View E-Invoice
-                                            </button>
-                                        @endif
-
-                                        {{-- ✅ Leave Review button (only for completed orders) --}}
-                                        @if($order->status === 'completed')
-                                            <button type="button" 
-                                                    class="btn btn-success btn-sm"
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#reviewModal-{{ $item->id }}">
-                                                <i class="fas fa-star me-1"></i> Leave Review
-                                            </button>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        @if(in_array($order->payment_method, ['cod','cop','online']) && in_array($order->status, ['completed','delivered']))
-                            <div class="modal fade" id="invoiceModal-{{ $order->id }}" tabindex="-1">
-                            <div class="modal-dialog modal-dialog-centered modal-lg">
-                                <div class="modal-content shadow-lg border-0">
-                                <div class="modal-header bg-dark text-white">
-                                    <h5 class="modal-title">
-                                    <i class="fas fa-file-invoice me-2"></i> E-Invoice — Order #{{ $order->id }}
-                                    </h5>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-
-                                <div class="modal-body px-4 py-3">
-                                    @php
-                                        $buyer = $order->user;
-                                        $seller = optional($order->orderItems->first()?->product?->user);
-                                        $sellerAddress = optional($seller->seller)?->pickup_address 
-                                            ?? ($seller->city . ', ' . $seller->province ?? '');
-                                        $buyerAddress = optional($order->address);
-                                    @endphp
-
-                                    <!-- Header Info -->
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <h6 class="fw-bold mb-1 text-success">FarmSmart Marketplace</h6>
-                                        <small>Transaction E-Invoice</small><br>
-                                        <small class="text-muted">Issued: {{ $order->updated_at->setTimezone('Asia/Manila')->format('M d, Y h:i A') }}</small>
-                                    </div>
-                                    <div class="text-end">
-                                        <h6 class="fw-bold">Invoice No: INV-{{ str_pad($order->id, 6, '0', STR_PAD_LEFT) }}</h6>
-                                        <small>Order ID: {{ $order->id }}</small>
-                                    </div>
-                                    </div>
-
-                                    <hr>
-
-                                    <!-- Seller & Buyer Info -->
-                                    <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <h6 class="text-success fw-bold">
-                                            <i class="fas fa-store me-2"></i>
-                                            {{ $order->fulfillment_method === 'pickup' ? 'Pickup Information' : 'Seller Information' }}
-                                        </h6>
-
-                                        @if($order->fulfillment_method === 'pickup')
-                                            @php
-                                                $firstItem = $order->orderItems->first();
-                                                $pickupSeller = optional($firstItem?->product?->user?->seller);
-                                            @endphp
-
-                                            <p class="mb-0"><strong>{{ $pickupSeller?->user?->name ?? 'Unknown Seller' }}</strong></p>
-                                            <small>
-                                                {{ $pickupSeller?->pickup_address ?? 'Pickup address not provided' }}
-                                            </small><br>
-                                            <small>Contact: {{ $pickupSeller?->pickup_phone ?? '—' }}</small>
-                                        @else
-                                            <p class="mb-0"><strong>{{ $seller->name ?? 'Unknown Seller' }}</strong></p>
-                                            <small>{{ $sellerAddress ?: 'No address available' }}</small><br>
-                                            <small>Contact: {{ $seller->phone ?? '—' }}</small>
-                                        @endif
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h6 class="text-success fw-bold"><i class="fas fa-user me-2"></i>Buyer Information</h6>
-                                        <p class="mb-0"><strong>{{ $buyer->name }}</strong></p>
-                                        <small>
-                                        @if($buyerAddress)
-                                            {{ $buyerAddress->floor_unit_number ? $buyerAddress->floor_unit_number . ', ' : '' }}
-                                            {{ $buyerAddress->barangay ? $buyerAddress->barangay . ', ' : '' }}
-                                            {{ $buyerAddress->city ? $buyerAddress->city . ', ' : '' }}
-                                            {{ $buyerAddress->province }}
-                                        @else
-                                            No address provided
-                                        @endif
-                                        </small><br>
-                                        <small>Contact: {{ $buyerAddress->mobile_number ?? $buyer->phone ?? '—' }}</small>
-                                    </div>
-                                    </div>
-
-                                    <hr>
-
-                                    <!-- Order Details Table -->
-                                    <h6 class="text-success fw-bold mb-2"><i class="fas fa-box me-2"></i>Order Details</h6>
-                                    <table class="table table-sm table-bordered align-middle">
-                                    <thead class="table-light">
-                                        <tr>
-                                        <th>Product</th>
-                                        <th class="text-center">Variation</th>
-                                        <th class="text-center">Qty</th>
-                                        <th class="text-end">Unit Price</th>
-                                        <th class="text-end">Subtotal</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($order->orderItems as $sub)
-                                        <tr>
-                                            <td>{{ $sub->product->name }}</td>
-                                            <td class="text-center">{{ $sub->product->variation ?? '—' }}</td>
-                                            <td class="text-center">{{ $sub->quantity }}</td>
-                                            <td class="text-end">₱{{ number_format($sub->price, 2) }}</td>
-                                            <td class="text-end">₱{{ number_format($sub->price * $sub->quantity, 2) }}</td>
-                                        </tr>
-                                        @endforeach
-                                    </tbody>
-                                    </table>
-
-                                    <hr>
-
-                                    <!-- Summary -->
-                                    <div class="text-end">
-                                    @php
-                                        $subtotal = $order->orderItems->sum(fn($i) => $i->price * $i->quantity);
-                                        $shipping = $order->shipping_fee ?? 0;
-                                    @endphp
-
-                                    <p class="mb-1">Subtotal: <strong>₱{{ number_format($subtotal, 2) }}</strong></p>
-                                    <p class="mb-1">Shipping Subtotal: <strong>₱{{ number_format($shipping, 2) }}</strong></p>
-                                    <p class="mb-1">Shipping Discount Subtotal: <strong>- ₱0.00</strong></p>
-                                    <h5 class="text-success mt-3">Grand Total: ₱{{ number_format($order->total_amount, 2) }}</h5>
-                                    </div>
-
-                                    <hr>
-
-                                    <!-- Footer Info -->
-                                    <div class="d-flex justify-content-between mt-3 small text-muted">
-                                    <div>
-                                        <p class="mb-1">Payment Method: <strong>{{ strtoupper($order->payment_method) }}</strong></p>
-                                        <p class="mb-1">Order Placed: {{ $order->created_at->setTimezone('Asia/Manila')->format('M d, Y h:i A') }}</p>
-                                        <p class="mb-0">Order Paid Date: 
-                                            {{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}
-                                        </p>
-                                    </div>
-                                    <div class="text-end">
-                                        <small>Thank you for shopping at <strong>FarmSmart</strong>!</small><br>
-                                        <small>This serves as your official e-invoice for Cash on Delivery payment.</small>
-                                    </div>
-                                    </div>
-                                </div>
-
-                                <div class="modal-footer bg-light">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="button" class="btn btn-outline-success" onclick="printInvoice({{ $order->id }})">
-                                    <i class="fas fa-print me-1"></i> Print / Save PDF
-                                    </button>
-                                </div>
-                                </div>
-                            </div>
-                            </div>
+                            @if($seller)
+                                <p><strong>Pickup Location:</strong><br>{{ $seller->pickup_address ?? 'No pickup address available' }}</p>
+                                <p><strong>Pickup Contact:</strong><br>{{ $seller->pickup_phone ?? '—' }}</p>
+                            @else
+                                <p class="text-muted">Pickup details will be provided by the seller.</p>
                             @endif
 
+                            <hr>
+                            <h6 class="text-success fw-bold mb-3"><i class="fas fa-truck-loading me-2"></i>Pickup Progress</h6>
+
+                            <div class="order-tracker">
+                                <div class="step {{ $order->created_at ? 'active' : '' }}">
+                                    <div class="icon"><i class="fas fa-check-circle"></i></div>
+                                    <div class="text">
+                                        <strong>Placed</strong>
+                                        <small>{{ $order->created_at ? \Carbon\Carbon::parse($order->created_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
+                                    </div>
+                                </div>
+                                <div class="step {{ in_array($order->status, ['accepted','awaiting_pickup','ready_for_pickup','completed']) ? 'active' : '' }}">
+                                    <div class="icon"><i class="fas fa-box"></i></div>
+                                    <div class="text">
+                                        <strong>Accepted</strong>
+                                        <small>{{ $order->accepted_at ? \Carbon\Carbon::parse($order->accepted_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
+                                    </div>
+                                </div>
+                                <div class="step {{ in_array($order->status, ['ready_for_pickup','completed']) ? 'active' : '' }}">
+                                    <div class="icon"><i class="fas fa-store"></i></div>
+                                    <div class="text">
+                                        <strong>Ready for Pickup</strong>
+                                        <small>{{ $order->ready_at ? \Carbon\Carbon::parse($order->ready_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
+                                    </div>
+                                </div>
+                                <div class="step {{ $order->status === 'completed' ? 'active' : '' }}">
+                                    <div class="icon"><i class="fas fa-box-open"></i></div>
+                                    <div class="text">
+                                        <strong>Picked Up</strong>
+                                        <small>{{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <h6 class="text-success fw-bold mb-2"><i class="fas fa-user me-2"></i>Delivery Information</h6>
+                            <p><strong>Name:</strong> {{ $address->full_name ?? $user->name ?? '—' }}</p>
+                            <p><strong>Contact:</strong> {{ $address->mobile_number ?? $user->phone ?? '—' }}</p>
+                            <p><strong>Address:</strong>
+                                @if($address && ($address->province || $address->city || $address->barangay))
+                                    {{ $address->floor_unit_number ? $address->floor_unit_number . ', ' : '' }}
+                                    {{ $address->barangay ? $address->barangay . ', ' : '' }}
+                                    {{ $address->city ? $address->city . ', ' : '' }}
+                                    {{ $address->province }}
+                                @else
+                                    No address provided
+                                @endif
+                            </p>
+                            <hr>
+                            <h6 class="text-success fw-bold mb-3"><i class="fas fa-truck me-2"></i>Shipping Progress</h6>
+                            <div class="order-tracker">
+                                <div class="step {{ $order->created_at ? 'active' : '' }}">
+                                    <div class="icon"><i class="fas fa-check-circle"></i></div>
+                                    <div class="text"><strong>Placed</strong>
+                                        <small>{{ $order->created_at ? \Carbon\Carbon::parse($order->created_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
+                                    </div>
+                                </div>
+                                <div class="step {{ in_array($order->status, ['accepted','awaiting_shipment','shipped','completed']) ? 'active' : '' }}">
+                                    <div class="icon"><i class="fas fa-box"></i></div>
+                                    <div class="text"><strong>Accepted</strong>
+                                        <small>{{ $order->accepted_at ? \Carbon\Carbon::parse($order->accepted_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
+                                    </div>
+                                </div>
+                                <div class="step {{ in_array($order->status, ['shipped','completed']) ? 'active' : '' }}">
+                                    <div class="icon"><i class="fas fa-truck"></i></div>
+                                    <div class="text"><strong>Shipped</strong>
+                                        <small>{{ $order->shipped_at ? \Carbon\Carbon::parse($order->shipped_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
+                                    </div>
+                                </div>
+                                <div class="step {{ $order->status === 'completed' ? 'active' : '' }}">
+                                    <div class="icon"><i class="fas fa-box-open"></i></div>
+                                    <div class="text"><strong>Delivered</strong>
+                                        <small>{{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        <hr>
+                        <h6 class="text-success fw-bold mb-2"><i class="fas fa-box-open me-2"></i>Ordered Items</h6>
+                        @foreach($order->orderItems as $sub)
+                            <div class="d-flex justify-content-between border-bottom py-1">
+                                <span>{{ $sub->product->name }} × {{ $sub->quantity }}</span>
+                                <span>₱{{ number_format($sub->price * $sub->quantity, 2) }}</span>
+                            </div>
                         @endforeach
-                    @empty
-                        <p class="text-center text-muted py-5 mb-0">No orders found yet.</p>
-                    @endforelse
+                        <hr>
+                        <h6 class="text-success fw-bold mb-2"><i class="fas fa-file-invoice me-2"></i>Payment & Invoice</h6>
+                        <p><strong>Method:</strong>
+                            @if($order->payment_method === 'cop') Cash on Pickup
+                            @elseif($order->payment_method === 'cod') Cash on Delivery
+                            @else {{ ucfirst($order->payment_method) }}
+                            @endif
+                        </p>
+                        <p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
+                        <p><strong>Total:</strong> ₱{{ number_format($order->total_amount ?? $order->total_price, 2) }}</p>
+                        <p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
                     </div>
+
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+
+                        @php
+                            $canCancel = $order->status === 'pending' &&
+                                \Carbon\Carbon::parse($order->created_at)->diffInHours(now()) < 24;
+                        @endphp
+
+                        @if($canCancel)
+                            <button class="btn btn-danger cancel-order-btn" data-id="{{ $order->id }}">
+                                <i class="fas fa-times-circle me-1"></i> Cancel Order
+                            </button>
+                        @elseif($order->status === 'pending')
+                            <button class="btn btn-outline-secondary" disabled>
+                                <i class="fas fa-lock me-1"></i> Cancellation Locked (after 24h)
+                            </button>
+                        @endif
+
+                        @if(in_array($order->payment_method, ['cod','cop','online']) && in_array($order->status, ['completed','delivered']))
+                            <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#invoiceModal-{{ $order->id }}">
+                                <i class="fas fa-file-invoice me-1"></i> View E-Invoice
+                            </button>
+                        @endif
+
+                        @if($order->status === 'completed')
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#reviewModal-{{ $order->id }}">
+                                <i class="fas fa-star me-1"></i> Leave Review
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================= INVOICE MODAL ========================= -->
+        @if(in_array($order->payment_method, ['cod','cop','online']) && in_array($order->status, ['completed','delivered']))
+        <div class="modal fade" id="invoiceModal-{{ $order->id }}" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border-0">
+              <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">
+                  <i class="fas fa-file-invoice me-2"></i> E-Invoice — Order #{{ $order->id }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+
+              <div class="modal-body px-4 py-3">
+                @php
+                  $buyer = $order->user;
+                  $seller = optional($order->orderItems->first()?->product?->user);
+                  $pickupSeller = optional($order->orderItems->first()?->product?->user?->seller);
+                  $buyerAddress = optional($order->address);
+                  $subtotal = $order->orderItems->sum(fn($i) => $i->price * $i->quantity);
+                  $shipping = $order->shipping_fee ?? 0;
+                @endphp
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <div>
+                    <h6 class="fw-bold mb-1 text-success">FarmSmart Marketplace</h6>
+                    <small>Transaction E-Invoice</small><br>
+                    <small class="text-muted">Issued: {{ $order->updated_at ? $order->updated_at->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</small>
+                  </div>
+                  <div class="text-end">
+                    <h6 class="fw-bold">Invoice No: INV-{{ str_pad($order->id, 6, '0', STR_PAD_LEFT) }}</h6>
+                    <small>Order ID: {{ $order->id }}</small>
+                  </div>
+                </div>
+
+                <hr>
+
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <h6 class="text-success fw-bold"><i class="fas fa-store me-2"></i>Seller Information</h6>
+                    <p class="mb-0"><strong>{{ $pickupSeller?->user?->name ?? $seller->name ?? 'Unknown Seller' }}</strong></p>
+                    <small>{{ $pickupSeller?->pickup_address ?? $seller->seller?->pickup_address ?? 'Address not available' }}</small><br>
+                    <small>Contact: {{ $pickupSeller?->pickup_phone ?? $seller->phone ?? '—' }}</small>
+                  </div>
+                  <div class="col-md-6">
+                    <h6 class="text-success fw-bold"><i class="fas fa-user me-2"></i>Buyer Information</h6>
+                    <p class="mb-0"><strong>{{ $buyer->name ?? 'Unknown Buyer' }}</strong></p>
+                    <small>
+                      @if($buyerAddress)
+                        {{ $buyerAddress->floor_unit_number ? $buyerAddress->floor_unit_number . ', ' : '' }}
+                        {{ $buyerAddress->barangay ? $buyerAddress->barangay . ', ' : '' }}
+                        {{ $buyerAddress->city ? $buyerAddress->city . ', ' : '' }}
+                        {{ $buyerAddress->province }}
+                      @else
+                        No address provided
+                      @endif
+                    </small><br>
+                    <small>Contact: {{ $buyerAddress->mobile_number ?? $buyer->phone ?? '—' }}</small>
+                  </div>
+                </div>
+
+                <hr>
+
+                <h6 class="text-success fw-bold mb-2"><i class="fas fa-box me-2"></i>Order Details</h6>
+                <table class="table table-sm table-bordered align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Product</th>
+                      <th class="text-center">Variation</th>
+                      <th class="text-center">Qty</th>
+                      <th class="text-end">Unit Price</th>
+                      <th class="text-end">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @foreach($order->orderItems as $sub)
+                      <tr>
+                        <td>{{ $sub->product->name }}</td>
+                        <td class="text-center">{{ $sub->product->variation ?? '—' }}</td>
+                        <td class="text-center">{{ $sub->quantity }}</td>
+                        <td class="text-end">₱{{ number_format($sub->price, 2) }}</td>
+                        <td class="text-end">₱{{ number_format($sub->price * $sub->quantity, 2) }}</td>
+                      </tr>
+                    @endforeach
+                  </tbody>
+                </table>
+
+                <hr>
+
+                <div class="text-end">
+                  <p class="mb-1">Subtotal: <strong>₱{{ number_format($subtotal, 2) }}</strong></p>
+                  <p class="mb-1">Shipping Subtotal: <strong>₱{{ number_format($shipping, 2) }}</strong></p>
+                  <p class="mb-1">Shipping Discount Subtotal: <strong>- ₱0.00</strong></p>
+                  <h5 class="text-success mt-3">Grand Total: ₱{{ number_format($order->total_amount, 2) }}</h5>
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between mt-3 small text-muted">
+                  <div>
+                    <p class="mb-1">Payment Method: <strong>{{ strtoupper($order->payment_method) }}</strong></p>
+                    <p class="mb-1">Order Placed: {{ $order->created_at ? $order->created_at->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</p>
+                    <p class="mb-0">Order Paid Date: {{ $order->delivered_at ? \Carbon\Carbon::parse($order->delivered_at)->setTimezone('Asia/Manila')->format('M d, Y h:i A') : '—' }}</p>
+                  </div>
+                  <div class="text-end">
+                    <small>Thank you for shopping at <strong>FarmSmart</strong>!</small><br>
+                    <small>This serves as your official e-invoice for Cash on Delivery payment.</small>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-success" onclick="printInvoice({{ $order->id }})">
+                  <i class="fas fa-print me-1"></i> Print / Save PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        @endif
+    @empty
+        <p class="text-center text-muted py-5 mb-0">No orders found yet.</p>
+    @endforelse
+</div>
+
                 </div>
             </div>
 

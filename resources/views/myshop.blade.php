@@ -195,80 +195,99 @@
                               {{ ucfirst($order->status) }}
                             </span>
                           </td>
-                          <td class="text-center">
-                            @if($order->status == 'pending')
-                              {{-- Accept / Deny (same for both pickup and delivery) --}}
-                              <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
-                                @csrf @method('PATCH')
-                                <input type="hidden" name="status" value="accepted">
-                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">Accept</button>
-                              </form>
+                          <<td class="text-center">
 
-                              <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
-                                @csrf @method('PATCH')
-                                <input type="hidden" name="status" value="denied">
-                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">Deny</button>
-                              </form>
+  {{-- ================== 🕒 PENDING ORDERS (COD / COP only) ================== --}}
+  @if($order->status == 'pending' && in_array($order->payment_method, ['cod','cop']))
+    <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+      @csrf @method('PATCH')
+      <input type="hidden" name="status" value="accepted">
+      <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">
+        <i class="fas fa-check me-1"></i> Accept
+      </button>
+    </form>
 
-                            @elseif($order->fulfillment_method === 'pickup')
-                              {{-- 🟢 PICKUP WORKFLOW --}}
-                              @if($order->status == 'accepted')
-                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
-                                  @csrf @method('PATCH')
-                                  <input type="hidden" name="status" value="ready_for_pickup">
-                                  <button type="submit" class="btn btn-sm btn-info rounded-pill px-3">
-                                    Mark as Ready for Pickup
-                                  </button>
-                                </form>
+    <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+      @csrf @method('PATCH')
+      <input type="hidden" name="status" value="denied">
+      <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+        <i class="fas fa-times me-1"></i> Deny
+      </button>
+    </form>
 
-                              @elseif($order->status == 'ready_for_pickup')
-                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
-                                  @csrf @method('PATCH')
-                                  <input type="hidden" name="status" value="completed">
-                                  <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">
-                                    Mark as Picked Up
-                                  </button>
-                                </form>
-                              @endif
 
-                            @else
-                              {{-- 🚚 DELIVERY WORKFLOW --}}
-                              @if($order->status == 'accepted')
-                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
-                                  @csrf @method('PATCH')
-                                  <input type="hidden" name="status" value="shipped">
-                                  <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
-                                    Mark Shipped
-                                  </button>
-                                </form>
+  {{-- ================== 🏬 PICKUP WORKFLOW ================== --}}
+  @elseif($order->fulfillment_method === 'pickup')
 
-                              @elseif($order->status == 'shipped')
-                                <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
-                                  @csrf @method('PATCH')
-                                  <input type="hidden" name="status" value="completed">
-                                  <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">
-                                    Complete
-                                  </button>
-                                </form>
-                              @endif
-                            @endif
+    @if(in_array($order->status, ['accepted', 'awaiting_pickup']))
+      {{-- Online paid pickup or manually accepted pickup --}}
+      <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+        @csrf @method('PATCH')
+        <input type="hidden" name="status" value="ready_for_pickup">
+        <button type="submit" class="btn btn-sm btn-info rounded-pill px-3">
+          <i class="fas fa-store me-1"></i> Mark as Ready for Pickup
+        </button>
+      </form>
 
-                            {{-- Cancel requests (same for all) --}}
-                            @if($order->status == 'cancel_requested')
-                              <form action="{{ route('seller.approveCancel', $order->id) }}" method="POST" class="d-inline">
-                                @csrf @method('PATCH')
-                                <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">Approve</button>
-                              </form>
-                              <form action="{{ route('seller.denyCancel', $order->id) }}" method="POST" class="d-inline">
-                                @csrf @method('PATCH')
-                                <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3">Deny</button>
-                              </form>
-                            @endif
+    @elseif($order->status == 'ready_for_pickup')
+      <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+        @csrf @method('PATCH')
+        <input type="hidden" name="status" value="completed">
+        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">
+          <i class="fas fa-check me-1"></i> Mark as Picked Up
+        </button>
+      </form>
+    @endif
 
-                            @if(!in_array($order->status, ['pending','accepted','ready_for_pickup','shipped','cancel_requested']))
-                              <span class="text-muted small">No Actions</span>
-                            @endif
-                          </td>
+
+  {{-- ================== 🚚 DELIVERY WORKFLOW ================== --}}
+  @elseif($order->fulfillment_method === 'delivery')
+
+    @if(in_array($order->status, ['accepted', 'awaiting_shipment']))
+      {{-- Online paid delivery or manually accepted COD --}}
+      <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+        @csrf @method('PATCH')
+        <input type="hidden" name="status" value="shipped">
+        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
+          <i class="fas fa-truck me-1"></i> Mark Shipped
+        </button>
+      </form>
+
+    @elseif($order->status == 'shipped')
+      <form action="{{ route('seller.updateOrderStatus', $order->id) }}" method="POST" class="d-inline">
+        @csrf @method('PATCH')
+        <input type="hidden" name="status" value="completed">
+        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">
+          <i class="fas fa-check me-1"></i> Complete
+        </button>
+      </form>
+    @endif
+
+
+  {{-- ================== ❌ CANCEL REQUESTS ================== --}}
+  @elseif($order->status == 'cancel_requested')
+    <form action="{{ route('seller.approveCancel', $order->id) }}" method="POST" class="d-inline">
+      @csrf @method('PATCH')
+      <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">
+        <i class="fas fa-times me-1"></i> Approve Cancel
+      </button>
+    </form>
+
+    <form action="{{ route('seller.denyCancel', $order->id) }}" method="POST" class="d-inline">
+      @csrf @method('PATCH')
+      <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3">
+        <i class="fas fa-undo me-1"></i> Deny Cancel
+      </button>
+    </form>
+
+
+  {{-- ================== 💤 NO ACTIONS ================== --}}
+  @else
+    <span class="text-muted small">No Actions</span>
+  @endif
+
+</td>
+
                         </tr>
                       @endforeach
                     </tbody>

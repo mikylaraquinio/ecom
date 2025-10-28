@@ -164,16 +164,37 @@ class SellerController extends Controller
         ));
     }
 
-    public function approveOrder($id)
-    {
-        $order = Order::findOrFail($id);
-        $order->update([
-            'status' => 'accepted',
-            'accepted_at' => now(),
-        ]);
+public function approveOrder($id)
+{
+    $order = Order::findOrFail($id);
 
-        return redirect()->route('myshop')->with('success', 'Order approved successfully!');
+    // 🟢 Skip manual approval for paid orders
+    if ($order->payment_method === 'online') {
+        if ($order->fulfillment_method === 'pickup') {
+            $order->update([
+                'status' => 'awaiting_pickup',
+                'accepted_at' => now(),
+            ]);
+        } else {
+            $order->update([
+                'status' => 'awaiting_shipment',
+                'accepted_at' => now(),
+            ]);
+        }
+
+        return redirect()->route('myshop')->with('info', 'Paid order moved to awaiting stage automatically.');
     }
+
+    // 🟡 COD / COP orders — manual acceptance
+    $order->update([
+        'status' => 'accepted',
+        'accepted_at' => now(),
+    ]);
+
+    return redirect()->route('myshop')->with('success', 'Order approved successfully!');
+}
+
+
 
     public function denyOrder($id)
 {
@@ -215,15 +236,6 @@ class SellerController extends Controller
 
         // ===== STOCK HANDLING (when completed / picked up) =====
         if (in_array($newStatus, ['completed', 'picked_up'])) {
-            foreach ($order->orderItems as $item) {
-                $product = $item->product;
-                if ($product->stock >= $item->quantity) {
-                    $product->stock -= $item->quantity;
-                    $product->save();
-                } else {
-                    return redirect()->back()->with('error', "Not enough stock for {$product->name}.");
-                }
-            }
             $order->delivered_at = now();
         }
 
