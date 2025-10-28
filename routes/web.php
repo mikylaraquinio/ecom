@@ -248,6 +248,11 @@ Route::post('/email/verify/code', [VerifyEmailController::class, 'verifyCode'])
 
 //Analytics
 Route::get('/seller/analytics', [SellerController::class, 'analytics'])->name('seller.analytics');
+Route::get('/seller/analytics/data', [App\Http\Controllers\SellerController::class, 'filterAnalytics'])
+    ->name('seller.analytics.data');
+Route::get('/seller/analytics/print', [App\Http\Controllers\SellerController::class, 'printAnalytics'])
+    ->name('seller.analytics.print');
+
 
 /* Authentication Routes */
 require __DIR__ . '/auth.php';

@@ -8,15 +8,23 @@
         <h5 class="fw-bold text-success mb-1">Seller Analytics Dashboard</h5>
         <small class="text-muted">Track your performance and insights in real time</small>
       </div>
-      <div>
+      <div class="d-flex align-items-center gap-2">
         <select id="filterType" class="form-select form-select-sm border-success shadow-sm rounded-3">
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="monthly" selected>Monthly</option>
           <option value="yearly">Yearly</option>
+          <option value="custom">Custom Range</option>
         </select>
+
+        <input type="date" id="startDate" class="form-control form-control-sm border-success shadow-sm" style="display:none;">
+        <input type="date" id="endDate" class="form-control form-control-sm border-success shadow-sm" style="display:none;">
+        
+        <button id="applyFilter" class="btn btn-success btn-sm shadow-sm">Apply</button>
+        <button id="printReport" class="btn btn-outline-success btn-sm shadow-sm">
+          <i class="fas fa-print me-1"></i> Print Report
+        </button>
       </div>
-    </div>
 
     {{-- ===== MAIN METRIC CARDS ===== --}}
     <div class="row g-3 mb-4">
@@ -245,4 +253,68 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const filterType = document.getElementById('filterType');
+  const startDate = document.getElementById('startDate');
+  const endDate = document.getElementById('endDate');
+  const applyFilter = document.getElementById('applyFilter');
+
+  filterType.addEventListener('change', () => {
+    if (filterType.value === 'custom') {
+      startDate.style.display = 'block';
+      endDate.style.display = 'block';
+    } else {
+      startDate.style.display = 'none';
+      endDate.style.display = 'none';
+    }
+  });
+
+  applyFilter.addEventListener('click', () => {
+    const params = {
+      type: filterType.value,
+      start: startDate.value,
+      end: endDate.value
+    };
+
+    fetch(`{{ route('seller.analytics.data') }}?` + new URLSearchParams(params))
+      .then(res => res.json())
+      .then(data => updateAnalytics(data))
+      .catch(err => console.error(err));
+  });
+
+  function updateAnalytics(data) {
+    // Update metrics
+    document.querySelector('.metric-card:nth-child(1) h5').textContent = '₱' + Number(data.completedSales).toLocaleString();
+    document.querySelector('.metric-card:nth-child(2) h5').textContent = data.totalOrders;
+    document.querySelector('.metric-card:nth-child(3) h5').textContent = '₱' + Number(data.avgOrderValue).toLocaleString();
+    document.querySelector('.metric-card:nth-child(4) h5').textContent = data.uniqueCustomers;
+
+    // Update charts
+    salesChart.data.labels = Object.keys(data.salesTrends);
+    salesChart.data.datasets[0].data = Object.values(data.salesTrends);
+    salesChart.update();
+
+    orderStatusChart.data.datasets[0].data = [
+      data.pendingOrders, data.acceptedOrders, data.shippedOrders, data.completedOrders, data.canceledOrders
+    ];
+    orderStatusChart.update();
+
+    fulfillmentChart.data.datasets[0].data = [data.deliveryOrders, data.pickupOrders];
+    fulfillmentChart.update();
+  }
+});
+</script>
+<script>
+document.getElementById('printReport').addEventListener('click', () => {
+  const type = document.getElementById('filterType').value;
+  const start = document.getElementById('startDate').value;
+  const end = document.getElementById('endDate').value;
+
+  const params = new URLSearchParams({ type, start, end });
+  window.open(`{{ route('seller.analytics.print') }}?` + params.toString(), '_blank');
+});
+</script>
+
+
 </x-app-layout>

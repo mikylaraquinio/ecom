@@ -13,7 +13,6 @@ use App\Models\Seller;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 
-
 class SellerController extends Controller
 {
     public function sell()
@@ -267,38 +266,73 @@ class SellerController extends Controller
     {
         $order = Order::with('orderItems.product', 'user', 'address')->findOrFail($id);
 
+        // ✅ Security check
         if (auth()->user()->role !== 'seller') {
             abort(403, 'Unauthorized');
         }
 
-        // Generate the unified invoice view
-        $pdf = Pdf::loadView('seller.invoice', compact('order'))->setPaper('a4', 'portrait');
+        // === 🧾 Case 1: Online Payment (Generate seller's own PDF) ===
+        if ($order->payment_method === 'online') {
+            // Generate internal seller invoice (PDF)
+            $pdf = Pdf::loadView('invoices.seller_invoice', compact('order'))
+                    ->setPaper('a4', 'portrait');
 
-        $fileName = 'invoice_' . $order->id . '.pdf';
-        $path = 'invoices/' . $fileName;
+            $fileName = 'seller_invoice_' . $order->id . '.pdf';
+            $path = 'invoices/' . $fileName;
 
-        Storage::disk('public')->put($path, $pdf->output());
+            Storage::disk('public')->put($path, $pdf->output());
 
-        $order->invoice_url = asset('storage/' . $path);
-        $order->invoice_generated = true;
-        $order->save();
+            // Save invoice record to DB
+            $order->seller_invoice_url = asset('storage/' . $path);
+            $order->invoice_generated = true;
+            $order->save();
 
-        return redirect()->route('seller.viewInvoice', $order->id)
-            ->with('success', 'Invoice generated successfully.');
-    }
-
-
-    public function viewInvoice($id)
-    {
-        $order = Order::with('orderItems.product', 'user', 'address')->findOrFail($id);
-
-        if (!in_array(auth()->user()->role, ['buyer', 'seller', 'admin'])) {
-            abort(403, 'Unauthorized');
+            return redirect()->route('seller.viewInvoice', $order->id)
+                ->with('success', 'Seller E-Invoice generated successfully.');
         }
 
-        // Always show the unified invoice
-        return view('seller.invoice', compact('order'));
+        // === 🧾 Case 2: COD Payment (Manual Generate) ===
+        if ($order->payment_method === 'cod') {
+            $pdf = Pdf::loadView('invoices.cod_invoice', compact('order'))
+                    ->setPaper('a4', 'portrait');
+
+            $fileName = 'cod_invoice_' . $order->id . '.pdf';
+            $path = 'invoices/' . $fileName;
+
+            Storage::disk('public')->put($path, $pdf->output());
+
+            $order->invoice_url = asset('storage/' . $path);
+            $order->invoice_generated = true;
+            $order->save();
+
+            return redirect()->route('seller.viewInvoice', $order->id)
+                ->with('success', 'COD E-Invoice generated successfully.');
+        }
+
+        return back()->with('error', 'Unsupported payment method.');
     }
+
+public function viewInvoice($id)
+{
+    $order = Order::with('orderItems.product', 'user', 'address')->findOrFail($id);
+
+    // Only buyer or seller should access
+    if (!in_array(auth()->user()->role, ['buyer', 'seller', 'admin'])) {
+        abort(403, 'Unauthorized');
+    }
+
+    // If it's Xendit, redirect to Xendit invoice link
+    if ($order->payment_method === 'online' && $order->invoice_url) {
+        return redirect($order->invoice_url);
+    }
+
+    // If COD, show your custom invoice page
+    if ($order->payment_method === 'cod' && $order->invoice_generated) {
+        return view('invoices.cod_invoice', compact('order'));
+    }
+
+    return back()->with('error', 'No invoice available.');
+}
 
     public function myShop()
     {
@@ -439,6 +473,153 @@ class SellerController extends Controller
         'recentOrders'      // ✅ Added
     ));
 }
+public function filterAnalytics(Request $request)
+{
+    $sellerId = auth()->id();
+    $type = $request->input('type', 'monthly');
+    $start = $request->input('start');
+    $end = $request->input('end');
+
+    $query = Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $sellerId));
+
+    // ===== Apply date range filter =====
+    if ($type === 'custom' && $start && $end) {
+        $query->whereBetween('created_at', [
+            \Carbon\Carbon::parse($start)->startOfDay(),
+            \Carbon\Carbon::parse($end)->endOfDay(),
+        ]);
+    } else {
+        $range = $this->getDateRange($type);
+        $query->whereBetween('created_at', $range);
+    }
+
+    $orders = $query->get();
+
+    // ===== Metrics =====
+    $completedSales = $orders->where('status', 'completed')->sum('total_amount');
+    $totalOrders = $orders->count();
+    $pendingOrders = $orders->where('status', 'pending')->count();
+    $acceptedOrders = $orders->where('status', 'accepted')->count();
+    $shippedOrders = $orders->whereIn('status', ['shipped', 'ready_for_pickup'])->count();
+    $completedOrders = $orders->where('status', 'completed')->count();
+    $canceledOrders = $orders->where('status', 'canceled')->count();
+    $deliveryOrders = $orders->where('fulfillment_method', 'delivery')->count();
+    $pickupOrders = $orders->where('fulfillment_method', 'pickup')->count();
+    $uniqueCustomers = $orders->pluck('user_id')->unique()->count();
+    $avgOrderValue = $totalOrders > 0 ? $orders->avg('total_amount') : 0;
+
+    // ===== Sales trend grouping =====
+    $salesTrends = $orders->groupBy(function ($order) use ($type) {
+        return match($type) {
+            'daily' => $order->created_at->format('M d'),
+            'weekly' => 'Week ' . $order->created_at->format('W'),
+            'monthly' => $order->created_at->format('M Y'),
+            'yearly' => $order->created_at->format('Y'),
+            default => $order->created_at->format('M d'),
+        };
+    })->map(fn($g) => $g->sum('total_amount'));
+
+    return response()->json([
+        'completedSales' => $completedSales,
+        'totalOrders' => $totalOrders,
+        'pendingOrders' => $pendingOrders,
+        'acceptedOrders' => $acceptedOrders,
+        'shippedOrders' => $shippedOrders,
+        'completedOrders' => $completedOrders,
+        'canceledOrders' => $canceledOrders,
+        'deliveryOrders' => $deliveryOrders,
+        'pickupOrders' => $pickupOrders,
+        'uniqueCustomers' => $uniqueCustomers,
+        'avgOrderValue' => $avgOrderValue,
+        'salesTrends' => $salesTrends,
+    ]);
+}
+public function printAnalytics(Request $request)
+{
+    $sellerId = auth()->id();
+    $type = $request->input('type', 'monthly');
+    $start = $request->input('start');
+    $end = $request->input('end');
+
+    $query = Order::whereHas('orderItems.product', fn($q) => $q->where('user_id', $sellerId));
+
+    if ($type === 'custom' && $start && $end) {
+        $query->whereBetween('created_at', [
+            \Carbon\Carbon::parse($start)->startOfDay(),
+            \Carbon\Carbon::parse($end)->endOfDay(),
+        ]);
+    } else {
+        $range = $this->getDateRange($type);
+        $query->whereBetween('created_at', $range);
+    }
+
+    $orders = $query->get();
+
+    // ====== Metrics ======
+    $completedSales = $orders->where('status', 'completed')->sum('total_amount');
+    $totalOrders = $orders->count();
+    $pendingOrders = $orders->where('status', 'pending')->count();
+    $acceptedOrders = $orders->where('status', 'accepted')->count();
+    $shippedOrders = $orders->whereIn('status', ['shipped', 'ready_for_pickup'])->count();
+    $completedOrders = $orders->where('status', 'completed')->count();
+    $canceledOrders = $orders->where('status', 'canceled')->count();
+    $uniqueCustomers = $orders->pluck('user_id')->unique()->count();
+    $avgOrderValue = $totalOrders > 0 ? $orders->avg('total_amount') : 0;
+
+    $salesTrends = $orders->groupBy(fn($o) => $o->created_at->format('M d, Y'))
+        ->map(fn($g) => $g->sum('total_amount'));
+
+    // ====== Fetch matching recent orders ======
+    $recentOrders = Order::whereHas('orderItems.product', fn($q) => 
+        $q->where('user_id', $sellerId)
+    )
+    ->whereBetween('created_at', [
+        \Carbon\Carbon::parse($start)->startOfDay(),
+        \Carbon\Carbon::parse($end)->endOfDay(),
+    ])
+    ->with('user')
+    ->latest()
+    ->take(10)
+    ->get();
+
+    // ===== Generate PDF =====
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('seller.reports.analytics_report', [
+        'orders' => $orders,
+        'recentOrders' => $recentOrders,
+        'completedSales' => $completedSales,
+        'totalOrders' => $totalOrders,
+        'pendingOrders' => $pendingOrders,
+        'acceptedOrders' => $acceptedOrders,
+        'shippedOrders' => $shippedOrders,
+        'completedOrders' => $completedOrders,
+        'canceledOrders' => $canceledOrders,
+        'uniqueCustomers' => $uniqueCustomers,
+        'avgOrderValue' => $avgOrderValue,
+        'salesTrends' => $salesTrends,
+        'type' => ucfirst($type),
+        'start' => $start,
+        'end' => $end,
+        'seller' => auth()->user(),
+    ])->setPaper('a4', 'portrait');
+
+    return $pdf->stream('Analytics_Report.pdf');
+}
+
+
+
+private function getDateRange($type)
+{
+    $now = now();
+
+    return match ($type) {
+        'daily' => [$now->startOfDay(), $now->endOfDay()],
+        'weekly' => [$now->startOfWeek(), $now->endOfWeek()],
+        'monthly' => [$now->startOfMonth(), $now->endOfMonth()],
+        'yearly' => [$now->startOfYear(), $now->endOfYear()],
+        default => [$now->startOfMonth(), $now->endOfMonth()],
+    };
+}
+
 
 
     public function revenueData(Request $request)
