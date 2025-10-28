@@ -51,20 +51,29 @@
             <div class="col-md-7 mb-4">
                 <div class="card border-0 shadow-sm overflow-hidden">
                     <!-- Header -->
-                    <div class="card-header bg-white border-0 border-bottom d-flex justify-content-between align-items-center py-3 px-4">
-                    <h5 class="fw-bold mb-0 text-success">
-                        <i class="fas fa-box-open me-2"></i>Your Orders
-                        <span class="badge bg-success text-white">{{ $ordersCount }}</span>
-                    </h5>
-                    <select id="orderFilter" class="form-select form-select-sm w-auto">
-                        <option value="all">All</option>
-                        <option value="pending">Pending</option>
-                        <option value="accepted">Accepted</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="completed">Completed</option>
-                        <option value="canceled">Canceled</option>
-                    </select>
-                    </div>
+                    <div class="card-header bg-white border-0 border-bottom py-3 px-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <h5 class="fw-bold mb-0 text-success">
+            <i class="fas fa-box-open me-2"></i>Your Orders
+            <span class="badge bg-success text-white">{{ $ordersCount }}</span>
+        </h5>
+    </div>
+
+    <!-- Shopee-style Tabs (full-width row under title) -->
+    <ul class="nav nav-pills order-tabs mt-2 flex-wrap" id="orderTabs">
+        <li class="nav-item"><button class="nav-link active" data-status="all">All</button></li>
+        <li class="nav-item"><button class="nav-link" data-status="pending">Pending</button></li>
+        <li class="nav-item"><button class="nav-link" data-status="accepted">Accepted</button></li>
+        <li class="nav-item">
+            <button class="nav-link" data-status="shipped,ready_for_pickup">
+                Shipped / Ready for Pickup
+            </button>
+        </li>
+        <li class="nav-item"><button class="nav-link" data-status="completed">Completed</button></li>
+        <li class="nav-item"><button class="nav-link" data-status="canceled">Canceled</button></li>
+    </ul>
+</div>
+
 
                     <!-- Orders List -->
                     <div class="card-body bg-light" id="orderList">
@@ -82,25 +91,24 @@
                                 data-bs-toggle="modal"
                                 data-bs-target="#orderModal-{{ $order->id }}"
                                 style="cursor:pointer; transition: all 0.2s ease;">
-                                <div class="d-flex justify-content-between align-items-start">
+                            <div class="d-flex justify-content-between align-items-start">
                                 <div class="d-flex align-items-center">
                                     <img src="{{ $imageUrl }}" width="70" height="70" class="rounded me-3 border" style="object-fit:cover;">
                                     <div>
-                                    <h6 class="fw-semibold text-dark mb-1">{{ $product->name }}</h6>
-                                    <div class="text-muted small">
-                                        ₱{{ number_format($product->price,2) }} × {{ $item->quantity }}  
-                                        <span class="mx-1">•</span>  
-                                        Shipping ₱{{ number_format($shippingFee,2) }}
-                                    </div>
-                                    <div class="fw-semibold mt-1 text-danger">₱{{ number_format($total,2) }}</div>
+                                        <h6 class="fw-semibold text-dark mb-1">{{ $product->name }}</h6>
+                                        <div class="text-muted small">
+                                            ₱{{ number_format($product->price,2) }} × {{ $item->quantity }}  
+                                            <span class="mx-1">•</span>  
+                                            Shipping ₱{{ number_format($shippingFee,2) }}
+                                        </div>
+                                        <div class="fw-semibold mt-1 text-danger">₱{{ number_format($total,2) }}</div>
                                     </div>
                                 </div>
                                 <span class="order-status-badge {{ strtolower($order->status) }}">
-                                    {{ ucfirst($order->status) }}
+                                    {{ ucfirst(str_replace('_', ' ', $order->status)) }}
                                 </span>
-                                </div>
                             </div>
-
+                        </div>
                         <div class="modal fade" id="orderModal-{{ $order->id }}" tabindex="-1">
                             <div class="modal-dialog modal-dialog-centered modal-lg">
                                 <div class="modal-content">
@@ -256,20 +264,6 @@
                                         <p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
                                         <p><strong>Total:</strong> ₱{{ number_format($order->total_amount ?? $order->total_price, 2) }}</p>
                                         <p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
-
-                                        @if($order->payment_method === 'online' && $order->invoice_url)
-                                            {{-- ✅ Buyer sees Xendit invoice --}}
-                                            <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
-                                                <i class="fas fa-file-invoice me-1"></i> View Xendit Invoice
-                                            </a>
-                                        @elseif($order->payment_method === 'cod' && $order->invoice_generated)
-                                            {{-- ✅ Buyer sees COD PDF only when generated --}}
-                                            <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-success btn-sm mt-2">
-                                                <i class="fas fa-file-invoice me-1"></i> View E-Invoice
-                                            </a>
-                                        @else
-                                            <span class="text-muted small">No invoice available yet.</span>
-                                        @endif
                                     </div>                              
                                   
                                     <div class="modal-footer bg-light">
@@ -290,7 +284,7 @@
                                             </button>
                                         @endif
 
-                                        @if($order->payment_method === 'cod' && $order->status === 'completed')
+                                        @if(in_array($order->payment_method, ['cod','cop','online']) && in_array($order->status, ['completed','delivered']))
                                             <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#invoiceModal-{{ $order->id }}">
                                                 <i class="fas fa-file-invoice me-1"></i> View E-Invoice
                                             </button>
@@ -310,7 +304,7 @@
                             </div>
                         </div>
 
-                        @if($order->payment_method === 'cod' && $order->status === 'completed')
+                        @if(in_array($order->payment_method, ['cod','cop','online']) && in_array($order->status, ['completed','delivered']))
                             <div class="modal fade" id="invoiceModal-{{ $order->id }}" tabindex="-1">
                             <div class="modal-dialog modal-dialog-centered modal-lg">
                                 <div class="modal-content shadow-lg border-0">
@@ -348,10 +342,27 @@
                                     <!-- Seller & Buyer Info -->
                                     <div class="row mb-3">
                                     <div class="col-md-6">
-                                        <h6 class="text-success fw-bold"><i class="fas fa-store me-2"></i>Seller Information</h6>
-                                        <p class="mb-0"><strong>{{ $seller->name ?? 'Unknown Seller' }}</strong></p>
-                                        <small>{{ $sellerAddress ?: 'No address available' }}</small><br>
-                                        <small>Contact: {{ $seller->phone ?? '—' }}</small>
+                                        <h6 class="text-success fw-bold">
+                                            <i class="fas fa-store me-2"></i>
+                                            {{ $order->fulfillment_method === 'pickup' ? 'Pickup Information' : 'Seller Information' }}
+                                        </h6>
+
+                                        @if($order->fulfillment_method === 'pickup')
+                                            @php
+                                                $firstItem = $order->orderItems->first();
+                                                $pickupSeller = optional($firstItem?->product?->user?->seller);
+                                            @endphp
+
+                                            <p class="mb-0"><strong>{{ $pickupSeller?->user?->name ?? 'Unknown Seller' }}</strong></p>
+                                            <small>
+                                                {{ $pickupSeller?->pickup_address ?? 'Pickup address not provided' }}
+                                            </small><br>
+                                            <small>Contact: {{ $pickupSeller?->pickup_phone ?? '—' }}</small>
+                                        @else
+                                            <p class="mb-0"><strong>{{ $seller->name ?? 'Unknown Seller' }}</strong></p>
+                                            <small>{{ $sellerAddress ?: 'No address available' }}</small><br>
+                                            <small>Contact: {{ $seller->phone ?? '—' }}</small>
+                                        @endif
                                     </div>
                                     <div class="col-md-6">
                                         <h6 class="text-success fw-bold"><i class="fas fa-user me-2"></i>Buyer Information</h6>
@@ -551,7 +562,7 @@ document.querySelectorAll('[data-bs-toggle="modal"]').forEach(el => {
 
 
     <style>
-    .order-card:hover{background:#f9f9f9;transition:0.2s;box-shadow:0 2px 6px rgba(0,0,0,0.05);}
+        .order-card:hover{background:#f9f9f9;transition:0.2s;box-shadow:0 2px 6px rgba(0,0,0,0.05);}
     .card-header button.active{color:#28a745;text-decoration:underline;}
     .order-tracker{position:relative;display:flex;justify-content:space-between;margin:25px 0;text-align:center;}
     .order-tracker::before{content:'';position:absolute;top:18px;left:50%;transform:translateX(-50%);width:90%;height:3px;background:#dee2e6;z-index:0;}
@@ -560,6 +571,118 @@ document.querySelectorAll('[data-bs-toggle="modal"]').forEach(el => {
     .order-tracker .step.active .icon{background:#28a745;color:#fff;box-shadow:0 0 8px rgba(40,167,69,0.4);}
     .order-tracker .text strong{display:block;font-size:0.9rem;}
     .order-tracker .text small{color:#6c757d;font-size:0.8rem;}
+    .order-card {
+    border: 1px solid #eaeaea;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+.order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.order-status-badge {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    padding: 6px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.order-status-badge.pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.order-status-badge.accepted {
+    background-color: #cfe2ff;
+    color: #084298;
+}
+
+.order-status-badge.shipped,
+.order-status-badge.ready_for_pickup {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.order-status-badge.completed {
+    background-color: #c6f6d5;
+    color: #065f46;
+}
+
+.order-status-badge.canceled {
+    background-color: #f8d7da;
+    color: #842029;
+}
+.order-tabs {
+    display: flex;
+    flex-wrap: nowrap;        /* ✅ keep tabs on one line */
+    overflow-x: auto;         /* ✅ enable horizontal scroll if needed */
+    white-space: nowrap;
+    border-bottom: 2px solid #e9ecef;
+    margin-top: 0.5rem;
+    scrollbar-width: thin;
+    gap: 0.25rem;             /* subtle spacing between tabs */
+}
+
+.order-tabs .nav-item {
+    flex: 0 0 auto;           /* ✅ prevent items from squishing */
+}
+
+.order-tabs .nav-link {
+    color: #666;
+    border-radius: 0;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent; /* placeholder for animation */
+}
+
+.order-tabs .nav-link:hover {
+    color: #198754;
+    background-color: rgba(25, 135, 84, 0.05);
+}
+
+.order-tabs .nav-link.active {
+    color: #198754;
+    border-bottom-color: #198754; /* ✅ neat underline */
+    font-weight: 600;
+}
+
+/* ✅ scrollbar styling */
+.order-tabs::-webkit-scrollbar {
+    height: 6px;
+}
+.order-tabs::-webkit-scrollbar-thumb {
+    background: #d1d1d1;
+    border-radius: 3px;
+}
+
+
+    
+    #orderTabs {
+    border-bottom: 2px solid #e9ecef;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+#orderTabs .nav-link {
+    color: #555;
+    border-radius: 0;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s;
+}
+
+#orderTabs .nav-link.active {
+    color: #198754;
+    border-bottom: 3px solid #198754;
+    background-color: transparent;
+    font-weight: 600;
+}
+
     .profile-topcard {
         display: flex;
         align-items: center;
@@ -803,6 +926,32 @@ $(document).on("click", ".toggle-wishlist-btn", function (e) {
         document.body.style.overflow = ''; // allow scrolling again
         });
     </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const tabs = document.querySelectorAll("#orderTabs .nav-link");
+            const orderCards = document.querySelectorAll(".order-card");
+
+            tabs.forEach(tab => {
+                tab.addEventListener("click", () => {
+                    tabs.forEach(t => t.classList.remove("active"));
+                    tab.classList.add("active");
+
+                    const statuses = tab.dataset.status.split(","); // handle multiple statuses
+
+                    orderCards.forEach(card => {
+                        const cardStatus = card.dataset.status.toLowerCase();
+                        if (statuses.includes("all") || statuses.includes(cardStatus)) {
+                            card.style.display = "block";
+                        } else {
+                            card.style.display = "none";
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+
 
 
     @include('farmers.modal.sell')

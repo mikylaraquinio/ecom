@@ -151,7 +151,9 @@ Route::get('/seller/orders/{order}/cod-invoice', [SellerController::class, 'view
     ->name('seller.codInvoice');
 
 Route::post('/seller/orders/{id}/generate-invoice', [SellerController::class, 'generateInvoice'])->name('seller.generateInvoice');
-Route::get('/seller/orders/{id}/invoice', [SellerController::class, 'viewInvoice'])->name('seller.viewInvoice');
+Route::get('/seller/invoice/{id}', [App\Http\Controllers\SellerController::class, 'viewInvoice'])
+    ->name('seller.viewInvoice');
+
 
 
 Route::middleware(['auth'])->group(function () {
@@ -181,7 +183,7 @@ Route::get('/chat/data/messages/{receiverId}', [ChatController::class, 'messages
 
 Route::get('/seller/revenue-data', [SellerController::class, 'revenueData'])->name('seller.revenueData');
 Route::get('/invoice', [PaymentController::class, 'createInvoice'])->name('invoice.create');
-Route::post('/xendit/webhook', [CheckoutController::class, 'handleXenditWebhook']);
+Route::post('/xendit/webhook', [CheckoutController::class, 'handleXenditWebhook'])->name('xendit.webhook');
 
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');

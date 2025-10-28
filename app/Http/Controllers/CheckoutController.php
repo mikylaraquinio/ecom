@@ -441,6 +441,39 @@ class CheckoutController extends Controller
             }
         }
 
+        // ✅ Handle Online / GCash Payments
+            if (in_array($request->payment_method, ['online'])) {
+                $config = \Xendit\Configuration::getDefaultConfiguration();
+                $config->setApiKey(env('XENDIT_SECRET_KEY'));
+                $apiInstance = new \Xendit\Invoice\InvoiceApi(null, $config);
+                $amount = (float) $grandTotal;
+
+                $invoiceParams = new \Xendit\Invoice\CreateInvoiceRequest([
+                    'external_id' => 'order-' . $order->id,
+                    'payer_email' => $user->email ?? 'customer@example.com',
+                    'description' => 'Payment for Order #' . $order->id,
+                    'amount' => $amount,
+                    'success_redirect_url' => route('checkout.success'),
+                    'failure_redirect_url' => route('checkout.show'),
+                    'payment_methods' => ['GCASH', 'GRABPAY', 'PAYMAYA', 'QRPH', 'CARD', 'OVER_THE_COUNTER'],
+                ]);
+
+                $invoice = $apiInstance->createInvoice($invoiceParams);
+
+                $order->update([
+                    'payment_reference' => $invoice->getId() ?? null,
+                    'invoice_url' => $invoice->getInvoiceUrl() ?? null,
+                ]);
+
+                DB::commit();
+                cache()->forget($lockKey);
+
+                return response()->json([
+                    'success' => true,
+                    'redirect_url' => $invoice['invoice_url'],
+                ]);
+            }
+
         DB::commit();
 cache()->forget($lockKey);
 
@@ -520,17 +553,21 @@ return response()->json([
         }
 
         if (($data['status'] ?? '') === 'PAID') {
-            $order->update(['status' => 'paid']);
+            // ✅ Mark order as paid + accepted
+            $order->update(['status' => 'accepted']);
 
+            // Log for debugging
+            \Log::info("Order #{$order->id} automatically accepted after Xendit payment.");
+
+            // ✅ Proceed with payouts as before
             $xendit = app(\App\Services\XenditService::class);
 
             foreach ($order->orderItems as $item) {
                 $seller = $item->product->user->seller ?? null;
-                if (!$seller || !$seller->xendit_account_id)
-                    continue;
+                if (!$seller || !$seller->xendit_account_id) continue;
 
                 $amount = $item->price * $item->quantity;
-                $platformFee = $amount * 0.05; // Example: 5% commission
+                $platformFee = $amount * 0.05; // 5% commission
                 $payout = $amount - $platformFee;
 
                 try {
@@ -542,6 +579,11 @@ return response()->json([
                 } catch (\Exception $e) {
                     \Log::error('Xendit Payout Error: ' . $e->getMessage());
                 }
+            }
+
+            // 🛎️ Notify seller that payment succeeded and order is accepted
+            foreach ($order->orderItems->pluck('product.user')->unique('id')->filter() as $sellerUser) {
+                $sellerUser->notify(new \App\Notifications\OrderPlacedNotification($order, 'seller_paid'));
             }
         }
 

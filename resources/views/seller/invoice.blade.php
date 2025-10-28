@@ -26,7 +26,7 @@
   <div class="d-flex justify-content-between align-items-start invoice-header pb-2 mb-3">
     <div>
       <h6 class="fw-bold mb-1 text-success">FarmSmart Marketplace</h6>
-      <small>Seller E-Invoice (Internal Copy)</small><br>
+      <small>Seller E-Invoice</small><br>
       <small class="text-muted">Issued: {{ now()->setTimezone('Asia/Manila')->format('M d, Y h:i A') }}</small>
     </div>
     <div class="text-end">
@@ -129,7 +129,9 @@
     </div>
     <div class="text-end">
       <small>Thank you for shopping at <strong>FarmSmart</strong>!</small><br>
-      <small>This serves as your official e-invoice for Cash on Delivery payment.</small>
+      <small>
+        This serves as your official e-invoice.
+      </small>
     </div>
   </div>
 

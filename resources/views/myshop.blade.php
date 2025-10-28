@@ -160,9 +160,8 @@
 
                     <tbody>
                       @foreach($orders as $order)
-                        <tr style="cursor:pointer;" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#sellerOrderModal-{{ $order->id }}">
+                        <tr class="order-row" style="cursor:pointer;" data-order-id="{{ $order->id }}">
+
                           <td class="fw-semibold">#{{ $order->id }}</td>
                           <td>
                             <div>{{ $order->buyer->name }}</div>
@@ -275,118 +274,112 @@
                     </tbody>
                   </table>
                   
-                  @foreach($orders as $order)
-                  <div class="modal fade" id="sellerOrderModal-{{ $order->id }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered">
-                      <div class="modal-content border-0 shadow-lg">
-                        <div class="modal-header bg-success text-white">
-                          <h5 class="modal-title">
-                            <i class="fas fa-box-open me-2"></i> Order #{{ $order->id }}
-                          </h5>
-                          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
+                    @foreach($orders as $order)
+                    <div class="modal fade" id="sellerOrderModal-{{ $order->id }}" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg">
+                          <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                              <i class="fas fa-box-open me-2"></i> Order #{{ $order->id }}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                          </div>
 
-                        <div class="modal-body">
-                          @php
-                            $buyer = $order->buyer;
-                            $address = $order->address;
-                          @endphp
+                          <div class="modal-body">
+                            @php
+                              $buyer = $order->buyer;
+                              $address = $order->address;
+                            @endphp
 
-                          <h6 class="fw-bold text-success mb-2"><i class="fas fa-user me-2"></i> Buyer Information</h6>
-                          <p class="mb-1"><strong>Name:</strong> {{ $buyer->name ?? '—' }}</p>
-                          <p class="mb-1"><strong>Email:</strong> {{ $buyer->email ?? '—' }}</p>
-                          <p class="mb-1"><strong>Contact:</strong> {{ $buyer->phone ?? ($address->mobile_number ?? '—') }}</p>
-                          <p><strong>Address:</strong>
-                            @if($address)
-                              {{ $address->floor_unit_number ? $address->floor_unit_number . ', ' : '' }}
-                              {{ $address->barangay ? $address->barangay . ', ' : '' }}
-                              {{ $address->city ? $address->city . ', ' : '' }}
-                              {{ $address->province }}
-                            @else
-                              N/A
-                            @endif
-                          </p>
+                            <h6 class="fw-bold text-success mb-2"><i class="fas fa-user me-2"></i> Buyer Information</h6>
+                            <p class="mb-1"><strong>Name:</strong> {{ $buyer->name ?? '—' }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ $buyer->email ?? '—' }}</p>
+                            <p class="mb-1"><strong>Contact:</strong> {{ $buyer->phone ?? ($address->mobile_number ?? '—') }}</p>
+                            <p><strong>Address:</strong>
+                              @if($address)
+                                {{ $address->floor_unit_number ? $address->floor_unit_number . ', ' : '' }}
+                                {{ $address->barangay ? $address->barangay . ', ' : '' }}
+                                {{ $address->city ? $address->city . ', ' : '' }}
+                                {{ $address->province }}
+                              @else
+                                N/A
+                              @endif
+                            </p>
 
-                          <hr>
+                            <hr>
 
-                          <h6 class="fw-bold text-success mb-2"><i class="fas fa-shopping-cart me-2"></i> Order Items</h6>
-                          <table class="table table-sm table-bordered align-middle">
-                            <thead class="table-light">
-                              <tr>
-                                <th>Product</th>
-                                <th>Qty</th>
-                                <th class="text-end">Price</th>
-                                <th class="text-end">Subtotal</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @foreach($order->orderItems as $item)
+                            <h6 class="fw-bold text-success mb-2"><i class="fas fa-shopping-cart me-2"></i> Order Items</h6>
+                            <table class="table table-sm table-bordered align-middle">
+                              <thead class="table-light">
                                 <tr>
-                                  <td>{{ $item->product->name }}</td>
-                                  <td>{{ $item->quantity }}</td>
-                                  <td class="text-end">₱{{ number_format($item->price, 2) }}</td>
-                                  <td class="text-end">₱{{ number_format($item->price * $item->quantity, 2) }}</td>
+                                  <th>Product</th>
+                                  <th>Qty</th>
+                                  <th class="text-end">Price</th>
+                                  <th class="text-end">Subtotal</th>
                                 </tr>
-                              @endforeach
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                @foreach($order->orderItems as $item)
+                                  <tr>
+                                    <td>{{ $item->product->name }}</td>
+                                    <td>{{ $item->quantity }}</td>
+                                    <td class="text-end">₱{{ number_format($item->price, 2) }}</td>
+                                    <td class="text-end">₱{{ number_format($item->price * $item->quantity, 2) }}</td>
+                                  </tr>
+                                @endforeach
+                              </tbody>
+                            </table>
 
-                          <hr>
+                            <hr>
 
-                          <h6 class="fw-bold text-success mb-2"><i class="fas fa-file-invoice me-2"></i> Payment & Fulfillment</h6>
-                          <p><strong>Payment Method:</strong> {{ ucfirst($order->payment_method) }}</p>
-                          <p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
-                          <p><strong>Fulfillment:</strong> {{ ucfirst($order->fulfillment_method) }}</p>
-                          <p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
-                          <p><strong>Total Amount:</strong> ₱{{ number_format($order->total_amount, 2) }}</p>
+                            <h6 class="fw-bold text-success mb-2"><i class="fas fa-file-invoice me-2"></i> Payment & Fulfillment</h6>
+                            <p><strong>Payment Method:</strong> {{ ucfirst($order->payment_method) }}</p>
+                            <p><strong>Reference:</strong> {{ $order->payment_reference ?? '—' }}</p>
+                            <p><strong>Fulfillment:</strong> {{ ucfirst($order->fulfillment_method) }}</p>
+                            <p><strong>Shipping Fee:</strong> ₱{{ number_format($order->shipping_fee, 2) }}</p>
+                            <p><strong>Total Amount:</strong> ₱{{ number_format($order->total_amount, 2) }}</p>
 
-                          @if(Auth::user()->role === 'buyer')
-                    @if($order->status === 'completed')
-                        <span class="text-success small">
-                            <i class="fas fa-check-circle me-1"></i> Payment confirmed
-                        </span>
-                    @elseif($order->invoice_url)
-                        <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
-                            <i class="fas fa-file-invoice me-1"></i> Pay via Xendit
-                        </a>
+                            @if(Auth::user()->role === 'buyer')
+                      @if($order->status === 'completed')
+                          <span class="text-success small">
+                              <i class="fas fa-check-circle me-1"></i> Payment confirmed
+                          </span>
+                      @elseif($order->invoice_url)
+                          <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
+                              <i class="fas fa-file-invoice me-1"></i> Pay via Xendit
+                          </a>
+                      @endif
                     @endif
-                @endif
-            </div>
-
-        {{-- ✅ MOVE THE GENERATE BUTTONS HERE --}}
-        <div class="modal-footer bg-light">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-
-          @if($order->payment_method === 'online' && $order->seller_invoice_url)
-              <a href="{{ $order->seller_invoice_url }}" target="_blank" class="btn btn-outline-success btn-sm mt-2">
-                  <i class="fas fa-file-invoice me-1"></i> View Seller Invoice
-              </a>
-          @elseif($order->payment_method === 'online' && !$order->seller_invoice_url)
-              <form action="{{ route('seller.generateInvoice', $order->id) }}" method="POST">
-                  @csrf
-                  <button type="submit" class="btn btn-success btn-sm">
-                      <i class="fas fa-file-invoice me-1"></i> Generate Seller Invoice
-                  </button>
-              </form>
-          @elseif($order->payment_method === 'cod' && !$order->invoice_generated)
-              <form action="{{ route('seller.generateInvoice', $order->id) }}" method="POST">
-                  @csrf
-                  <button type="submit" class="btn btn-success btn-sm">
-                      <i class="fas fa-file-invoice me-1"></i> Generate COD E-Invoice
-                  </button>
-              </form>
-          @elseif($order->payment_method === 'cod' && $order->invoice_generated)
-              <a href="{{ $order->invoice_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
-                  <i class="fas fa-file-invoice me-1"></i> View COD E-Invoice
-              </a>
-          @endif
-                  </div>
                 </div>
-              </div>
-            </div>
-          @endforeach
 
+              {{-- ✅ MOVE THE GENERATE BUTTONS HERE --}}
+                        {{-- ✅ Unified Invoice Buttons --}}
+<div class="modal-footer bg-light">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 
+  {{-- 🧾 If invoice already generated --}}
+  @if($order->invoice_generated && $order->invoice_url)
+      <a href="{{ route('seller.viewInvoice', $order->id) }}" 
+         target="_blank" 
+         class="btn btn-outline-success btn-sm">
+          <i class="fas fa-file-invoice me-1"></i> View Invoice
+      </a>
+
+  {{-- 🧾 If not yet generated --}}
+  @else
+      <form action="{{ route('seller.generateInvoice', $order->id) }}" method="POST" class="d-inline">
+          @csrf
+          <button type="submit" class="btn btn-success btn-sm">
+              <i class="fas fa-file-invoice me-1"></i> Generate Invoice
+          </button>
+      </form>
+  @endif
+</div>
+
+                      </div>
+                    </div>
+                  </div>
+                @endforeach
                   <div class="d-flex justify-content-center mt-3">
                     {{ $orders->links('pagination::bootstrap-5') }}
                   </div>
@@ -2274,6 +2267,29 @@
       });
     });
   </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // only non-action cells open modal manually
+  document.querySelectorAll('tr.order-row').forEach(row => {
+    // select all <td> except the last one (Action column)
+    const clickableCells = row.querySelectorAll('td:not(:last-child)');
+    clickableCells.forEach(cell => {
+      cell.addEventListener('click', function (e) {
+        // just in case a button or link exists inside a cell, skip those
+        if (e.target.closest('button, a, form, input, select, textarea, label')) return;
+
+        const id = row.dataset.orderId;
+        const modal = document.getElementById('sellerOrderModal-' + id);
+        if (modal) {
+          const modalInstance = bootstrap.Modal.getOrCreateInstance(modal);
+          modalInstance.show();
+        }
+      });
+    });
+  });
+});
+</script>
+
 
 
   <script src="https://kit.fontawesome.com/YOUR_KIT_CODE.js" crossorigin="anonymous"></script>

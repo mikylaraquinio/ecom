@@ -267,73 +267,38 @@ class SellerController extends Controller
     {
         $order = Order::with('orderItems.product', 'user', 'address')->findOrFail($id);
 
-        // ✅ Security check
         if (auth()->user()->role !== 'seller') {
             abort(403, 'Unauthorized');
         }
 
-        // === 🧾 Case 1: Online Payment (Generate seller's own PDF) ===
-        if ($order->payment_method === 'online') {
-            // Generate internal seller invoice (PDF)
-            $pdf = Pdf::loadView('invoices.seller_invoice', compact('order'))
-                    ->setPaper('a4', 'portrait');
+        // Generate the unified invoice view
+        $pdf = Pdf::loadView('seller.invoice', compact('order'))->setPaper('a4', 'portrait');
 
-            $fileName = 'seller_invoice_' . $order->id . '.pdf';
-            $path = 'invoices/' . $fileName;
+        $fileName = 'invoice_' . $order->id . '.pdf';
+        $path = 'invoices/' . $fileName;
 
-            Storage::disk('public')->put($path, $pdf->output());
+        Storage::disk('public')->put($path, $pdf->output());
 
-            // Save invoice record to DB
-            $order->seller_invoice_url = asset('storage/' . $path);
-            $order->invoice_generated = true;
-            $order->save();
+        $order->invoice_url = asset('storage/' . $path);
+        $order->invoice_generated = true;
+        $order->save();
 
-            return redirect()->route('seller.viewInvoice', $order->id)
-                ->with('success', 'Seller E-Invoice generated successfully.');
+        return redirect()->route('seller.viewInvoice', $order->id)
+            ->with('success', 'Invoice generated successfully.');
+    }
+
+
+    public function viewInvoice($id)
+    {
+        $order = Order::with('orderItems.product', 'user', 'address')->findOrFail($id);
+
+        if (!in_array(auth()->user()->role, ['buyer', 'seller', 'admin'])) {
+            abort(403, 'Unauthorized');
         }
 
-        // === 🧾 Case 2: COD Payment (Manual Generate) ===
-        if ($order->payment_method === 'cod') {
-            $pdf = Pdf::loadView('invoices.cod_invoice', compact('order'))
-                    ->setPaper('a4', 'portrait');
-
-            $fileName = 'cod_invoice_' . $order->id . '.pdf';
-            $path = 'invoices/' . $fileName;
-
-            Storage::disk('public')->put($path, $pdf->output());
-
-            $order->invoice_url = asset('storage/' . $path);
-            $order->invoice_generated = true;
-            $order->save();
-
-            return redirect()->route('seller.viewInvoice', $order->id)
-                ->with('success', 'COD E-Invoice generated successfully.');
-        }
-
-        return back()->with('error', 'Unsupported payment method.');
+        // Always show the unified invoice
+        return view('seller.invoice', compact('order'));
     }
-
-public function viewInvoice($id)
-{
-    $order = Order::with('orderItems.product', 'user', 'address')->findOrFail($id);
-
-    // Only buyer or seller should access
-    if (!in_array(auth()->user()->role, ['buyer', 'seller', 'admin'])) {
-        abort(403, 'Unauthorized');
-    }
-
-    // If it's Xendit, redirect to Xendit invoice link
-    if ($order->payment_method === 'online' && $order->invoice_url) {
-        return redirect($order->invoice_url);
-    }
-
-    // If COD, show your custom invoice page
-    if ($order->payment_method === 'cod' && $order->invoice_generated) {
-        return view('invoices.cod_invoice', compact('order'));
-    }
-
-    return back()->with('error', 'No invoice available.');
-}
 
     public function myShop()
     {
