@@ -26,6 +26,7 @@ use App\Http\Controllers\FollowController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Http\Controllers\Auth\VerifyEmailController;
 
+
 Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store']);
 Route::get('/', [CategoryController::class, 'index'])->name('welcome');

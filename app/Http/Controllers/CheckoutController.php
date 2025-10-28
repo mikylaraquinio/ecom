@@ -10,6 +10,7 @@ use App\Models\Address;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\NewOrderForSeller;
+use App\Notifications\OrderPlacedNotification;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -441,13 +442,28 @@ class CheckoutController extends Controller
         }
 
         DB::commit();
-        cache()->forget($lockKey);
+cache()->forget($lockKey);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Order placed successfully!',
-            'redirect_url' => route('checkout.success'),
-        ]);
+// 🛎️ Notify the buyer
+$user->notify(new OrderPlacedNotification($order, 'buyer'));
+
+// 🛎️ Notify each seller involved
+$order->load('orderItems.product.user'); // make sure we have the users
+$sellers = $order->orderItems
+    ->pluck('product.user')
+    ->unique('id')
+    ->filter();
+
+foreach ($sellers as $seller) {
+    $seller->notify(new OrderPlacedNotification($order, 'seller'));
+}
+
+return response()->json([
+    'success' => true,
+    'message' => 'Order placed successfully!',
+    'redirect_url' => route('checkout.success'),
+]);
+
 
     } catch (\Throwable $e) {
         DB::rollBack();
