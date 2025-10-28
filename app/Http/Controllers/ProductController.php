@@ -241,109 +241,112 @@ class ProductController extends Controller
     }
 
     public function update(Request $request, $id)
-    {
-        $product = Product::findOrFail($id);
+{
+    $product = Product::findOrFail($id);
 
-        // ✅ Validate product fields
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'unit' => 'required|string|max:50',
-            'weight' => 'required|numeric|min:0.01',
-            'min_order_qty' => 'required|integer|min:1',
-            'category_id' => 'required|exists:categories,id',
-        ]);
+    // ✅ Validate product fields
+    $validated = $request->validate([
+        'name'           => 'required|string|max:255',
+        'description'    => 'nullable|string',
+        'price'          => 'required|numeric|min:0',
+        'stock'          => 'required|integer|min:0',
+        'unit'           => 'required|string|max:50',
+        'weight'         => 'required|numeric|min:0.01',
+        'min_order_qty'  => 'required|integer|min:1',
+        'category_id'    => 'required|exists:categories,id',
+    ]);
 
-        $product->update($validated);
+    // 🧩 Prepare the base update data
+    $data = $validated;
 
-        // ✅ Handle cover photo replacement (new uploaded file)
-        if ($request->hasFile('image')) {
-            if (!empty($product->image) && Storage::disk('public')->exists($product->image)) {
-                $maxSort = ProductImage::where('product_id', $product->id)->max('sort_order') ?? 0;
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'path' => $product->image,
-                    'sort_order' => $maxSort + 1,
-                ]);
-            }
-
-            $coverPath = $request->file('image')->store('products', 'public');
-            $product->image = $coverPath;
-            $product->image_path = Storage::url($coverPath);
-        }
-
-        // ✅ Remove cover photo if requested
-        if ($request->boolean('remove_cover')) {
-            if (!empty($product->image) && Storage::disk('public')->exists($product->image)) {
-                Storage::disk('public')->delete($product->image);
-            }
-            $product->image = null;
-            $product->image_path = null;
-        }
-
-        // ✅ Remove selected gallery images
-        $removeExisting = json_decode($request->input('remove_existing', '[]'), true);
-        if (!empty($removeExisting)) {
-            foreach ($removeExisting as $path) {
-                $relativePath = str_replace([
-                    'http://127.0.0.1:8000/storage/',
-                    'http://localhost/storage/',
-                    '/storage/'
-                ], '', $path);
-
-                $image = ProductImage::where('path', 'like', "%{$relativePath}%")->first();
-                if ($image) {
-                    if (Storage::disk('public')->exists($image->path)) {
-                        Storage::disk('public')->delete($image->path);
-                    }
-                    $image->delete();
-                }
-            }
-        }
-
-        // ✅ Add new gallery images
-        if ($request->hasFile('gallery')) {
-            $lastSort = ProductImage::where('product_id', $product->id)->max('sort_order') ?? 0;
-            foreach ($request->file('gallery') as $file) {
-                $lastSort++;
-                $path = $file->store('products', 'public');
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'path' => $path,
-                    'sort_order' => $lastSort,
-                ]);
-            }
-        }
-
-        // ✅ Handle cover from existing image
-        if ($request->filled('cover_existing')) {
-            $coverPath = $request->input('cover_existing');
-
-            if ($product->image !== $coverPath) {
-                if (!empty($product->image) && Storage::disk('public')->exists($product->image)) {
-                    Storage::disk('public')->delete($product->image);
-                }
-
-                $product->image = $coverPath;
-                $product->image_path = Storage::url($coverPath);
-            }
-        }
-
-        $product->save();
-
-        // ✅ Respond correctly depending on request type
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Product updated successfully.',
+    // ✅ Handle new cover image upload (before update)
+    if ($request->hasFile('image')) {
+        // Save existing image into gallery before replacing
+        if (!empty($product->image) && Storage::disk('public')->exists($product->image)) {
+            $maxSort = ProductImage::where('product_id', $product->id)->max('sort_order') ?? 0;
+            ProductImage::create([
+                'product_id' => $product->id,
+                'path'       => $product->image,
+                'sort_order' => $maxSort + 1,
             ]);
         }
 
-        // Fallback for normal requests
-        return redirect()->back()->with('success', 'Product updated successfully.');
+        $coverPath = $request->file('image')->store('products', 'public');
+        $data['image']      = $coverPath;
+        $data['image_path'] = Storage::url($coverPath);
     }
+
+    // ✅ Handle removing the cover image
+    if ($request->boolean('remove_cover')) {
+        if (!empty($product->image) && Storage::disk('public')->exists($product->image)) {
+            Storage::disk('public')->delete($product->image);
+        }
+        $data['image'] = null;
+        $data['image_path'] = null;
+    }
+
+    // ✅ Remove selected gallery images
+    $removeExisting = json_decode($request->input('remove_existing', '[]'), true);
+    if (!empty($removeExisting)) {
+        foreach ($removeExisting as $path) {
+            $relativePath = str_replace([
+                'http://127.0.0.1:8000/storage/',
+                'http://localhost/storage/',
+                '/storage/'
+            ], '', $path);
+
+            $image = ProductImage::where('path', 'like', "%{$relativePath}%")->first();
+            if ($image) {
+                if (Storage::disk('public')->exists($image->path)) {
+                    Storage::disk('public')->delete($image->path);
+                }
+                $image->delete();
+            }
+        }
+    }
+
+    // ✅ Add new gallery images
+    if ($request->hasFile('gallery')) {
+        $lastSort = ProductImage::where('product_id', $product->id)->max('sort_order') ?? 0;
+        foreach ($request->file('gallery') as $file) {
+            $lastSort++;
+            $path = $file->store('products', 'public');
+            ProductImage::create([
+                'product_id' => $product->id,
+                'path'       => $path,
+                'sort_order' => $lastSort,
+            ]);
+        }
+    }
+
+    // ✅ Handle setting an existing image as the new cover
+    if ($request->filled('cover_existing')) {
+        $coverPath = $request->input('cover_existing');
+
+        if ($product->image !== $coverPath) {
+            if (!empty($product->image) && Storage::disk('public')->exists($product->image)) {
+                Storage::disk('public')->delete($product->image);
+            }
+
+            $data['image']      = $coverPath;
+            $data['image_path'] = Storage::url($coverPath);
+        }
+    }
+
+    // ✅ One unified update (no stale overwrites)
+    $product->update($data);
+
+    // ✅ Respond depending on request type
+    if ($request->ajax()) {
+        return response()->json([
+            'success' => true,
+            'message' => 'Product updated successfully.',
+        ]);
+    }
+
+    return redirect()->back()->with('success', 'Product updated successfully.');
+}
+
 
 
 
