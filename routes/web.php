@@ -165,12 +165,11 @@ Route::post('/cart/add/{productId}', [CartController::class, 'add'])->name('cart
 
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
 
-/*notifications */
-
-Route::middleware('auth')->group(function () {
+/* Notifications */
+Route::middleware(['auth'])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read/{notification}', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
-    Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
 });
 
 /* Chat */

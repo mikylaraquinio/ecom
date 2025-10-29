@@ -22,10 +22,13 @@ class NotificationController extends Controller
 
     public function read(Request $request, DatabaseNotification $notification)
     {
+        // ✅ Security: ensure it's owned by the logged-in user
         abort_if($notification->notifiable_id !== $request->user()->id, 403);
+
         if (is_null($notification->read_at)) {
             $notification->markAsRead();
         }
+
         return response()->json(['ok' => true]);
     }
 
