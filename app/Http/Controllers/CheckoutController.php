@@ -86,31 +86,63 @@ class CheckoutController extends Controller
 
         if (isset($selectedItems[0]['product_id'])) {
             // ✅ Buy Now flow
-            foreach ($selectedItems as $item) {
+            foreach ($selectedItems as &$item) {
                 // ⭐ CHANGE #1: eager-load seller profile too
                 $product = \App\Models\Product::with('user.seller')->findOrFail($item['product_id']);
+
                 if ($product) {
-                    // Create a "fake" cart item so checkout page can still use same blade
+                    // 🩵 Clamp quantity to stock
+                    $requestedQty = (int) ($item['quantity'] ?? 1);
+                    $finalQty = min($requestedQty, (int) $product->stock);
+
+                    // 🩵 Update the item array so session matches
+                    $item['quantity'] = $finalQty;
+
+                    // 🩵 Create the fake cart item
                     $fakeCart = new \App\Models\Cart([
                         'id' => 0, // fake ID (not in DB)
                         'user_id' => $user->id,
                         'product_id' => $product->id,
-                        'quantity' => (int) ($item['quantity'] ?? 1),
+                        'quantity' => $finalQty,
                     ]);
                     $fakeCart->setRelation('product', $product);
                     $cartItems->push($fakeCart);
                 }
             }
+
+            // ✅ Update session so backend also respects the corrected quantity
+            session(['selected_items' => $selectedItems]);
+
+
         } else {
             // ✅ Cart Checkout flow
             $cartIds = array_map('intval', $selectedItems);
 
-            // ⭐ CHANGE #2: eager-load seller profile too
+            // 🩵 Always load products with seller
             $cartItems = \App\Models\Cart::where('user_id', $user->id)
-                ->whereIn('id', $selectedItems)
-                ->with('product.user.seller')   // add .seller here
+                ->whereIn('id', $cartIds)
+                ->with('product.user.seller')
+                ->get();
+
+            // 🩵 Clamp all quantities to current stock levels
+            foreach ($cartItems as $cartItem) {
+                $stock = (int) $cartItem->product->stock;
+                $currentQty = (int) $cartItem->quantity;
+
+                // If product has less stock now, clamp it
+                if ($stock < $currentQty) {
+                    $cartItem->quantity = $stock;
+                    $cartItem->save(); // ✅ persist correction to DB
+                }
+            }
+
+            // 🧹 Refresh collection to ensure updated values are used
+            $cartItems = \App\Models\Cart::where('user_id', $user->id)
+                ->whereIn('id', $cartIds)
+                ->with('product.user.seller')
                 ->get();
         }
+
 
         if ($cartItems->isEmpty()) {
             return redirect()->route('shop')->with('error', 'Your cart is empty.');
@@ -206,6 +238,10 @@ class CheckoutController extends Controller
             ];
         }
 
+        // ✅ Only clear after successful checkout, not here
+        session()->put('checkout_in_progress', true);
+
+
         return view('checkout', compact(
             'cartItems',
             'user',
@@ -214,8 +250,9 @@ class CheckoutController extends Controller
             'totalShipping',
             'grandTotal',
             'shippingBySeller',
-            'pickupBySeller' // ⭐ pass to Blade
+            'pickupBySeller'
         ));
+
     }
 
 
@@ -288,166 +325,401 @@ class CheckoutController extends Controller
 
 
     public function process(Request $request)
-{
-    // ✅ Validation: only these 3 are allowed nowpublic function process(Request $request)
-{
-    // ✅ Validation: only these 3 are allowed now
-    $request->validate([
-        'payment_method'      => 'required|in:online,cod,cop',
-        'fulfillment_method'  => 'required|in:delivery,pickup',
-        'address_id'          => 'required_if:fulfillment_method,delivery|nullable|exists:addresses,id',
-    ]);
-
-    $user = auth()->user();
-
-    // 🧩 Prevent duplicate order spam (5 seconds lock)
-    $lockKey = 'placing-order-' . $user->id;
-    if (cache()->has($lockKey)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Please wait — your previous order is still processing.',
-        ], 429);
-    }
-    cache()->put($lockKey, true, 5);
-
-    $productStockBackup = [];
-
-    try {
-        DB::beginTransaction();
-
-        $selectedItems = $request->selected_items ?? session('selected_items', []);
-        if (empty($selectedItems)) {
-            throw new \Exception('No items selected.');
-        }
-
-        // ✅ Build cart items
-        $cartItems = collect();
-        if (isset($selectedItems[0]['product_id'])) {
-            // Buy Now flow
-            foreach ($selectedItems as $item) {
-                $product = Product::with('user')->findOrFail($item['product_id']);
-                $qty = (int) ($item['quantity'] ?? 1);
-                if ($product->stock < $qty) {
-                    throw new \Exception("Not enough stock for {$product->name}");
-                }
-
-                // backup stock
-                $productStockBackup[$product->id] = $product->stock;
-
-                $fakeCart = new Cart([
-                    'id'         => 0,
-                    'user_id'    => $user->id,
-                    'product_id' => $product->id,
-                    'quantity'   => $qty,
-                ]);
-                $fakeCart->setRelation('product', $product);
-                $cartItems->push($fakeCart);
-            }
-        } else {
-            // Cart checkout flow
-            $cartItems = Cart::where('user_id', $user->id)
-                ->whereIn('id', $selectedItems)
-                ->with('product.user')
-                ->get();
-        }
-
-        if ($cartItems->isEmpty()) {
-            throw new \Exception('No valid items found.');
-        }
-
-        // ✅ Totals
-        $subtotal    = $cartItems->sum(fn($i) => $i->product ? $i->product->price * (int) $i->quantity : 0);
-        $fulfillment = $request->input('fulfillment_method', 'delivery');
-        $totalShipping = 0;
-        $shippingBySeller = [];
-
-        if ($fulfillment === 'delivery') {
-            $buyerCity = null;
-            if ($request->filled('address_id')) {
-                $addr = Address::where('id', $request->address_id)
-                    ->where('user_id', $user->id)
-                    ->first();
-                $buyerCity = optional($addr)->city;
-            }
-            $buyerCity = $buyerCity ?? ($user->city ?? $user->town ?? '');
-
-            foreach ($cartItems as $item) {
-                if (!$item->product || !$item->product->user) continue;
-
-                $sellerUser = $item->product->user;
-                $seller     = $sellerUser->seller;
-                $sellerCity = optional($seller)->pickup_city
-                    ?? ($sellerUser->city ?? $sellerUser->town ?? '');
-
-                $sid = $sellerUser->id;
-                if (!isset($shippingBySeller[$sid])) {
-                    $shippingBySeller[$sid] = [
-                        'weight'     => 0,
-                        'buyer_city' => $buyerCity,
-                        'seller_city'=> $sellerCity,
-                        'fee'        => 0,
-                    ];
-                }
-
-                $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int) $item->quantity;
-                $shippingBySeller[$sid]['fee'] = \App\Helpers\ShippingHelper::calculate(
-                    $shippingBySeller[$sid]['buyer_city'],
-                    $shippingBySeller[$sid]['seller_city'],
-                    $shippingBySeller[$sid]['weight']
-                );
-            }
-            $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
-        }
-
-        $grandTotal = $subtotal + $totalShipping;
-
-        // ✅ Enforce valid payment ↔ fulfillment combos
-        $paymentMethod = $request->payment_method;
-        if ($fulfillment === 'pickup') {
-            if (!in_array($paymentMethod, ['online', 'cop'], true)) {
-                $paymentMethod = 'cop';
-            }
-        } else {
-            if (!in_array($paymentMethod, ['online', 'cod'], true)) {
-                $paymentMethod = 'cod';
-            }
-        }
-
-        // ✅ Determine status based on payment method
-        if ($paymentMethod === 'online') {
-            $status = $fulfillment === 'pickup' ? 'awaiting_pickup' : 'awaiting_shipment';
-        } else {
-            $status = 'pending';
-        }
-
-        // ✅ Group items by seller (multi-seller handling)
-        $cartGroups = $cartItems->groupBy(fn($item) => $item->product->user_id);
-        $allOrders = [];
-
-        foreach ($cartGroups as $sellerId => $items) {
-            $sellerTotal = $items->sum(fn($i) => $i->product->price * (int) $i->quantity);
-            $sellerShipping = $fulfillment === 'delivery' && isset($shippingBySeller[$sellerId])
-                ? $shippingBySeller[$sellerId]['fee']
-                : 0;
-            $grandTotalPerSeller = $sellerTotal + $sellerShipping;
-
-            // ✅ Create separate order per seller
-            $order = Order::create([
-                'user_id'            => $user->id,
-                'seller_id'          => $sellerId,
-                'address_id'         => $fulfillment === 'delivery' ? $request->address_id : null,
-                'payment_method'     => $paymentMethod,
-                'fulfillment_method' => $fulfillment,
-                'status'             => $status,
-                'total_amount'       => $grandTotalPerSeller,
-                'shipping_fee'       => $sellerShipping,
+    {
+        // ✅ Validation: only these 3 are allowed nowpublic function process(Request $request)
+        {
+            // ✅ Validation: only these 3 are allowed now
+            $request->validate([
+                'payment_method' => 'required|in:online,cod,cop',
+                'fulfillment_method' => 'required|in:delivery,pickup',
+                'address_id' => 'required_if:fulfillment_method,delivery|nullable|exists:addresses,id',
             ]);
 
-            foreach ($items as $cartItem) {
+            $user = auth()->user();
+
+            // 🧩 Prevent duplicate order spam (5 seconds lock)
+            $lockKey = 'placing-order-' . $user->id;
+            if (cache()->has($lockKey)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please wait — your previous order is still processing.',
+                ], 429);
+            }
+            cache()->put($lockKey, true, 5);
+
+            $productStockBackup = [];
+
+            try {
+                DB::beginTransaction();
+
+                $selectedItems = $request->selected_items ?? session('selected_items', []);
+                if (empty($selectedItems)) {
+                    throw new \Exception('No items selected.');
+                }
+
+                // ✅ Build cart items
+                $cartItems = collect();
+                if (isset($selectedItems[0]['product_id'])) {
+                    // Buy Now flow
+                    foreach ($selectedItems as $item) {
+                        $product = Product::with('user')->findOrFail($item['product_id']);
+                        $qty = (int) ($item['quantity'] ?? 1);
+                        if ($product->stock < $qty) {
+                            throw new \Exception("Not enough stock for {$product->name}");
+                        }
+
+                        // backup stock
+                        $productStockBackup[$product->id] = $product->stock;
+
+                        $fakeCart = new Cart([
+                            'id' => 0,
+                            'user_id' => $user->id,
+                            'product_id' => $product->id,
+                            'quantity' => $qty,
+                        ]);
+                        $fakeCart->setRelation('product', $product);
+                        $cartItems->push($fakeCart);
+                    }
+                } else {
+                    // Cart checkout flow
+                    $cartItems = Cart::where('user_id', $user->id)
+                        ->whereIn('id', $selectedItems)
+                        ->with('product.user')
+                        ->get();
+                }
+
+                if ($cartItems->isEmpty()) {
+                    throw new \Exception('No valid items found.');
+                }
+
+                // ✅ Totals
+                $subtotal = $cartItems->sum(fn($i) => $i->product ? $i->product->price * (int) $i->quantity : 0);
+                $fulfillment = $request->input('fulfillment_method', 'delivery');
+                $totalShipping = 0;
+                $shippingBySeller = [];
+
+                if ($fulfillment === 'delivery') {
+                    $buyerCity = null;
+                    if ($request->filled('address_id')) {
+                        $addr = Address::where('id', $request->address_id)
+                            ->where('user_id', $user->id)
+                            ->first();
+                        $buyerCity = optional($addr)->city;
+                    }
+                    $buyerCity = $buyerCity ?? ($user->city ?? $user->town ?? '');
+
+                    foreach ($cartItems as $item) {
+                        if (!$item->product || !$item->product->user)
+                            continue;
+
+                        $sellerUser = $item->product->user;
+                        $seller = $sellerUser->seller;
+                        $sellerCity = optional($seller)->pickup_city
+                            ?? ($sellerUser->city ?? $sellerUser->town ?? '');
+
+                        $sid = $sellerUser->id;
+                        if (!isset($shippingBySeller[$sid])) {
+                            $shippingBySeller[$sid] = [
+                                'weight' => 0,
+                                'buyer_city' => $buyerCity,
+                                'seller_city' => $sellerCity,
+                                'fee' => 0,
+                            ];
+                        }
+
+                        $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int) $item->quantity;
+                        $shippingBySeller[$sid]['fee'] = \App\Helpers\ShippingHelper::calculate(
+                            $shippingBySeller[$sid]['buyer_city'],
+                            $shippingBySeller[$sid]['seller_city'],
+                            $shippingBySeller[$sid]['weight']
+                        );
+                    }
+                    $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
+                }
+
+                $grandTotal = $subtotal + $totalShipping;
+
+                // ✅ Enforce valid payment ↔ fulfillment combos
+                $paymentMethod = $request->payment_method;
+                if ($fulfillment === 'pickup') {
+                    if (!in_array($paymentMethod, ['online', 'cop'], true)) {
+                        $paymentMethod = 'cop';
+                    }
+                } else {
+                    if (!in_array($paymentMethod, ['online', 'cod'], true)) {
+                        $paymentMethod = 'cod';
+                    }
+                }
+
+                // ✅ Determine status based on payment method
+                if ($paymentMethod === 'online') {
+                    $status = $fulfillment === 'pickup' ? 'awaiting_pickup' : 'awaiting_shipment';
+                } else {
+                    $status = 'pending';
+                }
+
+                // ✅ Group items by seller (multi-seller handling)
+                $cartGroups = $cartItems->groupBy(fn($item) => $item->product->user_id);
+                $allOrders = [];
+
+                foreach ($cartGroups as $sellerId => $items) {
+                    $sellerTotal = $items->sum(fn($i) => $i->product->price * (int) $i->quantity);
+                    $sellerShipping = $fulfillment === 'delivery' && isset($shippingBySeller[$sellerId])
+                        ? $shippingBySeller[$sellerId]['fee']
+                        : 0;
+                    $grandTotalPerSeller = $sellerTotal + $sellerShipping;
+
+                    // ✅ Create separate order per seller
+                    $order = Order::create([
+                        'user_id' => $user->id,
+                        'seller_id' => $sellerId,
+                        'address_id' => $fulfillment === 'delivery' ? $request->address_id : null,
+                        'payment_method' => $paymentMethod,
+                        'fulfillment_method' => $fulfillment,
+                        'status' => $status,
+                        'total_amount' => $grandTotalPerSeller,
+                        'shipping_fee' => $sellerShipping,
+                    ]);
+
+                    foreach ($items as $cartItem) {
+                        $order->orderItems()->create([
+                            'product_id' => $cartItem->product_id,
+                            'quantity' => (int) $cartItem->quantity,
+                            'price' => $cartItem->product->price,
+                        ]);
+
+                        // reduce stock
+                        $product = $cartItem->product;
+                        $product->stock -= (int) $cartItem->quantity;
+                        $product->save();
+
+                        if ($cartItem->id != 0) {
+                            $cartItem->delete();
+                        }
+                    }
+
+                    // 🧾 Handle Online / GCash (Xendit) Payment per order
+                    if ($paymentMethod === 'online') {
+                        $config = \Xendit\Configuration::getDefaultConfiguration();
+                        $config->setApiKey(env('XENDIT_SECRET_KEY'));
+                        $apiInstance = new \Xendit\Invoice\InvoiceApi(null, $config);
+
+                        $amount = (float) $grandTotalPerSeller;
+                        $invoiceParams = new \Xendit\Invoice\CreateInvoiceRequest([
+                            'external_id' => 'order-' . $order->id,
+                            'payer_email' => $user->email ?? 'customer@example.com',
+                            'description' => 'Payment for Order #' . $order->id,
+                            'amount' => $amount,
+                            'success_redirect_url' => route('checkout.success'),
+                            'failure_redirect_url' => route('checkout.show'),
+                            'payment_methods' => ['GCASH', 'GRABPAY', 'PAYMAYA', 'QRPH', 'CARD', 'OVER_THE_COUNTER'],
+                        ]);
+
+                        $invoice = $apiInstance->createInvoice($invoiceParams);
+
+                        $order->update([
+                            'payment_reference' => $invoice->getId() ?? null,
+                            'invoice_url' => $invoice->getInvoiceUrl() ?? null,
+                        ]);
+                    }
+
+                    // 🛎️ Notify this seller
+                    $seller = User::find($sellerId);
+                    $seller?->notify(new OrderPlacedNotification($order, 'seller'));
+
+                    $allOrders[] = $order;
+                }
+
+                // 🛎️ Notify the buyer once
+                if (count($allOrders) > 0) {
+                    $user->notify(new OrderPlacedNotification($allOrders[0], 'buyer'));
+                }
+
+                DB::commit();
+                cache()->forget($lockKey);
+
+                // ✅ If online payment, redirect to first invoice URL
+                if ($paymentMethod === 'online' && isset($allOrders[0]->invoice_url)) {
+                    return response()->json([
+                        'success' => true,
+                        'redirect_url' => $allOrders[0]->invoice_url,
+                    ]);
+                }
+
+                // ✅ Otherwise (COD / COP)
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Order placed successfully!',
+                    'redirect_url' => route('checkout.success'),
+                ]);
+
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                cache()->forget($lockKey);
+
+                // restore stock
+                foreach ($productStockBackup as $productId => $previousStock) {
+                    if ($p = Product::find($productId)) {
+                        $p->stock = $previousStock;
+                        $p->save();
+                    }
+                }
+
+                \Log::error('Checkout Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage() ?: 'Something went wrong while placing your order.',
+                ], 500);
+            }
+        }
+
+        $request->validate([
+            'payment_method' => 'required|in:online,cod,cop',
+            'fulfillment_method' => 'required|in:delivery,pickup',
+            'address_id' => 'required_if:fulfillment_method,delivery|nullable|exists:addresses,id',
+        ]);
+
+        $user = auth()->user();
+
+        // 🧩 Prevent duplicate order spam (5 seconds lock)
+        $lockKey = 'placing-order-' . $user->id;
+        if (cache()->has($lockKey)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please wait — your previous order is still processing.',
+            ], 429);
+        }
+        cache()->put($lockKey, true, 5);
+
+        $productStockBackup = [];
+
+        try {
+            DB::beginTransaction();
+
+            $selectedItems = $request->selected_items ?? session('selected_items', []);
+            if (empty($selectedItems)) {
+                throw new \Exception('No items selected.');
+            }
+
+            // ✅ Build cart items
+            $cartItems = collect();
+            if (isset($selectedItems[0]['product_id'])) {
+                // Buy Now flow
+                foreach ($selectedItems as $item) {
+                    $product = Product::with('user')->findOrFail($item['product_id']);
+                    $qty = (int) ($item['quantity'] ?? 1);
+                    if ($product->stock < $qty) {
+                        throw new \Exception("Not enough stock for {$product->name}");
+                    }
+
+                    // backup stock
+                    $productStockBackup[$product->id] = $product->stock;
+
+                    $fakeCart = new Cart([
+                        'id' => 0,
+                        'user_id' => $user->id,
+                        'product_id' => $product->id,
+                        'quantity' => $qty,
+                    ]);
+                    $fakeCart->setRelation('product', $product);
+                    $cartItems->push($fakeCart);
+                }
+            } else {
+                // Cart checkout flow
+                $cartItems = Cart::where('user_id', $user->id)
+                    ->whereIn('id', $selectedItems)
+                    ->with('product.user')
+                    ->get();
+            }
+
+            if ($cartItems->isEmpty()) {
+                throw new \Exception('No valid items found.');
+            }
+
+            // ✅ Totals
+            $subtotal = $cartItems->sum(fn($i) => $i->product ? $i->product->price * (int) $i->quantity : 0);
+            $fulfillment = $request->input('fulfillment_method', 'delivery');
+            $totalShipping = 0;
+
+            if ($fulfillment === 'delivery') {
+                $buyerCity = null;
+                if ($request->filled('address_id')) {
+                    $addr = Address::where('id', $request->address_id)
+                        ->where('user_id', $user->id)
+                        ->first();
+                    $buyerCity = optional($addr)->city;
+                }
+                $buyerCity = $buyerCity ?? ($user->city ?? $user->town ?? '');
+
+                $shippingBySeller = [];
+                foreach ($cartItems as $item) {
+                    if (!$item->product || !$item->product->user)
+                        continue;
+
+                    $sellerUser = $item->product->user;
+                    $seller = $sellerUser->seller;
+                    $sellerCity = optional($seller)->pickup_city
+                        ?? ($sellerUser->city ?? $sellerUser->town ?? '');
+
+                    $sid = $sellerUser->id;
+                    if (!isset($shippingBySeller[$sid])) {
+                        $shippingBySeller[$sid] = [
+                            'weight' => 0,
+                            'buyer_city' => $buyerCity,
+                            'seller_city' => $sellerCity,
+                            'fee' => 0,
+                        ];
+                    }
+
+                    $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int) $item->quantity;
+                    $shippingBySeller[$sid]['fee'] = \App\Helpers\ShippingHelper::calculate(
+                        $shippingBySeller[$sid]['buyer_city'],
+                        $shippingBySeller[$sid]['seller_city'],
+                        $shippingBySeller[$sid]['weight']
+                    );
+                }
+                $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
+            }
+
+            $grandTotal = $subtotal + $totalShipping;
+
+            // ✅ Enforce valid payment ↔ fulfillment combos server-side
+            $paymentMethod = $request->payment_method;
+            if ($fulfillment === 'pickup') {
+                // only 'online' or 'cop' are valid for pickup; coerce if needed
+                if (!in_array($paymentMethod, ['online', 'cop'], true)) {
+                    $paymentMethod = 'cop';
+                }
+            } else { // delivery
+                // only 'online' or 'cod' are valid for delivery; coerce if needed
+                if (!in_array($paymentMethod, ['online', 'cod'], true)) {
+                    $paymentMethod = 'cod';
+                }
+            }
+
+            // ✅ Determine status based on payment method
+            if ($paymentMethod === 'online') {
+                $status = $fulfillment === 'pickup' ? 'awaiting_pickup' : 'awaiting_shipment';
+            } else {
+                $status = 'pending';
+            }
+
+            // ✅ Create Order (use the computed $paymentMethod)
+            $order = Order::create([
+                'user_id' => $user->id,
+                'address_id' => $fulfillment === 'delivery' ? $request->address_id : null,
+                'payment_method' => $paymentMethod,
+                'fulfillment_method' => $fulfillment,
+                'status' => $status, // 👈 dynamic now
+                'total_amount' => $grandTotal,
+                'shipping_fee' => $totalShipping,
+            ]);
+
+            foreach ($cartItems as $cartItem) {
                 $order->orderItems()->create([
                     'product_id' => $cartItem->product_id,
-                    'quantity'   => (int) $cartItem->quantity,
-                    'price'      => $cartItem->product->price,
+                    'quantity' => (int) $cartItem->quantity,
+                    'price' => $cartItem->product->price,
                 ]);
 
                 // reduce stock
@@ -460,240 +732,7 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 🧾 Handle Online / GCash (Xendit) Payment per order
-            if ($paymentMethod === 'online') {
-                $config = \Xendit\Configuration::getDefaultConfiguration();
-                $config->setApiKey(env('XENDIT_SECRET_KEY'));
-                $apiInstance = new \Xendit\Invoice\InvoiceApi(null, $config);
-
-                $amount = (float) $grandTotalPerSeller;
-                $invoiceParams = new \Xendit\Invoice\CreateInvoiceRequest([
-                    'external_id' => 'order-' . $order->id,
-                    'payer_email' => $user->email ?? 'customer@example.com',
-                    'description' => 'Payment for Order #' . $order->id,
-                    'amount' => $amount,
-                    'success_redirect_url' => route('checkout.success'),
-                    'failure_redirect_url' => route('checkout.show'),
-                    'payment_methods' => ['GCASH', 'GRABPAY', 'PAYMAYA', 'QRPH', 'CARD', 'OVER_THE_COUNTER'],
-                ]);
-
-                $invoice = $apiInstance->createInvoice($invoiceParams);
-
-                $order->update([
-                    'payment_reference' => $invoice->getId() ?? null,
-                    'invoice_url' => $invoice->getInvoiceUrl() ?? null,
-                ]);
-            }
-
-            // 🛎️ Notify this seller
-            $seller = User::find($sellerId);
-            $seller?->notify(new OrderPlacedNotification($order, 'seller'));
-
-            $allOrders[] = $order;
-        }
-
-        // 🛎️ Notify the buyer once
-        if (count($allOrders) > 0) {
-            $user->notify(new OrderPlacedNotification($allOrders[0], 'buyer'));
-        }
-
-        DB::commit();
-        cache()->forget($lockKey);
-
-        // ✅ If online payment, redirect to first invoice URL
-        if ($paymentMethod === 'online' && isset($allOrders[0]->invoice_url)) {
-            return response()->json([
-                'success' => true,
-                'redirect_url' => $allOrders[0]->invoice_url,
-            ]);
-        }
-
-        // ✅ Otherwise (COD / COP)
-        return response()->json([
-            'success' => true,
-            'message' => 'Order placed successfully!',
-            'redirect_url' => route('checkout.success'),
-        ]);
-
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        cache()->forget($lockKey);
-
-        // restore stock
-        foreach ($productStockBackup as $productId => $previousStock) {
-            if ($p = Product::find($productId)) {
-                $p->stock = $previousStock;
-                $p->save();
-            }
-        }
-
-        \Log::error('Checkout Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage() ?: 'Something went wrong while placing your order.',
-        ], 500);
-    }
-}
-
-    $request->validate([
-        'payment_method'      => 'required|in:online,cod,cop',
-        'fulfillment_method'  => 'required|in:delivery,pickup',
-        'address_id'          => 'required_if:fulfillment_method,delivery|nullable|exists:addresses,id',
-    ]);
-
-    $user = auth()->user();
-
-    // 🧩 Prevent duplicate order spam (5 seconds lock)
-    $lockKey = 'placing-order-' . $user->id;
-    if (cache()->has($lockKey)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Please wait — your previous order is still processing.',
-        ], 429);
-    }
-    cache()->put($lockKey, true, 5);
-
-    $productStockBackup = [];
-
-    try {
-        DB::beginTransaction();
-
-        $selectedItems = $request->selected_items ?? session('selected_items', []);
-        if (empty($selectedItems)) {
-            throw new \Exception('No items selected.');
-        }
-
-        // ✅ Build cart items
-        $cartItems = collect();
-        if (isset($selectedItems[0]['product_id'])) {
-            // Buy Now flow
-            foreach ($selectedItems as $item) {
-                $product = Product::with('user')->findOrFail($item['product_id']);
-                $qty = (int) ($item['quantity'] ?? 1);
-                if ($product->stock < $qty) {
-                    throw new \Exception("Not enough stock for {$product->name}");
-                }
-
-                // backup stock
-                $productStockBackup[$product->id] = $product->stock;
-
-                $fakeCart = new Cart([
-                    'id'         => 0,
-                    'user_id'    => $user->id,
-                    'product_id' => $product->id,
-                    'quantity'   => $qty,
-                ]);
-                $fakeCart->setRelation('product', $product);
-                $cartItems->push($fakeCart);
-            }
-        } else {
-            // Cart checkout flow
-            $cartItems = Cart::where('user_id', $user->id)
-                ->whereIn('id', $selectedItems)
-                ->with('product.user')
-                ->get();
-        }
-
-        if ($cartItems->isEmpty()) {
-            throw new \Exception('No valid items found.');
-        }
-
-        // ✅ Totals
-        $subtotal    = $cartItems->sum(fn($i) => $i->product ? $i->product->price * (int) $i->quantity : 0);
-        $fulfillment = $request->input('fulfillment_method', 'delivery');
-        $totalShipping = 0;
-
-        if ($fulfillment === 'delivery') {
-            $buyerCity = null;
-            if ($request->filled('address_id')) {
-                $addr = Address::where('id', $request->address_id)
-                    ->where('user_id', $user->id)
-                    ->first();
-                $buyerCity = optional($addr)->city;
-            }
-            $buyerCity = $buyerCity ?? ($user->city ?? $user->town ?? '');
-
-            $shippingBySeller = [];
-            foreach ($cartItems as $item) {
-                if (!$item->product || !$item->product->user) continue;
-
-                $sellerUser = $item->product->user;
-                $seller     = $sellerUser->seller;
-                $sellerCity = optional($seller)->pickup_city
-                    ?? ($sellerUser->city ?? $sellerUser->town ?? '');
-
-                $sid = $sellerUser->id;
-                if (!isset($shippingBySeller[$sid])) {
-                    $shippingBySeller[$sid] = [
-                        'weight'     => 0,
-                        'buyer_city' => $buyerCity,
-                        'seller_city'=> $sellerCity,
-                        'fee'        => 0,
-                    ];
-                }
-
-                $shippingBySeller[$sid]['weight'] += ($item->product->weight ?? 0) * (int) $item->quantity;
-                $shippingBySeller[$sid]['fee'] = \App\Helpers\ShippingHelper::calculate(
-                    $shippingBySeller[$sid]['buyer_city'],
-                    $shippingBySeller[$sid]['seller_city'],
-                    $shippingBySeller[$sid]['weight']
-                );
-            }
-            $totalShipping = array_sum(array_column($shippingBySeller, 'fee'));
-        }
-
-        $grandTotal = $subtotal + $totalShipping;
-
-        // ✅ Enforce valid payment ↔ fulfillment combos server-side
-        $paymentMethod = $request->payment_method;
-        if ($fulfillment === 'pickup') {
-            // only 'online' or 'cop' are valid for pickup; coerce if needed
-            if (!in_array($paymentMethod, ['online', 'cop'], true)) {
-                $paymentMethod = 'cop';
-            }
-        } else { // delivery
-            // only 'online' or 'cod' are valid for delivery; coerce if needed
-            if (!in_array($paymentMethod, ['online', 'cod'], true)) {
-                $paymentMethod = 'cod';
-            }
-        }
-
-        // ✅ Determine status based on payment method
-        if ($paymentMethod === 'online') {
-    $status = $fulfillment === 'pickup' ? 'awaiting_pickup' : 'awaiting_shipment';
-} else {
-    $status = 'pending';
-}
-
-        // ✅ Create Order (use the computed $paymentMethod)
-        $order = Order::create([
-            'user_id'            => $user->id,
-            'address_id'         => $fulfillment === 'delivery' ? $request->address_id : null,
-            'payment_method'     => $paymentMethod,
-            'fulfillment_method' => $fulfillment,
-            'status'             => $status, // 👈 dynamic now
-            'total_amount'       => $grandTotal,
-            'shipping_fee'       => $totalShipping,
-        ]);
-
-        foreach ($cartItems as $cartItem) {
-            $order->orderItems()->create([
-                'product_id' => $cartItem->product_id,
-                'quantity'   => (int) $cartItem->quantity,
-                'price'      => $cartItem->product->price,
-            ]);
-
-            // reduce stock
-            $product = $cartItem->product;
-            $product->stock -= (int) $cartItem->quantity;
-            $product->save();
-
-            if ($cartItem->id != 0) {
-                $cartItem->delete();
-            }
-        }
-
-        // ✅ Handle Online / GCash Payments
+            // ✅ Handle Online / GCash Payments
             if (in_array($request->payment_method, ['online'])) {
                 $config = \Xendit\Configuration::getDefaultConfiguration();
                 $config->setApiKey(env('XENDIT_SECRET_KEY'));
@@ -726,49 +765,49 @@ class CheckoutController extends Controller
                 ]);
             }
 
-        DB::commit();
-cache()->forget($lockKey);
+            DB::commit();
+            cache()->forget($lockKey);
 
-// 🛎️ Notify the buyer
-$user->notify(new OrderPlacedNotification($order, 'buyer'));
+            // 🛎️ Notify the buyer
+            $user->notify(new OrderPlacedNotification($order, 'buyer'));
 
-// 🛎️ Notify each seller involved
-$order->load('orderItems.product.user'); // make sure we have the users
-$sellers = $order->orderItems
-    ->pluck('product.user')
-    ->unique('id')
-    ->filter();
+            // 🛎️ Notify each seller involved
+            $order->load('orderItems.product.user'); // make sure we have the users
+            $sellers = $order->orderItems
+                ->pluck('product.user')
+                ->unique('id')
+                ->filter();
 
-foreach ($sellers as $seller) {
-    $seller->notify(new OrderPlacedNotification($order, 'seller'));
-}
-
-return response()->json([
-    'success' => true,
-    'message' => 'Order placed successfully!',
-    'redirect_url' => route('checkout.success'),
-]);
-
-
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        cache()->forget($lockKey);
-
-        // restore stock
-        foreach ($productStockBackup as $productId => $previousStock) {
-            if ($p = Product::find($productId)) {
-                $p->stock = $previousStock;
-                $p->save();
+            foreach ($sellers as $seller) {
+                $seller->notify(new OrderPlacedNotification($order, 'seller'));
             }
-        }
 
-        \Log::error('Checkout Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage() ?: 'Something went wrong while placing your order.',
-        ], 500);
+            return response()->json([
+                'success' => true,
+                'message' => 'Order placed successfully!',
+                'redirect_url' => route('checkout.success'),
+            ]);
+
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            cache()->forget($lockKey);
+
+            // restore stock
+            foreach ($productStockBackup as $productId => $previousStock) {
+                if ($p = Product::find($productId)) {
+                    $p->stock = $previousStock;
+                    $p->save();
+                }
+            }
+
+            \Log::error('Checkout Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage() ?: 'Something went wrong while placing your order.',
+            ], 500);
+        }
     }
-}
 
 
     public function saveSelectedAddress(Request $request)
@@ -816,7 +855,8 @@ return response()->json([
 
             foreach ($order->orderItems as $item) {
                 $seller = $item->product->user->seller ?? null;
-                if (!$seller || !$seller->xendit_account_id) continue;
+                if (!$seller || !$seller->xendit_account_id)
+                    continue;
 
                 $amount = $item->price * $item->quantity;
                 $platformFee = $amount * 0.05; // 5% commission
@@ -891,6 +931,34 @@ return response()->json([
             'perSeller' => $perSeller,
         ]);
     }
+
+    public function updateBuyNow(Request $request)
+    {
+        $productId = (int) $request->input('product_id');
+        $quantity = max(1, (int) $request->input('quantity')); // avoid 0 or negative
+
+        // Get current selected items from session
+        $selectedItems = session('selected_items', []);
+
+        // Check if it's the same Buy Now product
+        if (!empty($selectedItems) && isset($selectedItems[0]['product_id'])) {
+            $selectedItems[0]['quantity'] = $quantity; // ✅ update quantity
+        } else {
+            // If empty or invalid, reinitialize it
+            $selectedItems = [
+                [
+                    'product_id' => $productId,
+                    'quantity' => $quantity,
+                ]
+            ];
+        }
+
+        session(['selected_items' => $selectedItems]); // ✅ save back to session
+
+        return response()->json(['success' => true, 'quantity' => $quantity]);
+    }
+
+
 
 
 }

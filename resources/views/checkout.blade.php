@@ -31,16 +31,14 @@
                                         <div class="d-flex align-items-center gap-3">
                                             @if($cartItem->id == 0)
                                                 {{-- Buy Now flow: send product + qty --}}
-                                                <input type="hidden" name="selected_items[0][product_id]"
-                                                    value="{{ $cartItem->product->id }}">
-                                                <input type="hidden" name="selected_items[0][quantity]"
-                                                    value="{{ $cartItem->quantity }}">
+                                                <input type="hidden" name="selected_items[0][product_id]" value="{{ $cartItem->product->id }}">
+                                                <input type="hidden" name="selected_items[0][quantity]" value="{{ $cartItem->quantity }}">
 
                                                 {{-- Hidden checkbox for JS subtotal calculation --}}
                                                 <input type="checkbox" class="item-check d-none" checked
                                                     data-price="{{ $cartItem->product->price }}"
                                                     data-qty="{{ $cartItem->quantity }}"
-                                                    data-seller="{{ $cartItem->product->user_id }}">
+                                                    data-seller="{{ $cartItem->product->user_id }}" data-id="0" data-buynow="true">
                                             @else
                                                 {{-- Normal cart checkout --}}
                                                 <input class="form-check-input mt-0 item-check" type="checkbox"
@@ -49,18 +47,42 @@
                                                     data-qty="{{ $cartItem->quantity }}"
                                                     data-seller="{{ $cartItem->product->user_id }}">
                                             @endif
-                                            <img src="{{ asset('storage/' . $cartItem->product->image) }}"
-                                                alt="{{ $cartItem->product->name }}" class="rounded border"
-                                                style="width:76px;height:76px;object-fit:cover;">
-                                            <div class="flex-grow-1">
-                                                <div class="fw-semibold">{{ $cartItem->product->name }}</div>
-                                                @if($sellerName)
-                                                    <div class="text-muted small">by {{ $sellerName }}</div>
-                                                @endif
-                                                <div class="text-muted small">
-                                                    ₱{{ number_format($cartItem->product->price, 2) }}
-                                                    <span class="mx-1">·</span>
-                                                    Qty: {{ $cartItem->quantity }}
+                                            <div class="d-flex align-items-center gap-3 mb-3">
+                                                {{-- Product image --}}
+                                                <img src="{{ asset('storage/' . $cartItem->product->image) }}"
+                                                    alt="{{ $cartItem->product->name }}" class="rounded border"
+                                                    style="width:76px; height:76px; object-fit:cover;">
+
+                                                {{-- Product info --}}
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-semibold">{{ $cartItem->product->name }}</div>
+                                                    @if($sellerName)
+                                                        <div class="text-muted small">by {{ $sellerName }}</div>
+                                                    @endif
+                                                    <div class="text-muted small mb-2">
+                                                        ₱{{ number_format($cartItem->product->price, 2) }}
+                                                    </div>
+
+                                                    {{-- Quantity Controls --}}
+                                                    <div class="d-flex align-items-center">
+                                                        <button class="btn btn-outline-secondary btn-sm decrease-qty"
+                                                            data-id="{{ $cartItem->id }}"
+                                                            data-stock="{{ $cartItem->product->stock }}"
+                                                            @if($cartItem->id == 0) data-buynow="true" data-product="{{ $cartItem->product->id }}" @endif>−</button>
+
+                                                        <input type="text"
+                                                            class="form-control form-control-sm text-center mx-2 quantity-input"
+                                                            value="{{ $cartItem->quantity }}"
+                                                            data-id="{{ $cartItem->id }}"
+                                                            data-stock="{{ $cartItem->product->stock }}"
+                                                            @if($cartItem->id == 0) data-buynow="true" data-product="{{ $cartItem->product->id }}" @endif
+                                                            style="width:50px;">
+
+                                                        <button class="btn btn-outline-secondary btn-sm increase-qty"
+                                                            data-id="{{ $cartItem->id }}"
+                                                            data-stock="{{ $cartItem->product->stock }}"
+                                                            @if($cartItem->id == 0) data-buynow="true" data-product="{{ $cartItem->product->id }}" @endif>+</button>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="text-end">
@@ -422,32 +444,32 @@
             }
 
             function recalcSummary() {
-    let subtotal = 0;
-    itemChecks.forEach(cb => {
-        if (!cb.checked) return;
-        const price = parseFloat(cb.dataset.price || '0');
-        const qty = parseInt(cb.dataset.qty || '1', 10);
-        subtotal += price * qty;
-    });
+                let subtotal = 0;
+                itemChecks.forEach(cb => {
+                    if (!cb.checked) return;
+                    const price = parseFloat(cb.dataset.price || '0');
+                    const qty = parseInt(cb.dataset.qty || '1', 10);
+                    subtotal += price * qty;
+                });
 
-    let shipping = parseFloat((sumShipping?.textContent || '0').replace(/,/g, '')) || 0;
-    let shippingDiscount = parseFloat((sumShippingDiscount?.textContent || '0').replace(/,/g, '')) || 0;
+                let shipping = parseFloat((sumShipping?.textContent || '0').replace(/,/g, '')) || 0;
+                let shippingDiscount = parseFloat((sumShippingDiscount?.textContent || '0').replace(/,/g, '')) || 0;
 
-    if (isPickupMode()) {
-        shipping = 0;
-        shippingDiscount = 0;
-    }
+                if (isPickupMode()) {
+                    shipping = 0;
+                    shippingDiscount = 0;
+                }
 
-    const total = subtotal + shipping - shippingDiscount;
+                const total = subtotal + shipping - shippingDiscount;
 
-    // 🧾 Format with thousand separators (2 decimal places)
-    const formatNum = n => n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                // 🧾 Format with thousand separators (2 decimal places)
+                const formatNum = n => n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    sumSubtotal.textContent = formatNum(subtotal);
-    sumShipping.textContent = formatNum(shipping);
-    sumShippingDiscount.textContent = formatNum(shippingDiscount);
-    sumTotal.textContent = formatNum(total);
-}
+                sumSubtotal.textContent = formatNum(subtotal);
+                sumShipping.textContent = formatNum(shipping);
+                sumShippingDiscount.textContent = formatNum(shippingDiscount);
+                sumTotal.textContent = formatNum(total);
+            }
 
 
             function applyFulfillmentMode() {
@@ -798,6 +820,198 @@
             }
         });
     </script>
+
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // 🧹 Clear old Buy Now data
+for (const key in localStorage) {
+    if (key.startsWith('buyNowQty_')) {
+        localStorage.removeItem(key);
+    }
+}
+
+// 🧠 Ensure quantities never exceed available stock
+document.querySelectorAll('.quantity-input').forEach(input => {
+    const stock = parseInt(input.dataset.stock || 0);
+    let qty = parseInt(input.value) || 1;
+
+    if (stock > 0 && qty > stock) {
+        input.value = stock;
+
+        // Update checkbox qty + line total
+        const item = input.closest('.list-group-item');
+        const cb = item?.querySelector('.item-check');
+        if (cb) {
+            cb.dataset.qty = stock;
+            const price = parseFloat(cb.dataset.price || 0);
+            const lineTotalEl = item?.querySelector('.line-total');
+            if (lineTotalEl) lineTotalEl.textContent = (price * stock).toFixed(2);
+        }
+
+        // If it's a Buy Now item, sync the hidden input
+        if (input.dataset.buynow === 'true') {
+            const hiddenQty = document.querySelector(`input[name="selected_items[0][quantity]"]`);
+            if (hiddenQty) hiddenQty.value = stock;
+        }
+    }
+});
+    
+
+
+    const sumSubtotal = document.getElementById('sum-subtotal');
+    const sumShipping = document.getElementById('sum-shipping');
+    const sumShippingDiscount = document.getElementById('sum-shipping-discount');
+    const sumTotal = document.getElementById('sum-total');
+    const csrfToken = '{{ csrf_token() }}';
+
+    function recalcSummary() {
+        let subtotal = 0;
+        document.querySelectorAll('.item-check').forEach(cb => {
+            if (!cb.checked) return;
+            const price = parseFloat(cb.dataset.price || 0);
+            const qty = parseInt(cb.dataset.qty || 1) || 0;
+            subtotal += price * qty;
+        });
+
+        let shipping = parseFloat((sumShipping?.textContent || '0').replace(/,/g, '')) || 0;
+        let discount = parseFloat((sumShippingDiscount?.textContent || '0').replace(/,/g, '')) || 0;
+
+        if (document.getElementById('fm_pickup')?.checked) {
+            shipping = 0;
+            discount = 0;
+        }
+
+        const total = subtotal + shipping - discount;
+        const fmt = n => n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (sumSubtotal) sumSubtotal.textContent = fmt(subtotal);
+        if (sumTotal) sumTotal.textContent = fmt(total);
+    }
+
+    // ✅ Restore BuyNow quantities from localStorage
+    document.querySelectorAll('.quantity-input[data-buynow="true"][data-product]').forEach(input => {
+        const productId = input.dataset.product;
+        if (!productId) return;
+        const key = `buyNowQty_${productId}`;
+        const saved = localStorage.getItem(key);
+        if (saved && !isNaN(parseInt(saved))) {
+            input.value = parseInt(saved);
+            const item = input.closest('.list-group-item');
+            const cb = item?.querySelector('.item-check');
+            if (cb) {
+                cb.dataset.qty = input.value;
+                const price = parseFloat(cb.dataset.price || 0);
+                const lineTotalEl = item?.querySelector('.line-total');
+                if (lineTotalEl) lineTotalEl.textContent = (price * input.value).toFixed(2);
+            }
+        }
+    });
+
+    // ✅ Handle +/− clicks
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.increase-qty, .decrease-qty');
+        if (!btn) return;
+        e.preventDefault();
+
+        const isBuyNow = btn.dataset.buynow === 'true';
+        const productId = btn.dataset.product;
+        const id = btn.dataset.id;
+        let input;
+
+        // 🟢 Fix: properly find the input for buy-now
+        if (isBuyNow && productId) {
+            input = document.querySelector(`.quantity-input[data-buynow="true"][data-product="${productId}"]`);
+        } else {
+            input = document.querySelector(`.quantity-input[data-id="${id}"]`);
+        }
+
+        if (!input) return;
+
+        let qty = parseInt(input.value) || 1;
+        const stock = parseInt(input.dataset.stock || 0) || 0;
+
+        if (btn.classList.contains('increase-qty')) {
+            if (stock && qty >= stock) {
+                return alert(`Only ${stock} in stock.`);
+            }
+            qty++;
+        } else {
+            if (qty > 1) qty--;
+        }
+
+        input.value = qty;
+
+        // Update line total + dataset
+        const item = input.closest('.list-group-item');
+        const cb = item?.querySelector('.item-check');
+        if (cb) {
+            cb.dataset.qty = qty;
+            const price = parseFloat(cb.dataset.price || 0);
+            const lineTotalEl = item?.querySelector('.line-total');
+            if (lineTotalEl) lineTotalEl.textContent = (price * qty).toFixed(2);
+        }
+
+        recalcSummary();
+
+        if (isBuyNow) {
+            // Update the hidden quantity input for form submission
+            const hiddenQtyInput = document.querySelector(`input[name="selected_items[0][quantity]"]`);
+            if (hiddenQtyInput) {
+                hiddenQtyInput.value = qty;
+            }
+
+            // Update the checkbox dataset.qty so subtotal updates work
+            const item = btn.closest('.list-group-item');
+            const cb = item ? item.querySelector('.item-check') : null;
+            if (cb) cb.dataset.qty = qty;
+
+            // Update the line total visually
+            if (item) {
+                const price = cb ? parseFloat(cb.dataset.price || 0) : 0;
+                const lineTotalEl = item.querySelector('.line-total');
+                if (lineTotalEl) lineTotalEl.textContent = (price * qty).toFixed(2);
+            }
+
+            // Recalculate the subtotal and totals
+            recalcSummary();
+
+            return; // ✅ Prevents running normal cart update logic
+        }
+
+
+
+        // ✅ Update normal cart item in backend
+        const numericId = parseInt(id, 10);
+        if (!isNaN(numericId) && numericId > 0) {
+            fetch(`/cart/update/${numericId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({ quantity: qty })
+            })
+            .then(res => res.json().catch(() => ({})))
+            .then(data => {
+                if (data?.success) console.log('Cart updated');
+            })
+            .catch(err => console.error('Error updating cart:', err));
+        }
+    });
+
+    document.addEventListener('change', e => {
+        if (e.target.closest('.item-check')) recalcSummary();
+    });
+
+    document.querySelectorAll('[name="fulfillment_method"]').forEach(r => {
+        r.addEventListener('change', recalcSummary);
+    });
+
+    recalcSummary();
+});
+</script>
+
+
 
     <style>
         .checkout-page .card {
