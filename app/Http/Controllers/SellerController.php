@@ -782,17 +782,19 @@ private function getDateRange($type)
             $buyer->notify(new OrderStatusUpdated($order, $extraMsg));
         }
     }
-
 public function viewShop($id)
 {
     $seller = \App\Models\User::with('seller')
-        ->where('id', $id)
-        ->firstOrFail();
+        ->whereHas('seller') // ensure it's actually a seller
+        ->findOrFail($id);
 
-    $products = \App\Models\Product::where('user_id', $seller->id)->get();
+    $products = \App\Models\Product::where('user_id', $seller->id)
+        ->latest()
+        ->get();
 
     return view('shop.view-shop', compact('seller', 'products'));
 }
+
 
 
 

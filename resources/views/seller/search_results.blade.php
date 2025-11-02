@@ -18,7 +18,7 @@
               </div>
             </div>
             <div class="mt-3">
-              <a href="{{ route('shop.view', $seller->id) }}" class="btn btn-outline-secondary">
+              <a href="{{ route('shop.view', $seller->user->id) }}" class="btn btn-outline-secondary">
                 <i class="fa-regular fa-store me-1"></i> View Shop
               </a>
             </div>
